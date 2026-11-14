@@ -209,6 +209,14 @@ class MachineSimulator:
         else:
             self._scheduled_actions.append((start_step, "clear", name, None))
 
+    def replace_tool(self) -> None:
+        """Maintenance action: put in a new tool now (tool wear goes back to zero)."""
+        latest = self._previous_states[-1]
+        worn_value = latest["tool_wear"]
+        latest["tool_wear"] = 0.0
+        self._latest_measured["tool_wear"] = 0.0
+        self._log_event("tool_change", {"wear_at_change": round(worn_value, 2), "reason": "manual"})
+
     def get_true_hazard(self) -> float:
         """Return the true failure probability of the latest step (VALIDATION ONLY)."""
         return self._current_hazard

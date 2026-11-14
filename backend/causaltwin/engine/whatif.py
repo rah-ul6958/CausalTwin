@@ -3,9 +3,12 @@
 Choices (shown to users in the "How was this computed?" drawer):
 - Intervened variables are forced to their value from their start step (the do
   operation), which cuts all their incoming causal edges.
-- Exogenous variables that are not intervened on stay at their last observed value
-  (constant). A trend could be extrapolated, but over a 5-minute horizon a constant is
-  safer and does not invent drift.
+- Exogenous variables that are not intervened on (levers nobody touches, ambient
+  temperature) follow a random walk built from their own historically observed one-step
+  changes, clipped to their observed range ("random_walk"), or stay at their last value
+  ("constant", the default). Measured on the Phase 3 benchmark situations, constant is well
+  calibrated, while the random walk drifts levers too far (operator adjustments revert to a
+  setpoint instead of accumulating) and, clipped at range edges, invents optimism.
 - Noise is resampled from each equation's own fitted residuals (empirical distribution),
   so rare jumps such as tool chipping are reproduced.
 - The baseline run uses exactly the same noise draws, so the reported change is caused
@@ -20,6 +23,10 @@ import numpy as np
 from causaltwin.engine.causal_model import CausalModel
 from causaltwin.engine.schemas import Intervention, RiskEstimate, VariableForecast, WhatIfResult
 from causaltwin.utils.timing import timed_step
+
+# The batched search uses 32-bit floats: half the memory traffic; risk differs from the 64-bit
+# single what-if by well under 0.1 percentage points (checked in the tests).
+STATE_DTYPE = np.float32
 
 ASSUMPTIONS = [
     "Intervened variables are forced to their value (do operation); their incoming edges are cut.",
@@ -58,13 +65,59 @@ def _target_value(intervention: Intervention, last_value: float) -> float:
     return intervention.value
 
 
+Forcing = dict[int, tuple[float, int, bool]]  # variable index -> (value, start step, is_reset)
+
+
+def _is_forced(forcing: tuple[float, int, bool] | None, step: int, is_exogenous: bool) -> bool:
+    """Whether a forced value applies at this step ("reset" only at its start, except for exogenous)."""
+    if forcing is None:
+        return False
+    _, start, is_reset = forcing
+    if is_reset and not is_exogenous:
+        return step == start
+    return step >= start
+
+
+def _forcing(model: CausalModel, interventions: list[Intervention], last_row: np.ndarray) -> Forcing:
+    """Translate interventions into forced values per variable index."""
+    forced: Forcing = {}
+    for intervention in interventions:
+        if intervention.variable not in model.variables:
+            raise ValueError(f"Cannot intervene on unknown variable '{intervention.variable}'")
+        position = model.variables.index(intervention.variable)
+        forced[position] = (
+            _target_value(intervention, float(last_row[position])),
+            intervention.start_step,
+            intervention.change_type == "reset",
+        )
+    return forced
+
+
+def _draw_noise(
+    model: CausalModel, rng: np.random.Generator, n_rollouts: int, horizon: int, exogenous_mode: str
+) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """Residual indices per equation, then (random-walk mode) step indices per exogenous variable."""
+    noise_draws = {
+        name: rng.integers(0, equation.residuals.size, size=(n_rollouts, horizon))
+        for name, equation in model.equations.items()
+    }
+    exogenous_draws: dict[str, np.ndarray] = {}
+    if exogenous_mode == "random_walk":
+        exogenous_draws = {
+            name: rng.integers(0, steps.size, size=(n_rollouts, horizon))
+            for name, steps in sorted(model.exogenous_steps.items())
+        }
+    return noise_draws, exogenous_draws
+
+
 def _simulate(
     model: CausalModel,
     history: np.ndarray,
-    forced: dict[int, tuple[float, int]],
+    forced: Forcing,
     horizon: int,
     noise_draws: dict[str, np.ndarray],
     noise_scale: dict[str, float],
+    exogenous_draws: dict[str, np.ndarray] | None = None,
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """Roll the model forward. Returns paths (rollouts, history + horizon, variables) and hazards."""
     n_rollouts = next(iter(noise_draws.values())).shape[0] if noise_draws else 1
@@ -77,15 +130,20 @@ def _simulate(
     for step in range(horizon):
         row = n_history + step
         paths[:, row, :] = history[-1]  # exogenous default: last observed value
-        for position, (forced_level, start) in forced.items():
-            if step >= start and model.variables[position] in model.exogenous:
-                paths[:, row, position] = forced_level
+        for name, draws in (exogenous_draws or {}).items():
+            position = index[name]
+            low, high = model.exogenous_ranges[name]
+            walk = paths[:, row - 1, position] + model.exogenous_steps[name][draws[:, step]]
+            paths[:, row, position] = np.clip(walk, low, high)
+        for position, forcing in forced.items():
+            if model.variables[position] in model.exogenous and _is_forced(forcing, step, True):
+                paths[:, row, position] = forcing[0]
         for name in order:
             equation = model.equations[name]
             position = index[name]
-            forced_value = forced.get(position)
-            if forced_value is not None and step >= forced_value[1]:
-                paths[:, row, position] = forced_value[0]
+            endogenous_forcing = forced.get(position)
+            if endogenous_forcing is not None and _is_forced(endogenous_forcing, step, False):
+                paths[:, row, position] = endogenous_forcing[0]
                 continue
             value = np.full(n_rollouts, equation.intercept)
             for (cause, lag), coefficient in zip(equation.terms, equation.coefficients, strict=True):
@@ -116,6 +174,7 @@ def run_what_if(
     seed: int,
     percentiles: tuple[float, float],
     noise_scale: dict[str, float] | None = None,
+    exogenous_mode: str = "constant",
 ) -> WhatIfResult:
     """Simulate the interventions and a no-intervention baseline with the same noise.
 
@@ -131,19 +190,11 @@ def run_what_if(
         if not model.time_structure:
             horizon = 1
         rng = np.random.default_rng(seed)
-        noise_draws = {
-            name: rng.integers(0, equation.residuals.size, size=(n_rollouts, horizon))
-            for name, equation in model.equations.items()
-        }
-        forced: dict[int, tuple[float, int]] = {}
-        for intervention in interventions:
-            if intervention.variable not in model.variables:
-                raise ValueError(f"Cannot intervene on unknown variable '{intervention.variable}'")
-            position = model.variables.index(intervention.variable)
-            forced[position] = (_target_value(intervention, float(history[-1, position])), intervention.start_step)
+        noise_draws, exogenous_draws = _draw_noise(model, rng, n_rollouts, horizon, exogenous_mode)
+        forced = _forcing(model, interventions, history[-1])
         scale = noise_scale or {}
-        paths, hazards = _simulate(model, history, forced, horizon, noise_draws, scale)
-        baseline_paths, baseline_hazards = _simulate(model, history, {}, horizon, noise_draws, scale)
+        paths, hazards = _simulate(model, history, forced, horizon, noise_draws, scale, exogenous_draws)
+        baseline_paths, baseline_hazards = _simulate(model, history, {}, horizon, noise_draws, scale, exogenous_draws)
 
         future = paths[:, needed_rows:, :]
         baseline_future = baseline_paths[:, needed_rows:, :]
@@ -179,3 +230,111 @@ def run_what_if(
         computation_ms=elapsed_ms,
         assumptions=ASSUMPTIONS if model.time_structure else [*ASSUMPTIONS[:4], "Tabular mode: one-step propagation."],
     )
+
+
+def batch_failure_risk(
+    model: CausalModel,
+    history: np.ndarray,
+    candidates: list[list[Intervention]],
+    horizon: int,
+    n_rollouts: int,
+    seed: int,
+    percentiles: tuple[float, float],
+    exogenous_mode: str = "constant",
+) -> dict[str, np.ndarray]:
+    """Evaluate many intervention sets at once (used by the optimizer's search).
+
+    Every candidate uses the same noise draws (common random numbers), drawn exactly as
+    in `run_what_if` with the same seed, so a candidate here gives the same rollouts as
+    `run_what_if` would. Only a rolling buffer of the last `max_lag` rows is kept, which
+    keeps memory small for about 1,000 candidates x 100 rollouts.
+
+    Returns per-candidate arrays: "risk", "risk_lower", "risk_upper" (shape C) and
+    "end_values" (shape C x rollouts x variables, the state at the end of the horizon).
+    """
+    if model.failure is None:
+        raise ValueError("The model has no failure equation, so risk cannot be evaluated")
+    needed_rows = max(model.max_lag, 1)
+    history = history[-needed_rows:]
+    n_candidates, n_variables = len(candidates), history.shape[1]
+    n_rows = n_candidates * n_rollouts
+    index = {name: position for position, name in enumerate(model.variables)}
+    rng = np.random.default_rng(seed)
+    noise_draws, exogenous_draws = _draw_noise(model, rng, n_rollouts, horizon, exogenous_mode)
+    walk_steps = {
+        name: model.exogenous_steps[name][draws].astype(STATE_DTYPE) for name, draws in exogenous_draws.items()
+    }  # (rollouts, horizon), shared by every candidate
+    forced_value = np.full((n_candidates, n_variables), np.nan)
+    forced_start = np.zeros((n_candidates, n_variables), dtype=int)
+    forced_reset = np.zeros((n_candidates, n_variables), dtype=bool)
+    for candidate_index, interventions in enumerate(candidates):
+        for position, (forced_level, start, is_reset) in _forcing(model, interventions, history[-1]).items():
+            forced_value[candidate_index, position] = forced_level
+            forced_start[candidate_index, position] = start
+            forced_reset[candidate_index, position] = is_reset
+    exogenous = {index[name] for name in model.exogenous}
+    # Per forced variable: rows (candidate x rollout) and value, expanded once.
+    forcings = []
+    for position in range(n_variables):
+        candidate_mask = ~np.isnan(forced_value[:, position])
+        if candidate_mask.any():
+            forcings.append(
+                (
+                    position,
+                    np.repeat(candidate_mask, n_rollouts),
+                    np.repeat(np.nan_to_num(forced_value[:, position]), n_rollouts),
+                    np.repeat(forced_start[:, position], n_rollouts),
+                    np.repeat(forced_reset[:, position], n_rollouts) & (position not in exogenous),
+                )
+            )
+
+    def apply_forcing(state: np.ndarray, position: int, step: int) -> None:
+        """Overwrite forced rows of one variable (state is variables x rows)."""
+        for forced_position, mask, values, starts, resets in forcings:
+            if forced_position != position:
+                continue
+            active = mask & (starts <= step) & (~resets | (starts == step))
+            state[position, active] = values[active]
+
+    # Variable-major layout (variables x rows): each variable is one contiguous array.
+    history = history.astype(STATE_DTYPE)
+    recent = [np.broadcast_to(row[:, None], (n_variables, n_rows)) for row in history]  # oldest first
+    survival = np.ones(n_rows)
+    order = _evaluation_order(model)
+    noise_values = {
+        name: equation.residuals[noise_draws[name]].astype(STATE_DTYPE) for name, equation in model.equations.items()
+    }  # (rollouts, horizon), shared by every candidate
+    for step in range(horizon):
+        current = np.empty((n_variables, n_rows), dtype=STATE_DTYPE)
+        current[:] = history[-1][:, None]
+        for name, steps in walk_steps.items():
+            low, high = model.exogenous_ranges[name]
+            current[index[name]] = np.clip(recent[-1][index[name]] + np.tile(steps[:, step], n_candidates), low, high)
+        for position in exogenous:
+            apply_forcing(current, position, step)
+        for name in order:
+            equation = model.equations[name]
+            position = index[name]
+            value = np.full(n_rows, equation.intercept, dtype=STATE_DTYPE)
+            for (cause, lag), coefficient in zip(equation.terms, equation.coefficients, strict=True):
+                source = current if lag == 0 else recent[-lag]
+                value += STATE_DTYPE(coefficient) * source[index[cause]]
+            value += np.tile(noise_values[name][:, step], n_candidates)
+            current[position] = value
+            apply_forcing(current, position, step)
+        logit = np.full(n_rows, model.failure.intercept)
+        for (cause, lag), coefficient in zip(model.failure.terms, model.failure.coefficients, strict=True):
+            source = current if lag == 0 else recent[-lag]
+            logit += coefficient * source[index[cause]]
+        survival *= 1.0 - 1.0 / (1.0 + np.exp(-np.clip(logit, -50, 50)))
+        recent.append(current)
+        if len(recent) > needed_rows:
+            recent.pop(0)
+    per_rollout_risk = (1.0 - survival).reshape(n_candidates, n_rollouts)
+    lower, upper = np.percentile(per_rollout_risk, percentiles, axis=1)
+    return {
+        "risk": per_rollout_risk.mean(axis=1),
+        "risk_lower": lower,
+        "risk_upper": upper,
+        "end_values": recent[-1].T.reshape(n_candidates, n_rollouts, n_variables),
+    }

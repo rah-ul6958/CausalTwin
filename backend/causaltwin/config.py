@@ -135,6 +135,10 @@ WHATIF_HORIZON = 30  # steps (5 minutes)
 WHATIF_ROLLOUTS = 200
 WHATIF_SEED = 11
 WHATIF_INTERVAL_PERCENTILES = (5.0, 95.0)  # 90% interval
+# Non-intervened exogenous variables: "random_walk" (historical one-step changes) or "constant".
+# Measured on the 30 benchmark situations: "constant" predicts no-action risk well (mean 0.297 vs true 0.304,
+# correlation 0.95); "random_walk" was biased low (0.184), so constant is the default.
+WHATIF_EXOGENOUS_MODE = "constant"
 # Root cause
 ROOT_CAUSE_RISK_THRESHOLD = 0.1  # failure probability within the horizon that counts as high
 ROOT_CAUSE_MAX_PATHS = 5
@@ -262,3 +266,86 @@ SCENARIO_SEEDS: dict[str, int] = {
     "heat_wave": 404,
     "tool_wear": 505,
 }
+
+
+# ---------------------------------------------------------------------------
+# Intelligence layer (Phase 3). All costs are ILLUSTRATIVE "cost units", not money.
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class LeverCost:
+    """Cost model for changing one control lever (illustrative)."""
+
+    max_change_pct: float  # largest change allowed in one action, percent of the current value
+    cost_per_pct: float  # cost units per percent of change
+    side_effect_increase: str  # what an increase costs the shop
+    side_effect_decrease: str  # what a decrease costs the shop
+
+
+LEVER_COSTS: dict[str, LeverCost] = {
+    "coolant_flow": LeverCost(30.0, 0.05, "pump energy up {pct:.0f}%", "less cooling margin"),
+    "lube_rate": LeverCost(30.0, 0.08, "lubricant use up {pct:.0f}%", "less lubrication margin"),
+    "spindle_speed": LeverCost(30.0, 0.5, "faster cycle, more heat", "cycle time up about {pct:.0f}%"),
+    "load_pct": LeverCost(30.0, 1.0, "more output per pass, more heat", "throughput down {pct:.0f}%"),
+}
+# Maintenance actions the optimizer may also consider (do-interventions on a sensor state).
+TOOL_CHANGE_COST = 8.0  # cost units (new tool plus a short stop)
+TOOL_CHANGE_SIDE_EFFECT = "machine paused briefly for a tool change"
+VIBRATION_DAMPING_COST = 3.0  # cost units for the baseline's "damp vibration" action
+
+# Optimizer
+OPTIMIZER_TARGET_RISK = 0.10  # failure probability within the horizon to get below
+OPTIMIZER_SINGLE_STEP_PCT = 2.0  # single-lever grid: -30% .. +30% in 2% steps
+OPTIMIZER_PAIR_STEP_PCT = 5.0  # lever-pair grid: 5% steps
+OPTIMIZER_SEARCH_ROLLOUTS = 100  # rollouts per candidate during the search
+OPTIMIZER_FINAL_ROLLOUTS = 200  # rollouts for re-evaluating the top candidates
+OPTIMIZER_TOP_K = 5
+OPTIMIZER_SEED = 21
+OPTIMIZER_FINAL_SEED = 22  # finalists are re-checked with independent noise (avoids the winner's curse)
+# The search aims below target * margin: picking the cheapest of ~900 noisy estimates that pass a
+# threshold favours optimistic estimates; the margin absorbs that (success is still judged at the target).
+OPTIMIZER_PLANNING_MARGIN = 0.8
+INEFFECTIVE_RISK_REDUCTION = 0.01  # best risk reduction below this: the lever is "ineffective"
+
+# Baseline (standard ML, for the Correlation Trap)
+BASELINE_HORIZON = 30  # predict failure within the next N steps
+BASELINE_N_ESTIMATORS = 200
+BASELINE_MAX_DEPTH = 3
+BASELINE_LEARNING_RATE = 0.1
+BASELINE_SEED = 0
+BASELINE_TEST_FRACTION = 0.2  # chronological final share used for accuracy metrics
+BASELINE_DEFAULT_MAGNITUDE_PCT = 20.0  # used when CausalTwin recommends no lever change
+
+# Benchmark
+BENCHMARK_SITUATIONS_PER_SCENARIO = 6  # 5 scenarios x 6 = 30 situations
+BENCHMARK_SEED_BASE = 7000
+BENCHMARK_SEEDS_PER_SITUATION = 8  # simulator futures averaged per situation
+BENCHMARK_HAZARD_SCREEN = 0.002  # cheap screen on the instantaneous true hazard
+BENCHMARK_MIN_TRUE_RISK = 0.15  # a situation is "high risk" if true risk within the horizon >= this
+BENCHMARK_MIN_GAP_STEPS = 400  # spacing between situations taken from one run
+BENCHMARK_MAX_STEPS_PER_RUN = 20_000
+BENCHMARK_RESULTS_PATH = DATA_DIR / "benchmark_results.json"
+
+# Drift detection (CUSUM on standardized one-step-ahead errors)
+DRIFT_CUSUM_K = 0.5  # allowance, in standard deviations
+DRIFT_CUSUM_H = 10.0  # alarm threshold
+DRIFT_Z_CLIP = 3.0  # winsorize errors so single outliers (for example tool chips) cannot trigger alone
+DRIFT_REDISCOVERY_WINDOW = 600  # post-change steps collected before re-discovery
+DRIFT_BOOTSTRAP_RESAMPLES = 20
+DRIFT_MIN_RELATIVE_CHANGE = 0.3  # coefficient change must also be at least 30% to be reported
+DRIFT_FAULT_STEP = 3000  # drift tests: fault injected after this many normal steps
+
+# Live loop and API
+LIVE_SEED = 4242
+LIVE_STEPS_PER_SECOND = 5.0
+LIVE_RISK_ROLLOUTS = 50  # rollouts for the per-step twin risk estimate
+LIVE_ROOT_CAUSE_EVERY = 50  # steps between root-cause refreshes
+LIVE_TRUTH_EVERY = 10  # steps between ground-truth risk computations (validation channel)
+LIVE_TRUTH_SEEDS = 4
+LIVE_BUFFER_ROWS = 5000
+LIVE_MAX_FRAMES_PER_SECOND = 10.0
+LIVE_LOG_FLUSH_SECONDS = 0.5
+WEBSOCKET_QUEUE_SIZE = 500
+DEMO_SEED = 777
+MODEL_CACHE_PATH = DATA_DIR / "model_cache.pkl"
+CORS_ORIGINS_ENV = "CAUSALTWIN_CORS_ORIGINS"  # comma-separated list
+AUTOSTART_ENV = "CAUSALTWIN_AUTOSTART"  # "0" keeps the live loop paused at start-up

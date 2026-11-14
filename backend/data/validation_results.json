@@ -703,16 +703,16 @@
     ]
   },
   "timings_ms": {
-    "warm_up": 3099.96,
-    "pcmci": 478.18,
-    "failure_screen": 609.19,
-    "discovery": 1087.62,
-    "bootstrap": 3039.31,
-    "fit_model": 196.59,
-    "correlation_graph": 39.83,
-    "fit_engine": 4383.68,
-    "fit_total": 4383.757200000218,
-    "what_if_200_rollouts_median": 13.866600000255858
+    "warm_up": 3294.97,
+    "pcmci": 1021.59,
+    "failure_screen": 1313.49,
+    "discovery": 2337.52,
+    "bootstrap": 6038.18,
+    "fit_model": 376.53,
+    "correlation_graph": 83.49,
+    "fit_engine": 8875.67,
+    "fit_total": 8875.82139999904,
+    "what_if_200_rollouts_median": 29.308799999853363
   },
   "variables": [
     "ambient_temp",

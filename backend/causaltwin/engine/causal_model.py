@@ -71,6 +71,10 @@ class CausalModel:
     baseline: dict[str, float]  # median of each variable over usable rows ("normal level")
     time_structure: bool
     notes: list[str] = field(default_factory=list)
+    # Observed one-step changes and ranges of each exogenous variable: the what-if engine lets
+    # non-intervened exogenous variables follow a random walk built from these changes.
+    exogenous_steps: dict[str, np.ndarray] = field(default_factory=dict)
+    exogenous_ranges: dict[str, tuple[float, float]] = field(default_factory=dict)
 
     @property
     def max_lag(self) -> int:
@@ -188,6 +192,26 @@ def _fit_logistic(
     )
 
 
+def _exogenous_dynamics(
+    window: PreparedData, limit: int, rng: np.random.Generator
+) -> tuple[dict[str, np.ndarray], dict[str, tuple[float, float]]]:
+    """One-step changes (consecutive usable rows) and observed range of each exogenous variable."""
+    steps: dict[str, np.ndarray] = {}
+    ranges: dict[str, tuple[float, float]] = {}
+    if not window.time_structure:
+        return steps, ranges
+    both_usable = ~window.row_mask[1:] & ~window.row_mask[:-1]
+    usable = ~window.row_mask
+    for name in sorted(window.exogenous):
+        column = window.values[:, window.index_of(name)]
+        changes = np.diff(column)[both_usable]
+        if changes.size > limit:
+            changes = rng.choice(changes, size=limit, replace=False)
+        steps[name] = changes if changes.size else np.zeros(1)
+        ranges[name] = (float(column[usable].min()), float(column[usable].max()))
+    return steps, ranges
+
+
 def fit_causal_model(
     window: PreparedData,
     failure_history: PreparedData,
@@ -224,6 +248,7 @@ def fit_causal_model(
                 notes.append("No failure causes were found; the failure model is the constant event rate.")
         usable = ~window.row_mask
         baseline = {name: float(np.median(window.values[usable, window.index_of(name)])) for name in window.variables}
+        exogenous_steps, exogenous_ranges = _exogenous_dynamics(window, residual_limit, rng)
         timer.details.update(
             {"equations": len(equations), "failure_terms": 0 if failure is None else len(failure.terms)}
         )
@@ -235,6 +260,8 @@ def fit_causal_model(
         failure=failure,
         baseline=baseline,
         time_structure=window.time_structure,
+        exogenous_steps=exogenous_steps,
+        exogenous_ranges=exogenous_ranges,
         notes=notes,
     )
 
@@ -283,3 +310,104 @@ def model_cards(model: CausalModel) -> list[EquationCard]:
             )
         )
     return cards
+
+
+def refit_linear_equations(
+    window: PreparedData,
+    graph: CausalGraph,
+    previous: CausalModel,
+    penalty: float,
+    holdout_fraction: float,
+    residual_limit: int,
+    seed: int,
+    targets: set[str] | None = None,
+) -> CausalModel:
+    """Refit the linear equations of `targets` (default: all) on a recent window and a new graph.
+
+    Equations that did not change keep their long-window estimates. A cause that was held
+    constant in the window (for example a lever under a do-intervention) carries no
+    information about its effect, so its previous coefficient is kept as a fixed offset.
+    The failure equation and the normal baseline are kept from the previous model: the
+    failure mechanism is fitted on a long history that a short post-change window
+    cannot replace.
+    """
+    with timed_step("refit_model", f"Refitted linear equations on {window.n_rows} recent rows") as timer:
+        rng = np.random.default_rng(seed)
+        equations: dict[str, LinearEquation] = dict(previous.equations)
+        for target in window.endogenous():
+            if targets is not None and target not in targets:
+                continue
+            equation = _fit_with_constant_causes(
+                window,
+                target,
+                _equation_terms(graph, target, window.time_structure),
+                previous.equations.get(target),
+                penalty,
+                holdout_fraction,
+                residual_limit,
+                rng,
+            )
+            if equation is not None:
+                equations[target] = equation
+        timer.details.update({"refitted": sorted(targets) if targets is not None else "all"})
+    return CausalModel(
+        variables=previous.variables,
+        exogenous=previous.exogenous,
+        units=previous.units,
+        equations=equations,
+        failure=previous.failure,
+        baseline=previous.baseline,
+        time_structure=previous.time_structure,
+        exogenous_steps=previous.exogenous_steps,
+        exogenous_ranges=previous.exogenous_ranges,
+        notes=[*previous.notes, "Linear equations refitted after a detected structural change."],
+    )
+
+
+CONSTANT_STD = 1e-9  # a column with less spread than this in the window is treated as held constant
+
+
+def _fit_with_constant_causes(
+    window: PreparedData,
+    target: str,
+    terms: list[tuple[str, int]],
+    previous: LinearEquation | None,
+    penalty: float,
+    holdout_fraction: float,
+    residual_limit: int,
+    rng: np.random.Generator,
+) -> LinearEquation | None:
+    """Like `_fit_linear`, but causes held constant keep their previous coefficient as an offset."""
+    design, values, _ = lagged_design(window, target, terms, first_row=0)
+    if values.size < 20:
+        return None
+    constant = [index for index, _ in enumerate(terms) if design[:, index].std() < CONSTANT_STD]
+    if not constant:
+        return _fit_linear(window, target, terms, penalty, holdout_fraction, residual_limit, rng)
+    previous_coefficients = {} if previous is None else dict(zip(previous.terms, previous.coefficients, strict=True))
+    fixed = {index: float(previous_coefficients.get(terms[index], 0.0)) for index in constant}
+    free = [index for index in range(len(terms)) if index not in fixed]
+    adjusted = values - sum(coefficient * design[:, index] for index, coefficient in fixed.items())
+    if free:
+        model = Ridge(alpha=penalty).fit(design[:, free], adjusted)
+        free_coefficients, intercept = np.asarray(model.coef_, dtype=float), float(model.intercept_)
+    else:
+        free_coefficients, intercept = np.zeros(0), float(adjusted.mean())
+    coefficients = np.zeros(len(terms))
+    coefficients[free] = free_coefficients
+    for index, coefficient in fixed.items():
+        coefficients[index] = coefficient
+    residuals = values - (design @ coefficients + intercept)
+    if residuals.size > residual_limit:
+        residuals = rng.choice(residuals, size=residual_limit, replace=False)
+    return LinearEquation(
+        target=target,
+        terms=terms,
+        coefficients=coefficients,
+        intercept=intercept,
+        residuals=residuals,
+        residual_std=float(residuals.std()),
+        r_squared_holdout=previous.r_squared_holdout if previous else None,
+        n_train=values.size,
+        n_holdout=0,
+    )

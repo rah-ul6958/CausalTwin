@@ -1,0 +1,317 @@
+{
+  "faults": [
+    {
+      "fault": "coolant_filter_clog",
+      "seed": 11,
+      "fault_step": 3000,
+      "false_alarms_before_fault": 0,
+      "detected_step": 3002,
+      "confirmed_step": 3602,
+      "equation": "coolant_temp",
+      "rediscovery_attempts": 1,
+      "status": "confirmed",
+      "edge_changes": [
+        {
+          "cause": "coolant_flow",
+          "effect": "coolant_temp",
+          "change": "weakened",
+          "old_coefficient": -0.1338693763761123,
+          "new_coefficient": -0.03304120838143265,
+          "new_interval": [
+            -0.04296213477876637,
+            -0.02053707629871974
+          ],
+          "explanation": "coolant_flow no longer strongly controls coolant_temp: its effect fell from -0.134 to -0.033 (75% weaker)."
+        }
+      ],
+      "explanation": [
+        "coolant_flow no longer strongly controls coolant_temp: its effect fell from -0.134 to -0.033 (75% weaker).",
+        "The causal graph was rewired and the equations refitted on the recent data."
+      ],
+      "detection_delay_steps": 2,
+      "rewire_delay_steps": 602
+    },
+    {
+      "fault": "coolant_filter_clog",
+      "seed": 12,
+      "fault_step": 3000,
+      "false_alarms_before_fault": 1,
+      "detected_step": 3004,
+      "confirmed_step": 3604,
+      "equation": "coolant_temp",
+      "rediscovery_attempts": 1,
+      "status": "confirmed",
+      "edge_changes": [
+        {
+          "cause": "coolant_flow",
+          "effect": "coolant_temp",
+          "change": "weakened",
+          "old_coefficient": -0.1338693763761123,
+          "new_coefficient": -0.035406765557280784,
+          "new_interval": [
+            -0.03973458767392065,
+            -0.020021234688718515
+          ],
+          "explanation": "coolant_flow no longer strongly controls coolant_temp: its effect fell from -0.134 to -0.0354 (74% weaker)."
+        }
+      ],
+      "explanation": [
+        "coolant_flow no longer strongly controls coolant_temp: its effect fell from -0.134 to -0.0354 (74% weaker).",
+        "The causal graph was rewired and the equations refitted on the recent data."
+      ],
+      "detection_delay_steps": 4,
+      "rewire_delay_steps": 604
+    },
+    {
+      "fault": "coolant_filter_clog",
+      "seed": 13,
+      "fault_step": 3000,
+      "false_alarms_before_fault": 0,
+      "detected_step": 3003,
+      "confirmed_step": 3603,
+      "equation": "coolant_temp",
+      "rediscovery_attempts": 1,
+      "status": "confirmed",
+      "edge_changes": [
+        {
+          "cause": "coolant_flow",
+          "effect": "coolant_temp",
+          "change": "weakened",
+          "old_coefficient": -0.1338693763761123,
+          "new_coefficient": -0.031584473887685705,
+          "new_interval": [
+            -0.034677359507903203,
+            -0.022783011383022734
+          ],
+          "explanation": "coolant_flow no longer strongly controls coolant_temp: its effect fell from -0.134 to -0.0316 (76% weaker)."
+        }
+      ],
+      "explanation": [
+        "coolant_flow no longer strongly controls coolant_temp: its effect fell from -0.134 to -0.0316 (76% weaker).",
+        "The causal graph was rewired and the equations refitted on the recent data."
+      ],
+      "detection_delay_steps": 3,
+      "rewire_delay_steps": 603
+    },
+    {
+      "fault": "lube_leak",
+      "seed": 11,
+      "fault_step": 3000,
+      "false_alarms_before_fault": 0,
+      "detected_step": 3003,
+      "confirmed_step": 3603,
+      "equation": "bearing_temp",
+      "rediscovery_attempts": 1,
+      "status": "confirmed",
+      "edge_changes": [
+        {
+          "cause": "lube_rate",
+          "effect": "bearing_temp",
+          "change": "removed",
+          "old_coefficient": -2.2751249242207248,
+          "new_coefficient": 0.2115576300360845,
+          "new_interval": [
+            0.021488759503277374,
+            0.3431781936494224
+          ],
+          "explanation": "lube_rate no longer affects bearing_temp (effect -2.28 -> +0.212)."
+        }
+      ],
+      "explanation": [
+        "lube_rate no longer affects bearing_temp (effect -2.28 -> +0.212).",
+        "The causal graph was rewired and the equations refitted on the recent data."
+      ],
+      "detection_delay_steps": 3,
+      "rewire_delay_steps": 603
+    },
+    {
+      "fault": "lube_leak",
+      "seed": 12,
+      "fault_step": 3000,
+      "false_alarms_before_fault": 1,
+      "detected_step": 3003,
+      "confirmed_step": 3603,
+      "equation": "bearing_temp",
+      "rediscovery_attempts": 1,
+      "status": "confirmed",
+      "edge_changes": [
+        {
+          "cause": "lube_rate",
+          "effect": "bearing_temp",
+          "change": "removed",
+          "old_coefficient": -2.2751249242207248,
+          "new_coefficient": 0.026978720091742493,
+          "new_interval": [
+            -0.2994636058399542,
+            0.2625392449955779
+          ],
+          "explanation": "lube_rate no longer affects bearing_temp (effect -2.28 -> +0.027)."
+        }
+      ],
+      "explanation": [
+        "lube_rate no longer affects bearing_temp (effect -2.28 -> +0.027).",
+        "The causal graph was rewired and the equations refitted on the recent data."
+      ],
+      "detection_delay_steps": 3,
+      "rewire_delay_steps": 603
+    },
+    {
+      "fault": "lube_leak",
+      "seed": 13,
+      "fault_step": 3000,
+      "false_alarms_before_fault": 0,
+      "detected_step": 3003,
+      "confirmed_step": 3603,
+      "equation": "bearing_temp",
+      "rediscovery_attempts": 1,
+      "status": "confirmed",
+      "edge_changes": [
+        {
+          "cause": "lube_rate",
+          "effect": "bearing_temp",
+          "change": "removed",
+          "old_coefficient": -2.2751249242207248,
+          "new_coefficient": 0.038639645714928124,
+          "new_interval": [
+            -0.12499142480073797,
+            0.3443769053675322
+          ],
+          "explanation": "lube_rate no longer affects bearing_temp (effect -2.28 -> +0.0386)."
+        }
+      ],
+      "explanation": [
+        "lube_rate no longer affects bearing_temp (effect -2.28 -> +0.0386).",
+        "The causal graph was rewired and the equations refitted on the recent data."
+      ],
+      "detection_delay_steps": 3,
+      "rewire_delay_steps": 603
+    },
+    {
+      "fault": "bearing_damage",
+      "seed": 11,
+      "fault_step": 3000,
+      "false_alarms_before_fault": 0,
+      "detected_step": 3003,
+      "confirmed_step": 3603,
+      "equation": "bearing_temp",
+      "rediscovery_attempts": 1,
+      "status": "confirmed",
+      "edge_changes": [
+        {
+          "cause": "motor_current",
+          "effect": "bearing_temp",
+          "change": "strengthened",
+          "old_coefficient": 0.14417042642317596,
+          "new_coefficient": 0.2445727320318386,
+          "new_interval": [
+            0.22402184552476503,
+            0.26678545982763446
+          ],
+          "explanation": "motor_current now drives bearing_temp more strongly: effect +0.144 -> +0.245 (70% stronger)."
+        }
+      ],
+      "explanation": [
+        "motor_current now drives bearing_temp more strongly: effect +0.144 -> +0.245 (70% stronger).",
+        "The causal graph was rewired and the equations refitted on the recent data."
+      ],
+      "detection_delay_steps": 3,
+      "rewire_delay_steps": 603
+    },
+    {
+      "fault": "bearing_damage",
+      "seed": 12,
+      "fault_step": 3000,
+      "false_alarms_before_fault": 1,
+      "detected_step": 3003,
+      "confirmed_step": 4210,
+      "equation": "bearing_temp",
+      "rediscovery_attempts": 2,
+      "status": "confirmed",
+      "edge_changes": [
+        {
+          "cause": "motor_current",
+          "effect": "bearing_temp",
+          "change": "strengthened",
+          "old_coefficient": 0.14417042642317596,
+          "new_coefficient": 0.24457713416106042,
+          "new_interval": [
+            0.23745426072334386,
+            0.26195089509281977
+          ],
+          "explanation": "motor_current now drives bearing_temp more strongly: effect +0.144 -> +0.245 (70% stronger)."
+        }
+      ],
+      "explanation": [
+        "motor_current now drives bearing_temp more strongly: effect +0.144 -> +0.245 (70% stronger).",
+        "The causal graph was rewired and the equations refitted on the recent data."
+      ],
+      "detection_delay_steps": 3,
+      "rewire_delay_steps": 1210
+    },
+    {
+      "fault": "bearing_damage",
+      "seed": 13,
+      "fault_step": 3000,
+      "false_alarms_before_fault": 0,
+      "detected_step": 3003,
+      "confirmed_step": 3603,
+      "equation": "bearing_temp",
+      "rediscovery_attempts": 1,
+      "status": "confirmed",
+      "edge_changes": [
+        {
+          "cause": "motor_current",
+          "effect": "bearing_temp",
+          "change": "strengthened",
+          "old_coefficient": 0.14417042642317596,
+          "new_coefficient": 0.2228451970232956,
+          "new_interval": [
+            0.21377996169530902,
+            0.23583127624487338
+          ],
+          "explanation": "motor_current now drives bearing_temp more strongly: effect +0.144 -> +0.223 (55% stronger)."
+        }
+      ],
+      "explanation": [
+        "motor_current now drives bearing_temp more strongly: effect +0.144 -> +0.223 (55% stronger).",
+        "The causal graph was rewired and the equations refitted on the recent data."
+      ],
+      "detection_delay_steps": 3,
+      "rewire_delay_steps": 603
+    }
+  ],
+  "false_alarms": [
+    {
+      "scenario": "normal",
+      "seed": 11,
+      "n_steps": 20000,
+      "suspected_alarms": 1,
+      "wrongly_confirmed_changes": 0,
+      "alarm_steps": [
+        19984
+      ]
+    },
+    {
+      "scenario": "normal",
+      "seed": 12,
+      "n_steps": 20000,
+      "suspected_alarms": 2,
+      "wrongly_confirmed_changes": 0,
+      "alarm_steps": [
+        1473,
+        11768
+      ]
+    },
+    {
+      "scenario": "normal",
+      "seed": 13,
+      "n_steps": 20000,
+      "suspected_alarms": 2,
+      "wrongly_confirmed_changes": 0,
+      "alarm_steps": [
+        11848,
+        13812
+      ]
+    }
+  ]
+}

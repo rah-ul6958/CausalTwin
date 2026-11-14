@@ -1,0 +1,934 @@
+{
+  "source": "Simulator ground truth (benchmark judged by the real simulator)",
+  "settings": {
+    "situations_per_scenario": 6,
+    "seeds_per_situation": 8,
+    "horizon_steps": 30,
+    "target_risk": 0.1,
+    "min_true_risk": 0.15,
+    "success": "true risk after the action <= target"
+  },
+  "n_cases": 30,
+  "summary": {
+    "causaltwin": {
+      "success_rate": 0.9333333333333333,
+      "mean_risk_reduction": 0.26707610306527924,
+      "mean_true_risk_after": 0.03706430858990707,
+      "mean_failure_rate_after": 0.0,
+      "mean_cost": 6.64,
+      "blamed": {
+        "ambient_temp -> coolant_temp -> bearing_temp": 7,
+        "tool_wear": 23
+      }
+    },
+    "baseline": {
+      "success_rate": 0.03333333333333333,
+      "mean_risk_reduction": 0.0033778376991206375,
+      "mean_true_risk_after": 0.3007625739560656,
+      "mean_failure_rate_after": 0.2375,
+      "mean_cost": 2.52,
+      "blamed": {
+        "ambient_temp": 6,
+        "vibration": 22,
+        "lube_rate": 1,
+        "tool_wear": 1
+      }
+    },
+    "mean_true_risk_no_action": 0.3041404116551862,
+    "mean_failure_rate_no_action": 0.23333333333333334,
+    "wins": {
+      "causaltwin": 29,
+      "tie": 1
+    },
+    "cases_where_causaltwin_is_worse": []
+  },
+  "per_scenario": {
+    "normal": {
+      "n": 6,
+      "causaltwin_success": 1.0,
+      "baseline_success": 0.0
+    },
+    "overload": {
+      "n": 6,
+      "causaltwin_success": 1.0,
+      "baseline_success": 0.0
+    },
+    "cooling_failure": {
+      "n": 6,
+      "causaltwin_success": 1.0,
+      "baseline_success": 0.16666666666666666
+    },
+    "heat_wave": {
+      "n": 6,
+      "causaltwin_success": 1.0,
+      "baseline_success": 0.0
+    },
+    "tool_wear": {
+      "n": 6,
+      "causaltwin_success": 0.6666666666666666,
+      "baseline_success": 0.0
+    }
+  },
+  "cases": [
+    {
+      "case_id": 0,
+      "scenario": "normal",
+      "seed": 7000,
+      "step": 3269,
+      "true_risk_no_action": 0.21077824453461325,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "coolant_flow +30%, lube_rate +30%",
+        "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
+        "cost": 3.9000000000000012,
+        "true_risk_after": 0.08453259604353772,
+        "risk_reduction": 0.12624564849107553,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "ambient_temp cannot be controlled; no action.",
+        "blamed": "ambient_temp",
+        "cost": 0.0,
+        "true_risk_after": 0.21077824453461325,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.125,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 1,
+      "scenario": "normal",
+      "seed": 7000,
+      "step": 10103,
+      "true_risk_no_action": 0.19982730061140874,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.0009637017400542791,
+        "risk_reduction": 0.19886359887135446,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.19982730061140874,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.125,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 2,
+      "scenario": "normal",
+      "seed": 7000,
+      "step": 11078,
+      "true_risk_no_action": 0.4598081038636194,
+      "failure_rate_no_action": 0.5,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
+        "cost": 8.0,
+        "true_risk_after": 0.005693635107607148,
+        "risk_reduction": 0.45411446875601225,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.4598081038636194,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.5,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 3,
+      "scenario": "normal",
+      "seed": 7001,
+      "step": 1636,
+      "true_risk_no_action": 0.27292755770030297,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.002408561689845462,
+        "risk_reduction": 0.2705189960104575,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.27292755770030297,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.125,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 4,
+      "scenario": "normal",
+      "seed": 7001,
+      "step": 12853,
+      "true_risk_no_action": 0.24351988737191166,
+      "failure_rate_no_action": 0.25,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.0005450542953140819,
+        "risk_reduction": 0.24297483307659756,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.24351988737191166,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.25,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 5,
+      "scenario": "normal",
+      "seed": 7001,
+      "step": 19041,
+      "true_risk_no_action": 0.17350548146112624,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "coolant_flow +20%, lube_rate +20%",
+        "blamed": "tool_wear",
+        "cost": 2.6000000000000005,
+        "true_risk_after": 0.08052019513951797,
+        "risk_reduction": 0.09298528632160827,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.17350548146112624,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.125,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 6,
+      "scenario": "overload",
+      "seed": 7100,
+      "step": 776,
+      "true_risk_no_action": 0.1598481512827989,
+      "failure_rate_no_action": 0.0,
+      "causaltwin": {
+        "action": "coolant_flow +30%, lube_rate +20%",
+        "blamed": "tool_wear",
+        "cost": 3.1000000000000005,
+        "true_risk_after": 0.08135737313960363,
+        "risk_reduction": 0.07849077814319526,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.1598481512827989,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.0,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 7,
+      "scenario": "overload",
+      "seed": 7100,
+      "step": 2058,
+      "true_risk_no_action": 0.19934117779245428,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "coolant_flow +30%, lube_rate +25%",
+        "blamed": "tool_wear",
+        "cost": 3.5,
+        "true_risk_after": 0.09932316118342087,
+        "risk_reduction": 0.10001801660903341,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "ambient_temp cannot be controlled; no action.",
+        "blamed": "ambient_temp",
+        "cost": 0.0,
+        "true_risk_after": 0.19934117779245428,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.125,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 8,
+      "scenario": "overload",
+      "seed": 7100,
+      "step": 2888,
+      "true_risk_no_action": 0.16188881373195052,
+      "failure_rate_no_action": 0.0,
+      "causaltwin": {
+        "action": "coolant_flow +15%, lube_rate +20%",
+        "blamed": "tool_wear",
+        "cost": 2.3499999999999988,
+        "true_risk_after": 0.0850682746790736,
+        "risk_reduction": 0.07682053905287692,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "ambient_temp cannot be controlled; no action.",
+        "blamed": "ambient_temp",
+        "cost": 0.0,
+        "true_risk_after": 0.16188881373195052,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.0,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 9,
+      "scenario": "overload",
+      "seed": 7100,
+      "step": 3328,
+      "true_risk_no_action": 0.17003562477341863,
+      "failure_rate_no_action": 0.0,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.001174421629743183,
+        "risk_reduction": 0.16886120314367545,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.17003562477341863,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.0,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 10,
+      "scenario": "overload",
+      "seed": 7100,
+      "step": 3813,
+      "true_risk_no_action": 0.19143554709948335,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.002257143941631512,
+        "risk_reduction": 0.18917840315785184,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.19143554709948335,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.125,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 11,
+      "scenario": "overload",
+      "seed": 7100,
+      "step": 8358,
+      "true_risk_no_action": 0.24668955224779304,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.0021138009368955185,
+        "risk_reduction": 0.24457575131089754,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Change lube_rate from 0.662 to 0.53 (-20%).",
+        "blamed": "lube_rate",
+        "cost": 1.6,
+        "true_risk_after": 0.3442155451981854,
+        "risk_reduction": -0.09752599295039238,
+        "failure_rate_after": 0.25,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 12,
+      "scenario": "cooling_failure",
+      "seed": 7200,
+      "step": 355,
+      "true_risk_no_action": 0.19805343699673347,
+      "failure_rate_no_action": 0.25,
+      "causaltwin": {
+        "action": "spindle_speed -10%, lube_rate +25%",
+        "blamed": "tool_wear",
+        "cost": 7.0,
+        "true_risk_after": 0.08265885988364523,
+        "risk_reduction": 0.11539457711308825,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.19805343699673347,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.25,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 13,
+      "scenario": "cooling_failure",
+      "seed": 7200,
+      "step": 2282,
+      "true_risk_no_action": 0.19930678193598161,
+      "failure_rate_no_action": 0.0,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.00044565801197009314,
+        "risk_reduction": 0.1988611239240115,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Change the tool.",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.00044565801197009314,
+        "risk_reduction": 0.1988611239240115,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "winner": "tie"
+    },
+    {
+      "case_id": 14,
+      "scenario": "cooling_failure",
+      "seed": 7200,
+      "step": 3871,
+      "true_risk_no_action": 0.2953249169896448,
+      "failure_rate_no_action": 0.25,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.001506049610761312,
+        "risk_reduction": 0.2938188673788835,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.2953249169896448,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.25,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 15,
+      "scenario": "cooling_failure",
+      "seed": 7200,
+      "step": 4452,
+      "true_risk_no_action": 0.22011709897937315,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.00459139689523716,
+        "risk_reduction": 0.215525702084136,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.22011709897937315,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.125,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 16,
+      "scenario": "cooling_failure",
+      "seed": 7200,
+      "step": 7497,
+      "true_risk_no_action": 0.21483732134607025,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.0023901855210677198,
+        "risk_reduction": 0.21244713582500252,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.21483732134607025,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.125,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 17,
+      "scenario": "cooling_failure",
+      "seed": 7200,
+      "step": 8450,
+      "true_risk_no_action": 0.4559403740727459,
+      "failure_rate_no_action": 0.5,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.006840566182895816,
+        "risk_reduction": 0.4490998078898501,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.4559403740727459,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.5,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 18,
+      "scenario": "heat_wave",
+      "seed": 7300,
+      "step": 841,
+      "true_risk_no_action": 0.770719602781297,
+      "failure_rate_no_action": 0.625,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
+        "cost": 8.0,
+        "true_risk_after": 0.0307099574016282,
+        "risk_reduction": 0.7400096453796688,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.770719602781297,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.625,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 19,
+      "scenario": "heat_wave",
+      "seed": 7300,
+      "step": 1368,
+      "true_risk_no_action": 0.21018082926171072,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "spindle_speed -10%, coolant_flow +25%",
+        "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
+        "cost": 6.249999999999999,
+        "true_risk_after": 0.08751085258961519,
+        "risk_reduction": 0.12266997667209553,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "ambient_temp cannot be controlled; no action.",
+        "blamed": "ambient_temp",
+        "cost": 0.0,
+        "true_risk_after": 0.21018082926171072,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.125,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 20,
+      "scenario": "heat_wave",
+      "seed": 7300,
+      "step": 2101,
+      "true_risk_no_action": 0.2926898469086092,
+      "failure_rate_no_action": 0.25,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.0022189538968970107,
+        "risk_reduction": 0.2904708930117122,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.2926898469086092,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.25,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 21,
+      "scenario": "heat_wave",
+      "seed": 7300,
+      "step": 2511,
+      "true_risk_no_action": 0.1810111282436498,
+      "failure_rate_no_action": 0.125,
+      "causaltwin": {
+        "action": "spindle_speed -10%, lube_rate +25%",
+        "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
+        "cost": 7.000000000000002,
+        "true_risk_after": 0.0977352370651028,
+        "risk_reduction": 0.08327589117854699,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "ambient_temp cannot be controlled; no action.",
+        "blamed": "ambient_temp",
+        "cost": 0.0,
+        "true_risk_after": 0.1810111282436498,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.125,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 22,
+      "scenario": "heat_wave",
+      "seed": 7300,
+      "step": 3147,
+      "true_risk_no_action": 0.49568063763990144,
+      "failure_rate_no_action": 0.5,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.007013733187287957,
+        "risk_reduction": 0.4886669044526135,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.49568063763990144,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.5,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 23,
+      "scenario": "heat_wave",
+      "seed": 7300,
+      "step": 4059,
+      "true_risk_no_action": 0.3748909845154063,
+      "failure_rate_no_action": 0.25,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.006033977252650355,
+        "risk_reduction": 0.36885700726275594,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.3748909845154063,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.25,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 24,
+      "scenario": "tool_wear",
+      "seed": 7400,
+      "step": 352,
+      "true_risk_no_action": 0.7742701283490396,
+      "failure_rate_no_action": 0.625,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.006921376427645037,
+        "risk_reduction": 0.7673487519213946,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.7742701283490396,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.625,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 25,
+      "scenario": "tool_wear",
+      "seed": 7400,
+      "step": 910,
+      "true_risk_no_action": 0.6007079641750476,
+      "failure_rate_no_action": 0.625,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.005501087566172139,
+        "risk_reduction": 0.5952068766088754,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.6007079641750476,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.625,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 26,
+      "scenario": "tool_wear",
+      "seed": 7400,
+      "step": 1310,
+      "true_risk_no_action": 0.4791608039505746,
+      "failure_rate_no_action": 0.5,
+      "causaltwin": {
+        "action": "tool change",
+        "blamed": "tool_wear",
+        "cost": 8.0,
+        "true_risk_after": 0.0008137586549049336,
+        "risk_reduction": 0.4783470452956696,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.4791608039505746,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.5,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 27,
+      "scenario": "tool_wear",
+      "seed": 7400,
+      "step": 1740,
+      "true_risk_no_action": 0.2391059193811299,
+      "failure_rate_no_action": 0.25,
+      "causaltwin": {
+        "action": "coolant_flow +30%, lube_rate +20%",
+        "blamed": "tool_wear",
+        "cost": 3.1000000000000005,
+        "true_risk_after": 0.08769559460813162,
+        "risk_reduction": 0.1514103247729983,
+        "failure_rate_after": 0.0,
+        "success": true
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.2391059193811299,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.25,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 28,
+      "scenario": "tool_wear",
+      "seed": 7400,
+      "step": 2168,
+      "true_risk_no_action": 0.21210529904443903,
+      "failure_rate_no_action": 0.0,
+      "causaltwin": {
+        "action": "coolant_flow +15%, lube_rate +30%",
+        "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
+        "cost": 3.150000000000001,
+        "true_risk_after": 0.12308212622883116,
+        "risk_reduction": 0.08902317281560787,
+        "failure_rate_after": 0.0,
+        "success": false
+      },
+      "baseline": {
+        "action": "ambient_temp cannot be controlled; no action.",
+        "blamed": "ambient_temp",
+        "cost": 0.0,
+        "true_risk_after": 0.21210529904443903,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.0,
+        "success": false
+      },
+      "winner": "causaltwin"
+    },
+    {
+      "case_id": 29,
+      "scenario": "tool_wear",
+      "seed": 7400,
+      "step": 2636,
+      "true_risk_no_action": 0.2205038326133532,
+      "failure_rate_no_action": 0.25,
+      "causaltwin": {
+        "action": "spindle_speed -10%, coolant_flow +5%",
+        "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
+        "cost": 5.250000000000001,
+        "true_risk_after": 0.11230196718652348,
+        "risk_reduction": 0.10820186542682973,
+        "failure_rate_after": 0.0,
+        "success": false
+      },
+      "baseline": {
+        "action": "Damp vibration (remove the vibration signal's noise component).",
+        "blamed": "vibration",
+        "cost": 3.0,
+        "true_risk_after": 0.2205038326133532,
+        "risk_reduction": 0.0,
+        "failure_rate_after": 0.25,
+        "success": false
+      },
+      "winner": "causaltwin"
+    }
+  ],
+  "baseline_accuracy": {
+    "target": "failure within the next 30 steps",
+    "n_train": 47121,
+    "n_test": 11781,
+    "positive_rate_test": 0.04329004329004329,
+    "auc": 0.906205757966393,
+    "threshold": 0.3465327453134049,
+    "precision": 0.3007380073800738,
+    "recall": 0.3196078431372549,
+    "f1": 0.30988593155893535,
+    "training_seconds": 7.246532900000602
+  },
+  "graph_recovery": {
+    "graph_recovery_with_failure": {
+      "n_true_edges": 15,
+      "n_found_edges": 13,
+      "true_positives": 13,
+      "precision": 1.0,
+      "recall": 0.8666666666666667,
+      "f1": 0.9285714285714286,
+      "lag_accuracy": 1.0,
+      "structural_hamming_distance": 2,
+      "missed_edges": [
+        "load_pct->tool_wear (lag 1)",
+        "spindle_speed->tool_wear (lag 1)"
+      ],
+      "extra_edges": [],
+      "wrong_lags": []
+    },
+    "graph_recovery_without_failure": {
+      "n_true_edges": 13,
+      "n_found_edges": 11,
+      "true_positives": 11,
+      "precision": 1.0,
+      "recall": 0.8461538461538461,
+      "f1": 0.9166666666666666,
+      "lag_accuracy": 1.0,
+      "structural_hamming_distance": 2,
+      "missed_edges": [
+        "load_pct->tool_wear (lag 1)",
+        "spindle_speed->tool_wear (lag 1)"
+      ],
+      "extra_edges": [],
+      "wrong_lags": []
+    }
+  },
+  "timing_seconds": {
+    "situation_search": 9.518314200000532,
+    "total": 39.72721260000071
+  }
+}

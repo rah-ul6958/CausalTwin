@@ -35,12 +35,13 @@ from causaltwin.config import (
     ROOT_CAUSE_RISK_THRESHOLD,
     SYMPTOM_THRESHOLD,
     TAU_MAX,
+    WHATIF_EXOGENOUS_MODE,
     WHATIF_HORIZON,
     WHATIF_INTERVAL_PERCENTILES,
     WHATIF_ROLLOUTS,
     WHATIF_SEED,
 )
-from causaltwin.engine.causal_model import CausalModel, fit_causal_model, model_cards
+from causaltwin.engine.causal_model import CausalModel, fit_causal_model, model_cards, refit_linear_equations
 from causaltwin.engine.confidence import BootstrapResult, bootstrap_confidence
 from causaltwin.engine.correlation import correlation_graph, failure_correlations
 from causaltwin.engine.discovery import FailureScreen, discover, warm_up_workers
@@ -99,6 +100,7 @@ class EngineSettings(BaseModel):
     whatif_horizon: int = WHATIF_HORIZON
     whatif_rollouts: int = WHATIF_ROLLOUTS
     whatif_seed: int = WHATIF_SEED
+    whatif_exogenous_mode: str = WHATIF_EXOGENOUS_MODE
     risk_threshold: float = ROOT_CAUSE_RISK_THRESHOLD
     max_paths: int = ROOT_CAUSE_MAX_PATHS
     max_path_depth: int = ROOT_CAUSE_MAX_DEPTH
@@ -124,9 +126,39 @@ class CausalTwinEngine:
         self.failure_correlations: dict[str, float] = {}
         self.recent_history: pd.DataFrame | None = None
 
+    def __getstate__(self) -> dict[str, object]:
+        """Pickle support: the logger (with its live subscribers) is not saved."""
+        state = dict(self.__dict__)
+        state.pop("logger", None)
+        return state
+
+    def __setstate__(self, state: dict[str, object]) -> None:
+        """Restore from a pickle and reconnect to the shared activity logger."""
+        self.__dict__.update(state)
+        self.logger = get_activity_logger()
+
     # ------------------------------------------------------------------
     # Fitting
     # ------------------------------------------------------------------
+    def update_structure(self, recent: pd.DataFrame, graph: CausalGraph, targets: set[str] | None = None) -> None:
+        """After drift: adopt a new graph and refit the changed equations (default all) on recent data."""
+        model = self._require_fitted()
+        assert self.window is not None
+        window = prepare_data(recent, self.window.roles, self.window.time_structure)
+        settings = self.settings
+        self.model = refit_linear_equations(
+            window,
+            graph,
+            model,
+            settings.ridge_penalty,
+            settings.holdout_fraction,
+            settings.residual_sample_limit,
+            settings.bootstrap_seed,
+            targets,
+        )
+        self.graph = graph
+        self.recent_history = recent[window.variables].tail(max(self.model.max_lag, 1))
+
     def warm_up(self) -> None:
         """Start discovery worker processes ahead of time (a long-lived server calls this once)."""
         if self.settings.discovery_backend == "tigramite":
@@ -281,6 +313,7 @@ class CausalTwinEngine:
             settings.whatif_seed if seed is None else seed,
             WHATIF_INTERVAL_PERCENTILES,
             noise_scale,
+            settings.whatif_exogenous_mode,
         )
 
     def get_symptoms(self) -> list[Symptom]:

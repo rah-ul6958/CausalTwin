@@ -1,0 +1,295 @@
+"""The Correlation Trap benchmark: CausalTwin versus standard ML, judged by the real simulator.
+
+1. Find high-risk situations in all five scenarios (different seeds): the instantaneous
+   true hazard passes a cheap screen, then the TRUE risk of failure within the horizon
+   (forks of the real simulator, averaged over seeds) must be at least 15%.
+2. CausalTwin recommends with the optimizer; the baseline blames its top SHAP feature
+   and maps it to an engineer's action (see baseline.py).
+3. Both actions are applied to forks of the real simulator from the same starting state
+   with the same seeds. Measured: true risk after the action (true hazard), failure rate
+   within the horizon, and cost. Success = true risk after <= the 10% target.
+Every case is reported, including the ones where CausalTwin does worse.
+"""
+
+import json
+import time
+from collections import Counter, deque
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Literal
+
+import numpy as np
+import pandas as pd
+
+from causaltwin.config import (
+    BASELINE_DEFAULT_MAGNITUDE_PCT,
+    BENCHMARK_HAZARD_SCREEN,
+    BENCHMARK_MAX_STEPS_PER_RUN,
+    BENCHMARK_MIN_GAP_STEPS,
+    BENCHMARK_MIN_TRUE_RISK,
+    BENCHMARK_RESULTS_PATH,
+    BENCHMARK_SEED_BASE,
+    BENCHMARK_SEEDS_PER_SITUATION,
+    BENCHMARK_SITUATIONS_PER_SCENARIO,
+    OPTIMIZER_TARGET_RISK,
+    TAU_MAX,
+    VALIDATION_RESULTS_PATH,
+    WHATIF_HORIZON,
+)
+from causaltwin.intelligence.baseline import BaselineModel
+from causaltwin.intelligence.drift import SimulatorStepper, row_is_usable
+from causaltwin.intelligence.optimizer import recommend
+from causaltwin.intelligence.schemas import BaselineAction, BenchmarkCase, BenchmarkMethodResult, Recommendation
+from causaltwin.intelligence.training import TrainedModels, train_models
+from causaltwin.simulator import SCENARIOS, MachineSimulator, build_simulator, failure_probability
+from causaltwin.utils.timing import timed_step
+
+ProgressCallback = Callable[[int, int, str], None]
+TIE_TOLERANCE = 0.01  # true-risk difference below which the methods tie
+SCREEN_RETRY_STEPS = 20
+NO_FAILURE = {"failures_enabled": False}
+DAMPING_OVERRIDES = {"vibration_process_noise": 0.0, "vibration_sensor_noise": 0.0}
+
+
+@dataclass
+class Situation:
+    """A high-risk moment: the simulator at that moment and the measured history."""
+
+    scenario: str
+    seed: int
+    step: int
+    simulator: MachineSimulator
+    history: pd.DataFrame
+    true_risk: float
+
+
+def true_outcome(
+    simulator: MachineSimulator,
+    apply: Callable[[MachineSimulator], None],
+    seeds: list[int],
+    horizon: int,
+    overrides: dict[str, Any] | None = None,
+) -> tuple[float, float]:
+    """True risk (from the true hazard) and failure rate within the horizon, averaged over seeds."""
+    risks, failures = [], []
+    for seed in seeds:
+        no_failure = simulator.fork(seed=seed, config_overrides={**NO_FAILURE, **(overrides or {})})
+        apply(no_failure)
+        no_failure.run(horizon)
+        risks.append(failure_probability(no_failure.get_ground_truth_dataframe()["true_hazard"]))
+        with_failure = simulator.fork(seed=seed, config_overrides=overrides or None)
+        apply(with_failure)
+        with_failure.run(horizon)
+        failures.append(float(with_failure.get_sensor_dataframe()["failure"].sum() > 0))
+    return float(np.mean(risks)), float(np.mean(failures))
+
+
+def find_situations(
+    per_scenario: int, seed_base: int, seeds: list[int], horizon: int, progress: ProgressCallback | None = None
+) -> list[Situation]:
+    """Scan each scenario until enough high-risk moments are found."""
+    situations: list[Situation] = []
+    for scenario_index, scenario in enumerate(SCENARIOS):
+        found = 0
+        for attempt in range(3):
+            if found >= per_scenario:
+                break
+            seed = seed_base + 100 * scenario_index + attempt
+            simulator = build_simulator(scenario, n_steps=BENCHMARK_MAX_STEPS_PER_RUN, seed=seed)
+            stepper = SimulatorStepper(simulator)
+            recent: deque[dict[str, Any]] = deque(maxlen=TAU_MAX + 2)
+            next_check = 0
+            for step in range(BENCHMARK_MAX_STEPS_PER_RUN):
+                row, _ = stepper.step()
+                recent.append(row)
+                if step < next_check or len(recent) < TAU_MAX + 2 or not all(row_is_usable(r) for r in recent):
+                    continue
+                if simulator.get_true_hazard() < BENCHMARK_HAZARD_SCREEN:
+                    continue
+                risk, _ = true_outcome(simulator, lambda _: None, seeds[:4], horizon)
+                if risk < BENCHMARK_MIN_TRUE_RISK:
+                    next_check = step + SCREEN_RETRY_STEPS
+                    continue
+                situations.append(Situation(scenario, seed, step, simulator.fork(), pd.DataFrame(list(recent)), risk))
+                found += 1
+                next_check = step + BENCHMARK_MIN_GAP_STEPS
+                if progress:
+                    progress(len(situations), per_scenario * len(SCENARIOS), f"Found situation in {scenario}")
+                if found >= per_scenario:
+                    break
+    return situations
+
+
+def _apply_recommendation(recommendation: Recommendation) -> Callable[[MachineSimulator], None]:
+    """Apply CausalTwin's recommendation to a simulator fork."""
+
+    def apply(simulator: MachineSimulator) -> None:
+        for change in recommendation.changes:
+            simulator.intervene(change.lever, change.to_value)
+        if recommendation.tool_change:
+            simulator.replace_tool()
+
+    return apply
+
+
+def _apply_baseline(action: BaselineAction) -> Callable[[MachineSimulator], None]:
+    """Apply the baseline's action to a simulator fork (damping is a config override)."""
+
+    def apply(simulator: MachineSimulator) -> None:
+        if action.kind == "lever" and action.lever is not None and action.to_value is not None:
+            simulator.intervene(action.lever, action.to_value)
+        elif action.kind == "tool_change":
+            simulator.replace_tool()
+
+    return apply
+
+
+def _describe(recommendation: Recommendation) -> str:
+    """Short text of CausalTwin's action."""
+    parts = [f"{c.lever} {c.change_pct:+.0f}%" for c in recommendation.changes]
+    if recommendation.tool_change:
+        parts.append("tool change")
+    return ", ".join(parts) or "no action"
+
+
+def evaluate_situation(
+    case_id: int, situation: Situation, models: TrainedModels, seeds: list[int], horizon: int
+) -> BenchmarkCase:
+    """Both methods' actions on one situation, judged in the real simulator."""
+    engine, baseline = models.engine, models.baseline
+    assert engine.model is not None
+    history = situation.history[engine.model.variables].to_numpy(dtype=float)
+    recommendation = recommend(engine, history, horizon=horizon)
+    root_cause = engine.root_cause(situation.history[engine.model.variables])
+    blamed_ct = " -> ".join(node.variable for node in root_cause.paths[0].nodes) if root_cause.paths else "none"
+    magnitude = max((abs(c.change_pct) for c in recommendation.changes), default=BASELINE_DEFAULT_MAGNITUDE_PCT)
+    action = baseline.recommend(situation.history.iloc[-1], magnitude)
+
+    no_action_risk, no_action_failures = true_outcome(situation.simulator, lambda _: None, seeds, horizon)
+    ct_risk, ct_failures = true_outcome(situation.simulator, _apply_recommendation(recommendation), seeds, horizon)
+    baseline_risk, baseline_failures = true_outcome(
+        situation.simulator,
+        _apply_baseline(action),
+        seeds,
+        horizon,
+        DAMPING_OVERRIDES if action.kind == "damp_vibration" else None,
+    )
+    winner: Literal["causaltwin", "baseline", "tie"]
+    if abs(ct_risk - baseline_risk) < TIE_TOLERANCE:
+        winner = "tie"
+    else:
+        winner = "causaltwin" if ct_risk < baseline_risk else "baseline"
+    return BenchmarkCase(
+        case_id=case_id,
+        scenario=situation.scenario,
+        seed=situation.seed,
+        step=situation.step,
+        true_risk_no_action=no_action_risk,
+        failure_rate_no_action=no_action_failures,
+        causaltwin=BenchmarkMethodResult(
+            action=_describe(recommendation),
+            blamed=blamed_ct,
+            cost=recommendation.cost,
+            true_risk_after=ct_risk,
+            risk_reduction=no_action_risk - ct_risk,
+            failure_rate_after=ct_failures,
+            success=ct_risk <= OPTIMIZER_TARGET_RISK,
+        ),
+        baseline=BenchmarkMethodResult(
+            action=action.description,
+            blamed=action.blamed_feature,
+            cost=action.cost,
+            true_risk_after=baseline_risk,
+            risk_reduction=no_action_risk - baseline_risk,
+            failure_rate_after=baseline_failures,
+            success=baseline_risk <= OPTIMIZER_TARGET_RISK,
+        ),
+        winner=winner,
+    )
+
+
+def _summary(cases: list[BenchmarkCase], method: str) -> dict[str, Any]:
+    """Aggregate one method's results."""
+    results = [getattr(case, method) for case in cases]
+    return {
+        "success_rate": float(np.mean([r.success for r in results])),
+        "mean_risk_reduction": float(np.mean([r.risk_reduction for r in results])),
+        "mean_true_risk_after": float(np.mean([r.true_risk_after for r in results])),
+        "mean_failure_rate_after": float(np.mean([r.failure_rate_after for r in results])),
+        "mean_cost": float(np.mean([r.cost for r in results])),
+        "blamed": dict(Counter(r.blamed for r in results)),
+    }
+
+
+def run_benchmark(
+    models: TrainedModels | None = None,
+    progress: ProgressCallback | None = None,
+    output_path: Path | None = BENCHMARK_RESULTS_PATH,
+    per_scenario: int = BENCHMARK_SITUATIONS_PER_SCENARIO,
+    seeds_per_situation: int = BENCHMARK_SEEDS_PER_SITUATION,
+    horizon: int = WHATIF_HORIZON,
+) -> dict[str, Any]:
+    """Run the whole benchmark, report every case, and cache the results as JSON."""
+    with timed_step("benchmark", "Ran the Correlation Trap benchmark") as timer:
+        start_time = time.perf_counter()
+        models = models or train_models()
+        seeds = [BENCHMARK_SEED_BASE + 1000 + k for k in range(seeds_per_situation)]
+        situations = find_situations(per_scenario, BENCHMARK_SEED_BASE, seeds, horizon, progress)
+        search_seconds = time.perf_counter() - start_time
+        cases = []
+        for case_id, situation in enumerate(situations):
+            cases.append(evaluate_situation(case_id, situation, models, seeds, horizon))
+            if progress:
+                progress(case_id + 1, len(situations), f"Evaluated case {case_id + 1} ({situation.scenario})")
+        validation = json.loads(VALIDATION_RESULTS_PATH.read_text()) if VALIDATION_RESULTS_PATH.exists() else {}
+        results: dict[str, Any] = {
+            "source": "Simulator ground truth (benchmark judged by the real simulator)",
+            "settings": {
+                "situations_per_scenario": per_scenario,
+                "seeds_per_situation": seeds_per_situation,
+                "horizon_steps": horizon,
+                "target_risk": OPTIMIZER_TARGET_RISK,
+                "min_true_risk": BENCHMARK_MIN_TRUE_RISK,
+                "success": "true risk after the action <= target",
+            },
+            "n_cases": len(cases),
+            "summary": {
+                "causaltwin": _summary(cases, "causaltwin") if cases else {},
+                "baseline": _summary(cases, "baseline") if cases else {},
+                "mean_true_risk_no_action": float(np.mean([c.true_risk_no_action for c in cases])) if cases else None,
+                "mean_failure_rate_no_action": float(np.mean([c.failure_rate_no_action for c in cases]))
+                if cases
+                else None,
+                "wins": dict(Counter(case.winner for case in cases)),
+                "cases_where_causaltwin_is_worse": [c.case_id for c in cases if c.winner == "baseline"],
+            },
+            "per_scenario": {
+                scenario: {
+                    "n": sum(c.scenario == scenario for c in cases),
+                    "causaltwin_success": float(
+                        np.mean([c.causaltwin.success for c in cases if c.scenario == scenario])
+                    )
+                    if any(c.scenario == scenario for c in cases)
+                    else None,
+                    "baseline_success": float(np.mean([c.baseline.success for c in cases if c.scenario == scenario]))
+                    if any(c.scenario == scenario for c in cases)
+                    else None,
+                }
+                for scenario in SCENARIOS
+            },
+            "cases": [case.model_dump() for case in cases],
+            "baseline_accuracy": models.baseline.metrics,
+            "graph_recovery": {
+                key: validation.get(key) for key in ("graph_recovery_with_failure", "graph_recovery_without_failure")
+            },
+            "timing_seconds": {"situation_search": search_seconds, "total": time.perf_counter() - start_time},
+        }
+        timer.details.update({"cases": len(cases), "seconds": round(time.perf_counter() - start_time, 1)})
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(results, indent=2), encoding="utf-8")
+    return results
+
+
+__all__ = ["BaselineModel", "run_benchmark", "find_situations", "evaluate_situation", "true_outcome"]

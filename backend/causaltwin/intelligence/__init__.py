@@ -1,1 +1,1 @@
-"""Intelligence layer: optimizer, baseline, drift detection, benchmark (Phase 3+)."""
+"""Intelligence layer: optimizer, baseline, benchmark, drift detection, model training."""

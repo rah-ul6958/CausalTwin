@@ -97,8 +97,10 @@ class Intervention(BaseModel):
     """A do-intervention used by the what-if engine."""
 
     variable: str
-    change_type: Literal["set", "percent"] = "set"
-    value: float  # target value ("set") or percent change ("percent", e.g. -20)
+    # "set": hold at value; "percent": hold at last value * (1 + value/100);
+    # "reset": set once at start_step, then let the dynamics continue (for example a tool change)
+    change_type: Literal["set", "percent", "reset"] = "set"
+    value: float
     start_step: int = 0  # steps into the horizon when the intervention starts
 
 
