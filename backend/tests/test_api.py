@@ -232,3 +232,39 @@ def test_scripted_demo_through_the_api(client: TestClient) -> None:
     assert "coolant_flow" in by_name["drift_alert"]["narration"]
     assert by_name["new_recommendation"]["recommendation"]["action_type"] != "none"
     assert client.post("/demo/next").json()["finished"]
+
+
+def test_information_endpoints(client: TestClient) -> None:
+    """Configuration, histories and labelled ground truth for the frontend."""
+    config = client.get("/config").json()
+    assert set(config["levers"]) == {"load_pct", "spindle_speed", "coolant_flow", "lube_rate"}
+    assert config["levers"]["coolant_flow"]["cost_per_pct"] > 0 and "illustrative" in config["illustrative_note"]
+    assert config["budgets_ms"]["recommend"] == 1000 and config["baseline_model"]["metrics"]["auc"] > 0.8
+    assert len(config["demo_beats"]) == 8 and config["engine"]["tau_max"] == 3
+    assert 0 < config["live"]["alert_risk_threshold"] < 1
+    assert "events" in client.get("/events").json() and "alerts" in client.get("/alerts").json()
+    versions = client.get("/graph/history").json()["versions"]
+    assert versions[0]["version"] == 1
+    client.post("/sim/control", json={"action": "step", "value": 5})
+    risk_history = client.get("/risk/history", params={"limit": 3}).json()
+    assert risk_history["simulated"] and "ground truth" in risk_history["validation_label"].lower()
+    assert 1 <= len(risk_history["points"]) <= 3 and "twin_risk" in risk_history["points"][-1]
+    # Ground truth is refreshed only every few steps; each point says when it was computed.
+    last_point = risk_history["points"][-1]
+    assert last_point["true_risk_step"] is None or last_point["true_risk_step"] <= last_point["step"]
+    # A reset starts a new run, so clients can drop the old run's series.
+    run_before = risk_history["run_id"]
+    status = client.post("/sim/control", json={"action": "reset"}).json()["status"]
+    assert status["run_id"] == run_before + 1
+    assert client.get("/risk/history").json()["points"] == []
+    true_graph = client.get("/validation/true-graph").json()
+    assert "ground truth" in true_graph["label"].lower() and len(true_graph["edges"]) > 10
+    drift = client.get("/drift-results")
+    assert drift.status_code in (200, 404)
+    logs = client.get("/logs", params={"limit": 500}).json()
+    assert all(entry["level"] in ("info", "warning") for entry in logs)
+    # Per-step risk estimates are routine entries, filtered on request.
+    routine = client.get("/logs", params={"limit": 50, "routine": "only"}).json()
+    assert routine and all(entry["routine"] and entry["step_name"] == "what_if" for entry in routine)
+    main = client.get("/logs", params={"limit": 500, "routine": "exclude"}).json()
+    assert main and not any(entry["routine"] for entry in main)

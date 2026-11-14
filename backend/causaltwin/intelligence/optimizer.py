@@ -50,6 +50,7 @@ from causaltwin.intelligence.schemas import (
     Recommendation,
     RecommendationConfidence,
 )
+from causaltwin.utils.formatting import format_value
 from causaltwin.utils.timing import timed_step
 
 TOOL_STATE = "tool_wear"
@@ -392,7 +393,10 @@ def _explanation(
             f"Predicted failure risk is {before}, above the {target:.0%} target, but no evaluated change "
             f"lowers it. Consider maintenance; no lever change is recommended."
         )
-    parts = [f"{c.lever} from {c.from_value:.3g} to {c.to_value:.3g} ({c.change_pct:+.0f}%)" for c in candidate.changes]
+    parts = [
+        f"{c.lever} from {format_value(c.from_value)} to {format_value(c.to_value)} ({c.change_pct:+.0f}%)"
+        for c in candidate.changes
+    ]
     if candidate.tool_change:
         parts.append("change the tool")
     action = "; ".join(parts)

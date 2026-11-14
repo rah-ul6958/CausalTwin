@@ -117,6 +117,7 @@ class SimStatus(BaseModel):
     """Live simulator status."""
 
     running: bool
+    run_id: int  # increases on every reset of the live simulation
     step: int
     steps_per_second: float
     scenario: str

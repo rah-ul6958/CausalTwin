@@ -43,6 +43,7 @@ from causaltwin.config import (
 )
 from causaltwin.engine.correlation import failure_soon
 from causaltwin.intelligence.schemas import BaselineAction
+from causaltwin.utils.formatting import format_value
 from causaltwin.utils.timing import timed_step
 
 SENSOR_ACTION_MAP: dict[str, tuple[str, str | None, float]] = {
@@ -187,7 +188,9 @@ class BaselineModel:
             "to_value": target,
             "change_pct": actual_pct,
             "cost": LEVER_COSTS[lever].cost_per_pct * abs(actual_pct),
-            "description": f"Change {lever} from {current:.3g} to {target:.3g} ({actual_pct:+.0f}%).",
+            "description": (
+                f"Change {lever} from {format_value(current)} to {format_value(target)} ({actual_pct:+.0f}%)."
+            ),
         }
         return action, self.predict_risk(changed)
 

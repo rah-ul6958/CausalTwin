@@ -10,6 +10,7 @@ separate "validation" field, clearly labelled as ground truth: the twin never us
 import asyncio
 import copy
 import time
+from collections import deque
 from dataclasses import dataclass
 from typing import Any
 
@@ -20,6 +21,7 @@ from causaltwin.config import (
     DEMO_SEED,
     LIVE_LOG_FLUSH_SECONDS,
     LIVE_MAX_FRAMES_PER_SECOND,
+    LIVE_RISK_HISTORY_POINTS,
     LIVE_RISK_ROLLOUTS,
     LIVE_ROOT_CAUSE_EVERY,
     LIVE_SEED,
@@ -75,6 +77,7 @@ class LiveLoop:
         self.running = False
         self.steps_per_second = LIVE_STEPS_PER_SECOND
         self.task: asyncio.Task[None] | None = None
+        self.run_id = 0  # increases on every reset, so clients can tell runs apart
         self.reset(LIVE_SEED, "normal")
 
     # ------------------------------------------------------------------
@@ -82,6 +85,7 @@ class LiveLoop:
     # ------------------------------------------------------------------
     def reset(self, seed: int, scenario: str) -> None:
         """Start a fresh simulator and a fresh copy of the trained engine."""
+        self.run_id += 1
         self.seed = seed
         self.scenario = scenario
         self.engine = copy.deepcopy(self.models.engine)
@@ -91,6 +95,8 @@ class LiveLoop:
         self.drift = DriftManager(self.engine, self.buffer)
         self.latest_risk: RiskEstimate | None = None
         self.latest_true_risk: float | None = None
+        # Step at which latest_true_risk was computed (it is refreshed only every few steps).
+        self.latest_true_risk_step: int | None = None
         self.latest_root_cause: RootCauseResult | None = None
         self.latest_recommendation: Recommendation | None = None
         self.latest_baseline_action: BaselineAction | None = None
@@ -98,6 +104,18 @@ class LiveLoop:
         self.events: list[dict[str, Any]] = []
         self.applied: list[dict[str, Any]] = []
         self.risk_was_high = False
+        # Recent published risk estimates, so a page opened later can draw the risk chart from the start.
+        self.risk_history: deque[dict[str, Any]] = deque(maxlen=LIVE_RISK_HISTORY_POINTS)
+        initial_graph = self.engine.get_graph()
+        self.graph_versions: list[dict[str, Any]] = [
+            {
+                "version": 1,
+                "step": 0,
+                "reason": "initial fit on training data",
+                "n_edges": len(initial_graph.edges),
+                "edge_changes": [],
+            }
+        ]
         self._last_frame_time = 0.0
         self._last_flush = time.time()
         for _ in range(WARM_UP_STEPS):
@@ -143,6 +161,7 @@ class LiveLoop:
                 self.hub.broadcast("event", event_record)
         if estimate_truth and (step % LIVE_TRUTH_EVERY == 0 or force_frame):
             self.latest_true_risk = self._true_risk()
+            self.latest_true_risk_step = step
         if estimate_risk:
             self._estimate_risk(step, publish)
         if publish and step % LIVE_ROOT_CAUSE_EVERY == 0 and self.history_is_usable():
@@ -156,6 +175,7 @@ class LiveLoop:
                 self.hub.broadcast(
                     "sensor_frame",
                     {
+                        "run_id": self.run_id,
                         "step": step,
                         "timestamp": _timestamp(step),
                         "values": {name: row[name] for name in MEASURED_VARIABLES},
@@ -178,9 +198,18 @@ class LiveLoop:
         if not publish:
             return
         risk = self.latest_risk
+        self.risk_history.append(
+            {
+                "step": step,
+                "twin_risk": None if risk is None else risk.model_dump(),
+                "true_risk_within_horizon": self.latest_true_risk,
+                "true_risk_step": self.latest_true_risk_step,
+            }
+        )
         self.hub.broadcast(
             "risk_update",
             {
+                "run_id": self.run_id,
                 "step": step,
                 "twin_risk": None if risk is None else risk.model_dump(),
                 "machine_running": self.history_is_usable(),
@@ -190,6 +219,7 @@ class LiveLoop:
                     "label": GROUND_TRUTH_LABEL,
                     "true_hazard_per_step": self.simulator.get_true_hazard(),
                     "true_risk_within_horizon": self.latest_true_risk,
+                    "true_risk_step": self.latest_true_risk_step,
                 },
             },
         )
@@ -223,6 +253,17 @@ class LiveLoop:
         """Publish drift alerts; after a confirmed change, push the new graph."""
         record = {"kind": "drift", **alert.model_dump()}
         self._alert(record, publish)
+        if alert.status == "confirmed":
+            graph = self.engine.get_graph()
+            self.graph_versions.append(
+                {
+                    "version": len(self.graph_versions) + 1,
+                    "step": alert.rediscovery_step or self.step_count,
+                    "reason": "drift: " + "; ".join(alert.explanation[:-1] or alert.explanation),
+                    "n_edges": len(graph.edges),
+                    "edge_changes": [c.model_dump() for c in alert.edge_changes],
+                }
+            )
         if alert.status == "confirmed" and publish:
             self.hub.broadcast(
                 "graph_update",
@@ -234,8 +275,15 @@ class LiveLoop:
             )
 
     def _alert(self, record: dict[str, Any], publish: bool = True) -> None:
-        """Store and publish an alert."""
+        """Store and publish an alert (also written to the activity log as a warning)."""
         self.alerts.append(record)
+        message = record.get("message") or "; ".join(record.get("explanation", [])[:1]) or record.get("kind", "alert")
+        get_activity_logger().log(
+            f"alert_{record.get('kind', 'other')}",
+            str(message),
+            level="warning",
+            details={"step": record.get("step") or record.get("detected_step")},
+        )
         if publish:
             self.hub.broadcast("alert", record)
 

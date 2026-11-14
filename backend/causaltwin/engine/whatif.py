@@ -181,7 +181,15 @@ def run_what_if(
     `history` holds the most recent rows (oldest first) of `model.variables`; at least
     `model.max_lag` rows (one row in tabular mode).
     """
-    with timed_step("what_if", f"Simulated {len(interventions)} intervention(s)") as timer:
+    # With no interventions this is a plain risk estimate; the live loop runs one every step,
+    # so it is logged as a routine entry that does not flood the main activity log.
+    message = (
+        f"Simulated {len(interventions)} intervention(s)"
+        if interventions
+        else "Estimated failure risk with no intervention"
+    )
+    details = {"n_interventions": len(interventions)}
+    with timed_step("what_if", message, details=details, routine=not interventions) as timer:
         start_time = time.perf_counter()
         needed_rows = max(model.max_lag, 1)
         if history.shape[0] < needed_rows:

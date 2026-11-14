@@ -15,12 +15,11 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from causaltwin.config import BENCHMARK_RESULTS_PATH, DATA_DIR, FAULT_NAMES  # noqa: E402
+from causaltwin.config import BENCHMARK_RESULTS_PATH, DRIFT_RESULTS_PATH, FAULT_NAMES  # noqa: E402
 from causaltwin.intelligence.benchmark import run_benchmark  # noqa: E402
 from causaltwin.intelligence.drift import count_false_alarms, evaluate_fault  # noqa: E402
 from causaltwin.intelligence.training import train_models  # noqa: E402
 
-DRIFT_RESULTS_PATH = DATA_DIR / "drift_results.json"
 DRIFT_SEEDS = (11, 12, 13)
 FALSE_ALARM_STEPS = 20_000
 

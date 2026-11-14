@@ -342,6 +342,7 @@ LIVE_ROOT_CAUSE_EVERY = 50  # steps between root-cause refreshes
 LIVE_TRUTH_EVERY = 10  # steps between ground-truth risk computations (validation channel)
 LIVE_TRUTH_SEEDS = 4
 LIVE_BUFFER_ROWS = 5000
+LIVE_RISK_HISTORY_POINTS = 600  # recent risk estimates kept for the frontend risk chart
 LIVE_MAX_FRAMES_PER_SECOND = 10.0
 LIVE_LOG_FLUSH_SECONDS = 0.5
 WEBSOCKET_QUEUE_SIZE = 500
@@ -349,3 +350,21 @@ DEMO_SEED = 777
 MODEL_CACHE_PATH = DATA_DIR / "model_cache.pkl"
 CORS_ORIGINS_ENV = "CAUSALTWIN_CORS_ORIGINS"  # comma-separated list
 AUTOSTART_ENV = "CAUSALTWIN_AUTOSTART"  # "0" keeps the live loop paused at start-up
+
+# Performance budgets from CLAUDE.md section 4, keyed by activity-log step name (milliseconds).
+# The console's pipeline tracker compares measured durations against these.
+PERFORMANCE_BUDGETS_MS: dict[str, float] = {
+    "simulate": 2000.0,  # 20,000 steps
+    "discovery": 3000.0,
+    "fit_model": 1000.0,
+    "what_if": 200.0,
+    "recommend": 1000.0,
+    "baseline_fit": 10000.0,
+    "benchmark": 60000.0,
+}
+DRIFT_RESULTS_PATH = DATA_DIR / "drift_results.json"
+
+# Activity log buffers (in memory). Routine entries are the live loop's per-step risk
+# estimates; they get their own buffer so they cannot push other entries out.
+ACTIVITY_LOG_MAX_ENTRIES = 5000
+ACTIVITY_LOG_MAX_ROUTINE_ENTRIES = 500

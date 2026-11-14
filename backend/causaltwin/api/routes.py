@@ -5,7 +5,7 @@ import json
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect
@@ -439,10 +439,18 @@ def metrics(request: Request) -> dict[str, Any]:
 
 
 @router.get("/logs")
-def logs(request: Request, limit: int = Query(100, ge=1, le=5000)) -> list[dict[str, Any]]:
-    """Most recent activity log entries."""
+def logs(
+    request: Request,
+    limit: int = Query(100, ge=1, le=5000),
+    routine: Literal["include", "exclude", "only"] = "include",
+) -> list[dict[str, Any]]:
+    """Most recent activity log entries.
+
+    `routine` controls the live loop's per-step risk estimates: "include" (default),
+    "exclude" them, or return "only" them.
+    """
     _state(request)
-    return [entry.model_dump() for entry in get_activity_logger().entries()[-limit:]]
+    return [entry.model_dump() for entry in get_activity_logger().entries(routine)[-limit:]]
 
 
 @router.get("/data/recent")

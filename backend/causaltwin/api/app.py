@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from causaltwin import __version__
 from causaltwin.api.hub import StreamHub
+from causaltwin.api.info_routes import router as info_router
 from causaltwin.api.routes import router
 from causaltwin.api.state import AppState
 from causaltwin.config import AUTOSTART_ENV, CORS_ORIGINS_ENV
@@ -62,6 +63,7 @@ def create_app(models: TrainedModels | None = None, autostart: bool | None = Non
         CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"]
     )
     app.include_router(router)
+    app.include_router(info_router)
     return app
 
 

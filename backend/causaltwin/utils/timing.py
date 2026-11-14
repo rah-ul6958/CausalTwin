@@ -23,11 +23,13 @@ def timed_step(
     message: str,
     logger: ActivityLogger | None = None,
     details: dict[str, Any] | None = None,
+    routine: bool = False,
 ) -> Iterator[StepTimer]:
     """Time the enclosed block and write one activity log entry when it finishes.
 
     Code inside the block may add entries to `timer.details` to include results
-    (for example row counts) in the log entry.
+    (for example row counts) in the log entry. `routine=True` marks a high-frequency
+    step whose entry goes to the logger's separate routine buffer.
     """
     active_logger = logger or get_activity_logger()
     timer = StepTimer()
@@ -37,4 +39,4 @@ def timed_step(
         yield timer
     finally:
         timer.duration_ms = (time.perf_counter() - start_time) * 1000.0
-        active_logger.log(step_name, message, duration_ms=timer.duration_ms, details=timer.details)
+        active_logger.log(step_name, message, duration_ms=timer.duration_ms, details=timer.details, routine=routine)

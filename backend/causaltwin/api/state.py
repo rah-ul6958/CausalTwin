@@ -28,6 +28,7 @@ class AppState:
         simulator = self.live.simulator
         return {
             "running": self.live.running,
+            "run_id": self.live.run_id,
             "step": self.live.step_count,
             "steps_per_second": self.live.steps_per_second,
             "scenario": self.live.scenario,
