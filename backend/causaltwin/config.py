@@ -1,0 +1,194 @@
+"""Single source of truth for every constant used by CausalTwin.
+
+All physical constants, units, and ranges below are ILLUSTRATIVE and chosen to be
+physically plausible for a CNC milling spindle. They are NOT taken from any real
+machine datasheet and do not claim compliance with any industry standard.
+"""
+
+from dataclasses import dataclass, field
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BACKEND_DIR / "data"
+SAMPLES_DIR = DATA_DIR / "samples"
+TRUE_GRAPH_PATH = DATA_DIR / "true_graph.json"
+
+# ---------------------------------------------------------------------------
+# Time and reproducibility
+# ---------------------------------------------------------------------------
+SECONDS_PER_STEP = 10  # 1 simulation step = 10 seconds of machine time
+STEPS_PER_DAY = 24 * 3600 // SECONDS_PER_STEP  # 8640 steps
+STEPS_PER_SHIFT = 8 * 3600 // SECONDS_PER_STEP  # 2880 steps (8 hour shift)
+SIMULATION_START_TIME = "2026-01-05 06:00:00"
+DEFAULT_SEED = 42
+DEFAULT_N_STEPS = 20_000
+RANDOM_BLOCK_SIZE = 16_384  # how many random numbers are pre-drawn at once (speed)
+
+# ---------------------------------------------------------------------------
+# Variables (illustrative units and normal operating ranges)
+# ---------------------------------------------------------------------------
+LEVER_NAMES: tuple[str, ...] = ("load_pct", "spindle_speed", "coolant_flow", "lube_rate")
+ENVIRONMENT_NAMES: tuple[str, ...] = ("ambient_temp",)
+INTERNAL_SENSOR_NAMES: tuple[str, ...] = (
+    "motor_current",
+    "coolant_temp",
+    "bearing_temp",
+    "vibration",
+    "tool_wear",
+)
+OUTCOME_NAME = "failure"
+MEASURED_VARIABLES: tuple[str, ...] = ENVIRONMENT_NAMES + LEVER_NAMES + INTERNAL_SENSOR_NAMES
+
+VARIABLE_INFO: dict[str, dict[str, object]] = {
+    "ambient_temp": {"type": "environment", "unit": "deg C", "normal_range": (22.0, 38.0)},
+    "load_pct": {"type": "control", "unit": "%", "normal_range": (40.0, 100.0)},
+    "spindle_speed": {"type": "control", "unit": "rpm", "normal_range": (1500.0, 4500.0)},
+    "coolant_flow": {"type": "control", "unit": "L/min", "normal_range": (8.0, 30.0)},
+    "lube_rate": {"type": "control", "unit": "relative units", "normal_range": (0.5, 1.5)},
+    "motor_current": {"type": "sensor", "unit": "A", "normal_range": None},
+    "coolant_temp": {"type": "sensor", "unit": "deg C", "normal_range": None},
+    "bearing_temp": {"type": "sensor", "unit": "deg C", "normal_range": (40.0, 65.0)},
+    "vibration": {"type": "sensor", "unit": "mm/s RMS", "normal_range": None},
+    "tool_wear": {"type": "sensor", "unit": "minutes of cutting", "normal_range": None},
+    "failure": {"type": "outcome", "unit": "0/1", "normal_range": None},
+}
+BEARING_ALARM_TEMP = 80.0  # deg C, alarm zone starts here (illustrative)
+
+# Physically sensible bounds used by tests and by the simulator's clipping.
+PHYSICAL_BOUNDS: dict[str, tuple[float, float]] = {
+    "ambient_temp": (0.0, 60.0),
+    "load_pct": (0.0, 100.0),
+    "spindle_speed": (0.0, 4500.0),
+    "coolant_flow": (0.0, 30.0),
+    "lube_rate": (0.0, 1.5),
+    "motor_current": (0.0, 80.0),
+    "coolant_temp": (0.0, 90.0),
+    "bearing_temp": (0.0, 150.0),
+    "vibration": (0.0, 30.0),
+    "tool_wear": (0.0, 2000.0),
+}
+
+# ---------------------------------------------------------------------------
+# Events and faults
+# ---------------------------------------------------------------------------
+EVENT_TYPES: tuple[str, ...] = (
+    "maintenance",
+    "tool_change",
+    "setpoint_change",
+    "shift_change",
+    "failure",
+    "fault_injected",
+    "fault_cleared",
+)
+FAULT_NAMES: tuple[str, ...] = ("coolant_filter_clog", "lube_leak", "bearing_damage")
+
+# ---------------------------------------------------------------------------
+# Ingestion and data quality
+# ---------------------------------------------------------------------------
+COLUMN_ROLES: tuple[str, ...] = ("control", "environment", "sensor", "outcome", "ignore")
+TIME_COLUMN_CANDIDATES: tuple[str, ...] = ("timestamp", "time", "datetime", "date")
+FLATLINE_MIN_RUN = 30  # this many identical consecutive values counts as a flatline
+STEPS_SINCE_MAINTENANCE_COLUMN = "steps_since_maintenance"
+EVENT_INDICATOR_PREFIX = "event_"
+
+
+@dataclass(frozen=True)
+class LeverSettings:
+    """Operator behavior for one control lever (illustrative values)."""
+
+    minimum: float
+    maximum: float
+    jitter_std: float  # size of small random operator adjustments per step
+    jitter_persistence: float  # 0..1, how long an adjustment persists (AR(1) coefficient)
+
+
+@dataclass(frozen=True)
+class SimulatorConfig:
+    """All coefficients of the simulated spindle. Every value is illustrative."""
+
+    # --- operator behavior ---
+    levers: dict[str, LeverSettings] = field(
+        default_factory=lambda: {
+            "load_pct": LeverSettings(40.0, 100.0, 2.0, 0.6),
+            "spindle_speed": LeverSettings(1500.0, 4500.0, 60.0, 0.6),
+            "coolant_flow": LeverSettings(8.0, 30.0, 0.8, 0.6),
+            "lube_rate": LeverSettings(0.5, 1.5, 0.03, 0.6),
+        }
+    )
+    setpoint_mean_interval: float = 120.0  # steps between setpoint changes (per lever, on average)
+    tool_change_limit_range: tuple[float, float] = (60.0, 100.0)  # operator replaces tool at this wear
+
+    # --- ambient environment ---
+    ambient_base: float = 30.0
+    ambient_daily_amplitude: float = 5.0
+    ambient_drift_persistence: float = 0.999  # slow mean-reverting random walk
+    ambient_drift_std: float = 0.05
+    ambient_sensor_noise: float = 0.1
+
+    # --- motor current: first-order response to mechanical load ---
+    current_inertia: float = 0.5
+    current_base: float = 4.0  # A, idle current
+    current_per_load: float = 0.22  # A per % load
+    current_per_rpm: float = 0.004  # A per rpm
+    current_process_noise: float = 0.6
+    current_sensor_noise: float = 0.2
+
+    # --- coolant temperature: Newton cooling toward ambient + heat rise - flow cooling ---
+    coolant_inertia: float = 0.7
+    coolant_heat_rise: float = 12.0  # deg C above ambient with no flow
+    coolant_flow_gain: float = 0.45  # deg C removed per L/min
+    coolant_process_noise: float = 0.3
+    coolant_sensor_noise: float = 0.1
+
+    # --- bearing temperature: first-order thermal dynamics ---
+    bearing_inertia: float = 0.8
+    bearing_base_rise: float = 0.0  # deg C
+    bearing_per_amp: float = 0.7  # deg C per A of motor current
+    bearing_per_rpm: float = 0.004  # deg C per rpm (friction heating)
+    bearing_lube_gain: float = 11.0  # deg C removed per unit of lube rate
+    bearing_process_noise: float = 0.4
+    bearing_sensor_noise: float = 0.15
+
+    # --- vibration (mm/s RMS) ---
+    vibration_inertia: float = 0.4
+    vibration_base: float = 0.3
+    vibration_per_load: float = 0.025
+    vibration_per_rpm: float = 0.0006
+    vibration_per_wear: float = 0.02
+    vibration_process_noise: float = 0.25
+    vibration_sensor_noise: float = 0.1
+
+    # --- tool wear (equivalent minutes of cutting) ---
+    wear_reference_load: float = 70.0
+    wear_reference_rpm: float = 3000.0
+    wear_rpm_exponent: float = 1.3
+    wear_sensor_noise: float = 2.0  # wear is estimated, so its measurement is noisy
+
+    # --- failure hazard: sigmoid(a*(T - T0) + b*(W - W0) + c) ---
+    failures_enabled: bool = True
+    hazard_temp_coef: float = 0.35
+    hazard_temp_threshold: float = 80.0
+    hazard_wear_coef: float = 0.02
+    hazard_wear_threshold: float = 150.0
+    hazard_intercept: float = -0.5
+    failure_downtime_steps: int = 12  # machine stopped this long after a failure
+
+    # --- faults (change the causal structure) ---
+    clog_flow_effect_factor: float = 0.2  # coolant flow keeps 20% of its cooling effect
+    lube_leak_effective_rate: float = 0.3  # lube reaching the bearing during a leak (constant)
+    bearing_damage_heat_factor: float = 1.6  # extra heating per amp with a damaged bearing
+
+
+DEFAULT_CONFIG = SimulatorConfig()
+
+# Scenario seeds (each scenario is reproducible).
+SCENARIO_SEEDS: dict[str, int] = {
+    "normal": 101,
+    "overload": 202,
+    "cooling_failure": 303,
+    "heat_wave": 404,
+    "tool_wear": 505,
+}

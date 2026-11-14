@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+frontend/.vercel/
+
+# Environment
+.env
+.env.*
+
+# Data cache (generated data is ignored, except the committed samples and true graph)
+backend/data/*
+!backend/data/samples/
+!backend/data/true_graph.json
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

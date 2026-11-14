@@ -1,0 +1,16 @@
+# Pinned for Python 3.11 (numba/tigramite compatibility).
+# Versions chosen as a known-good set; no GPU / deep learning packages (see CLAUDE.md section 4).
+numpy==1.26.4
+pandas==2.2.3
+scipy==1.11.4
+scikit-learn==1.5.2
+numba==0.60.0
+tigramite==5.2.7.0
+statsmodels==0.14.4
+xgboost==2.1.3
+shap==0.46.0
+fastapi==0.115.6
+uvicorn==0.32.1
+pydantic==2.10.4
+websockets==13.1
+pytest==8.3.4
