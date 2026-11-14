@@ -9,6 +9,8 @@ from dataclasses import replace
 
 import numpy as np
 import pandas as pd
+import pytest
+import statsmodels.api as sm
 
 from causaltwin.config import (
     DEFAULT_CONFIG,
@@ -22,10 +24,14 @@ from causaltwin.simulator import (
     SCENARIOS,
     MachineSimulator,
     SimulationResult,
+    build_simulator,
     compute_hazard,
+    failure_probability,
     generate_dataset,
     get_true_graph,
+    switch_scenario,
 )
+from causaltwin.simulator.scenarios import NORMAL_COMFORT_RANGES
 
 STRESSED_SCENARIOS = ("overload", "cooling_failure", "heat_wave", "tool_wear")
 NO_FAILURE_CONFIG = replace(DEFAULT_CONFIG, failures_enabled=False)
@@ -87,7 +93,9 @@ def test_coolant_intervention_acts_with_expected_lags() -> None:
     baseline.run(1200)
     baseline_sensors = baseline.get_sensor_dataframe()
     baseline_truth = baseline.get_ground_truth_dataframe()
-    start_step = int(baseline_sensors.index[(baseline_sensors.index >= 500) & (baseline_sensors["coolant_flow"] < 25)][0])
+    start_step = int(
+        baseline_sensors.index[(baseline_sensors.index >= 500) & (baseline_sensors["coolant_flow"] < 25)][0]
+    )
 
     treated = MachineSimulator(NO_FAILURE_CONFIG, seed=7)
     treated.intervene("coolant_flow", 30.0, start_step=start_step)
@@ -119,7 +127,10 @@ def test_correlation_trap_exists(scenario_results: dict[str, SimulationResult]) 
         running = sensors[sensors["machine_running"] == 1]
         vibration_correlation = running["vibration"].corr(running["true_hazard"])
         wear_correlation = running["tool_wear"].corr(running["true_hazard"])
-        print(f"{name}: corr(vibration, hazard)={vibration_correlation:+.3f} corr(tool_wear, hazard)={wear_correlation:+.3f}")
+        print(
+            f"{name}: corr(vibration, hazard)={vibration_correlation:+.3f} "
+            f"corr(tool_wear, hazard)={wear_correlation:+.3f}"
+        )
         assert vibration_correlation > 0.1, name
         assert vibration_correlation > abs(wear_correlation), name
 
@@ -159,7 +170,124 @@ def test_intervening_on_vibration_changes_nothing_about_failure() -> None:
     hot = MachineSimulator(seed=21)
     hot.intervene("bearing_temp", 85.0, start_step=100)
     hot.run(500)
-    assert hot.get_ground_truth_dataframe()["true_hazard"].iloc[200:].mean() > baseline_truth["true_hazard"].iloc[200:500].mean() * 10
+    assert (
+        hot.get_ground_truth_dataframe()["true_hazard"].iloc[200:].mean()
+        > baseline_truth["true_hazard"].iloc[200:500].mean() * 10
+    )
+
+
+def test_removing_vibration_noise_changes_nothing_about_hazard() -> None:
+    """Damping vibration (removing its noise) while all its causes stay as they are leaves risk unchanged."""
+    baseline = MachineSimulator(seed=23)
+    baseline.run(500)
+    damped = baseline.fork(config_overrides={"vibration_process_noise": 0.0, "vibration_sensor_noise": 0.0})
+    undamped = baseline.fork()
+    damped.run(3000)
+    undamped.run(3000)
+    damped_truth = damped.get_ground_truth_dataframe()
+    undamped_truth = undamped.get_ground_truth_dataframe()
+    assert not np.allclose(damped_truth["true_vibration"], undamped_truth["true_vibration"])
+    np.testing.assert_array_equal(damped_truth["true_hazard"], undamped_truth["true_hazard"])
+
+
+def test_failure_model_is_identifiable_and_rejects_vibration(scenario_results: dict[str, SimulationResult]) -> None:
+    """A multivariate logistic regression on pooled data finds the true causes, not vibration.
+
+    This checks the "trap is still identifiable by a proper causal method" requirement.
+    """
+    predictors = ["bearing_temp", "tool_wear", "vibration", "motor_current", "load_pct", "spindle_speed"]
+    frames = []
+    for result in scenario_results.values():
+        sensors = result.sensors
+        lagged = pd.DataFrame({name: sensors[name].shift(1) for name in predictors})
+        lagged["failure"] = sensors["failure"]
+        running = (sensors["machine_running"] == 1) & (sensors["machine_running"].shift(1) == 1)
+        frames.append(lagged[running].dropna())
+    pooled = pd.concat(frames)
+    model = sm.Logit(pooled["failure"], sm.add_constant(pooled[predictors])).fit(disp=0, maxiter=200)
+    print("failure model p-values:", {name: f"{model.pvalues[name]:.2g}" for name in predictors})
+    assert model.pvalues["bearing_temp"] < 0.01 and model.params["bearing_temp"] > 0
+    assert model.pvalues["tool_wear"] < 0.01 and model.params["tool_wear"] > 0
+    assert model.pvalues["vibration"] > 0.01
+
+
+def test_fork_continues_from_the_same_state() -> None:
+    """An unseeded fork repeats the original future exactly; a seeded fork differs; the original is untouched."""
+    original = MachineSimulator(seed=9)
+    original.run(400)
+    same_future = original.fork()
+    other_future = original.fork(seed=1234)
+    same_future.run(300)
+    other_future.run(300)
+    assert original.current_step == 400 and len(original.get_sensor_dataframe()) == 400
+    original.run(300)
+    original_future = original.get_sensor_dataframe().iloc[400:].reset_index(drop=True)
+    pd.testing.assert_frame_equal(original_future, same_future.get_sensor_dataframe())
+    assert same_future.get_sensor_dataframe()["step"].iloc[0] == 400
+    assert not np.allclose(original_future["bearing_temp"], other_future.get_sensor_dataframe()["bearing_temp"])
+
+
+def test_fork_supports_paired_ground_truth_comparisons() -> None:
+    """Forks give the true risk over a horizon with and without an intervention, averaged over seeds."""
+    start = MachineSimulator(seed=3)
+    start.run(600)
+    horizon = 60
+    risks: dict[str, list[float]] = {"baseline": [], "more_cooling": []}
+    for seed in range(5):
+        for label in risks:
+            future = start.fork(seed=seed, config_overrides={"failures_enabled": False})
+            if label == "more_cooling":
+                future.intervene("coolant_flow", 30.0)
+                future.intervene("lube_rate", 1.5)
+            future.run(horizon)
+            risks[label].append(failure_probability(future.get_ground_truth_dataframe()["true_hazard"]))
+    assert 0.0 <= np.mean(risks["more_cooling"]) < np.mean(risks["baseline"]) <= 1.0
+    assert failure_probability([0.5, 0.5]) == pytest.approx(0.75)
+
+
+def test_switch_scenario_mid_run() -> None:
+    """Switching to overload mid-run keeps the machine state and starts the load creep from that step."""
+    simulator = build_simulator("normal", n_steps=4000)
+    simulator.run(2000)
+    state_before = simulator.get_state()
+    switch_scenario(simulator, "overload", n_steps=2000)
+    assert simulator.profile.lever_range("load_pct", 2000)[0] == pytest.approx(40.0)
+    assert simulator.profile.lever_range("load_pct", 4000)[0] == pytest.approx(90.0)
+    simulator.run(2000)
+    sensors = simulator.get_sensor_dataframe()
+    assert state_before["step"] == 2000 and len(sensors) == 4000
+    running = sensors[sensors["machine_running"] == 1]
+    assert running["load_pct"].iloc[-300:].min() >= 85.0
+
+
+def test_normal_scenario_uses_comfortable_lever_ranges(scenario_results: dict[str, SimulationResult]) -> None:
+    """In normal operation the operator stays inside the comfortable part of each lever range."""
+    running = scenario_results["normal"].sensors.query("machine_running == 1")
+    for lever, (low, high) in NORMAL_COMFORT_RANGES.items():
+        assert running[lever].between(low, high).all(), lever
+
+
+def test_tool_chipping_adds_wear_jumps(scenario_results: dict[str, SimulationResult]) -> None:
+    """Tool wear has occasional jumps of about the chip size on top of small increments."""
+    truth = scenario_results["normal"].ground_truth
+    increments = truth["true_tool_wear"].diff().dropna()
+    increments = increments[increments >= 0]  # drop tool resets
+    chip_size = DEFAULT_CONFIG.wear_chip_size
+    chip_share = (increments > chip_size * 0.9).mean()
+    print(f"share of steps with a chip: {chip_share:.4f}")
+    assert 0.003 < chip_share < 0.03
+    assert increments[increments < chip_size * 0.5].median() < 1.0
+
+
+def test_interventions_are_validated_and_releasable() -> None:
+    """Out-of-bounds do() values raise; release() also cancels scheduled interventions."""
+    simulator = MachineSimulator(seed=2)
+    with pytest.raises(ValueError, match="outside the physical bounds"):
+        simulator.intervene("coolant_flow", 99.0)
+    simulator.intervene("coolant_flow", 25.0, start_step=50)
+    simulator.release("coolant_flow")
+    simulator.run(100)
+    assert not (simulator.get_sensor_dataframe()["coolant_flow"].iloc[50:] == 25.0).all()
 
 
 def _fault_split_run(fault_name: str) -> tuple[pd.DataFrame, int]:
@@ -185,7 +313,10 @@ def test_coolant_filter_clog_weakens_flow_effect() -> None:
         )
         flow_coefficients.append(coefficients[2])
     ratio = flow_coefficients[1] / flow_coefficients[0]
-    print(f"coolant_flow -> coolant_temp coefficient before={flow_coefficients[0]:.4f} after={flow_coefficients[1]:.4f} ratio={ratio:.2f}")
+    print(
+        f"coolant_flow -> coolant_temp coefficient before={flow_coefficients[0]:.4f} "
+        f"after={flow_coefficients[1]:.4f} ratio={ratio:.2f}"
+    )
     assert flow_coefficients[0] < 0
     assert 0.0 < ratio < 0.4
 
@@ -204,7 +335,7 @@ def _bearing_coefficients(data: pd.DataFrame) -> dict[str, float]:
         lag2["lube_rate"][valid].to_numpy(),
     ]
     coefficients = _ols_coefficients(data["bearing_temp"][valid].to_numpy(), predictors)
-    return dict(zip(names, coefficients[1:]))
+    return dict(zip(names, coefficients[1:], strict=False))
 
 
 def test_lube_leak_removes_lube_effect() -> None:
@@ -222,7 +353,10 @@ def test_bearing_damage_strengthens_current_effect() -> None:
     sensors, fault_step = _fault_split_run("bearing_damage")
     before = _bearing_coefficients(sensors.iloc[:fault_step])
     after = _bearing_coefficients(sensors.iloc[fault_step:])
-    print(f"motor_current -> bearing_temp before={before['motor_current_lag2']:.3f} after={after['motor_current_lag2']:.3f}")
+    print(
+        f"motor_current -> bearing_temp before={before['motor_current_lag2']:.3f} "
+        f"after={after['motor_current_lag2']:.3f}"
+    )
     assert after["motor_current_lag2"] > 1.3 * before["motor_current_lag2"]
 
 
@@ -278,7 +412,7 @@ def test_scenario_specific_behavior(scenario_results: dict[str, SimulationResult
     assert heat["ambient_temp"].max() > normal.sensors["ambient_temp"].max() + 8
     tool_events = scenario_results["tool_wear"].events
     assert (tool_events["event_type"] == "tool_change").sum() == 0
-    assert scenario_results["tool_wear"].sensors["tool_wear"].max() > 200
+    assert scenario_results["tool_wear"].sensors["tool_wear"].max() > normal.sensors["tool_wear"].max() + 30
     for result in scenario_results.values():
         assert {"setpoint_change", "shift_change"} <= set(result.events["event_type"])
 

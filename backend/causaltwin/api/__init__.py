@@ -1,1 +1,1 @@
-﻿"""FastAPI app, routes, WebSocket and schemas (later phase)."""
+"""FastAPI app, routes, WebSocket and schemas (later phase)."""

@@ -9,8 +9,12 @@ Vibration is therefore strongly correlated with failure, but it is NOT an input 
 the hazard function, so changing vibration never changes the failure risk.
 """
 
+import copy
 import json
 import math
+from collections.abc import Iterable
+from dataclasses import replace
+from typing import Any
 
 import pandas as pd
 
@@ -51,6 +55,18 @@ def compute_hazard(bearing_temp: float, tool_wear: float, config: SimulatorConfi
         + config.hazard_intercept
     )
     return sigmoid(logit)
+
+
+def failure_probability(hazards: Iterable[float]) -> float:
+    """Probability of at least one failure over a sequence of per-step hazards.
+
+    P(at least one) = 1 - product of (1 - hazard). Used with the simulator's true
+    hazard path to get ground-truth risk over a horizon (validation only).
+    """
+    survival = 1.0
+    for hazard in hazards:
+        survival *= 1.0 - hazard
+    return 1.0 - survival
 
 
 def _clip(variable: str, value: float) -> float:
@@ -104,14 +120,74 @@ class MachineSimulator:
         """Apply do(variable = value) from `start_step` (default: the next step) onward."""
         if variable not in MEASURED_VARIABLES:
             raise ValueError(f"Cannot intervene on unknown variable '{variable}'")
+        low, high = PHYSICAL_BOUNDS[variable]
+        if not low <= value <= high:
+            raise ValueError(f"do({variable}={value}) is outside the physical bounds [{low}, {high}]")
         if start_step is None or start_step <= self.current_step:
             self.interventions[variable] = float(value)
         else:
             self._scheduled_actions.append((start_step, "intervene", variable, float(value)))
 
     def release(self, variable: str) -> None:
-        """Remove an intervention so the variable follows its normal dynamics again."""
+        """Remove an intervention (active or scheduled) so the variable follows its normal dynamics."""
         self.interventions.pop(variable, None)
+        self._scheduled_actions = [
+            action for action in self._scheduled_actions if not (action[1] == "intervene" and action[2] == variable)
+        ]
+
+    def set_profile(self, profile: OperatingProfile, config: SimulatorConfig | None = None) -> None:
+        """Switch the operating profile (and optionally the config) mid-run.
+
+        The physical state, faults, interventions and operator setpoints carry over.
+        """
+        if config is not None:
+            self.config = config
+            self.operator.config = config
+        self.profile = profile
+        self.operator.profile = profile
+
+    def fork(
+        self,
+        seed: int | None = None,
+        config_overrides: dict[str, Any] | None = None,
+        keep_history: bool = False,
+    ) -> "MachineSimulator":
+        """Return an independent copy that continues from the current state.
+
+        - `seed=None` keeps the random stream, so the copy repeats this simulator's
+          future exactly (useful for paired "with vs without intervention" runs).
+          A seed starts a fresh random stream (useful for averaging over futures).
+        - `config_overrides` changes coefficients in the copy only, for example
+          {"failures_enabled": False} or {"vibration_process_noise": 0.0}.
+        - `keep_history=False` starts the copy with empty tables (fast); its rows
+          still carry the true step numbers.
+        """
+        clone = copy.copy(self)
+        clone.config = replace(self.config, **config_overrides) if config_overrides else self.config
+        clone.profile = copy.copy(self.profile)
+        clone.profile.config = clone.config
+        clone.operator = copy.copy(self.operator)
+        clone.operator.config = clone.config
+        clone.operator.profile = clone.profile
+        clone.operator.setpoints = dict(self.operator.setpoints)
+        clone.operator.adjustments = dict(self.operator.adjustments)
+        clone.random_stream = RandomStream(seed) if seed is not None else copy.deepcopy(self.random_stream)
+        clone.active_faults = set(self.active_faults)
+        clone.interventions = dict(self.interventions)
+        clone._scheduled_actions = list(self._scheduled_actions)
+        clone._previous_states = [dict(state) for state in self._previous_states]
+        clone._latest_measured = dict(self._latest_measured)
+        if keep_history:
+            clone._sensor_records = {name: list(values) for name, values in self._sensor_records.items()}
+            clone._truth_records = {name: list(values) for name, values in self._truth_records.items()}
+            clone._truth_fault_records = list(self._truth_fault_records)
+            clone._events = list(self._events)
+        else:
+            clone._sensor_records = {name: [] for name in self._sensor_records}
+            clone._truth_records = {name: [] for name in self._truth_records}
+            clone._truth_fault_records = []
+            clone._events = []
+        return clone
 
     def inject_fault(self, name: str, start_step: int | None = None) -> None:
         """Inject a structural fault now, or schedule it for `start_step`."""
@@ -173,9 +249,7 @@ class MachineSimulator:
         # --- control levers (operator, then interventions, then machine stop) ---
         lever_values, setpoint_changes = self.operator.update(step_index, random_stream)
         for lever, old_value, new_value in setpoint_changes:
-            self._log_event(
-                "setpoint_change", {"lever": lever, "old": round(old_value, 3), "new": round(new_value, 3)}
-            )
+            self._log_event("setpoint_change", {"lever": lever, "old": round(old_value, 3), "new": round(new_value, 3)})
         true_state: dict[str, float] = {"ambient_temp": ambient_temp, **lever_values}
         for variable in ("ambient_temp", *LEVER_NAMES):
             if variable in self.interventions:
@@ -236,6 +310,9 @@ class MachineSimulator:
             * (previous["load_pct"] / config.wear_reference_load)
             * (previous["spindle_speed"] / config.wear_reference_rpm) ** config.wear_rpm_exponent
         )
+        chip_draw = random_stream.uniform()
+        if machine_running and chip_draw < config.wear_chip_probability:
+            wear_increment += config.wear_chip_size
         true_state["tool_wear"] = previous["tool_wear"] + wear_increment
 
         for variable in INTERNAL_SENSOR_NAMES:

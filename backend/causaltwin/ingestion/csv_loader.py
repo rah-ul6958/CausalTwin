@@ -70,7 +70,9 @@ def load_csv(
             raise ValueError(f"Columns not found in CSV: {missing_columns}")
 
         detected_time_column = _find_time_column(raw_data, time_column)
-        used_columns = [column for column, role in column_roles.items() if role != "ignore" and column != detected_time_column]
+        used_columns = [
+            column for column, role in column_roles.items() if role != "ignore" and column != detected_time_column
+        ]
         if not used_columns:
             raise ValueError("No usable columns: every column is ignored")
         unassigned_columns = [
@@ -105,9 +107,7 @@ def load_csv(
 
         missing_counts = {column: int(cleaned[column].isna().sum()) for column in used_columns}
         filled = cleaned[used_columns].ffill()
-        filled_counts = {
-            column: int(missing_counts[column] - filled[column].isna().sum()) for column in used_columns
-        }
+        filled_counts = {column: int(missing_counts[column] - filled[column].isna().sum()) for column in used_columns}
         cleaned[used_columns] = filled
         complete_rows = cleaned[used_columns].notna().all(axis=1)
         first_complete = int(complete_rows.to_numpy().argmax()) if complete_rows.any() else len(cleaned)
@@ -135,5 +135,7 @@ def load_csv(
             non_numeric_values=non_numeric_values,
             warnings=warnings,
         )
-        timer.details.update({"rows": report.n_rows, "columns": report.n_columns, "filled": sum(filled_counts.values())})
+        timer.details.update(
+            {"rows": report.n_rows, "columns": report.n_columns, "filled": sum(filled_counts.values())}
+        )
     return cleaned, report

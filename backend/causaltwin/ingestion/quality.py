@@ -5,6 +5,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from causaltwin.config import FLATLINE_MIN_RUN
+from causaltwin.utils.timing import timed_step
 
 
 class ColumnQuality(BaseModel):
@@ -39,7 +40,14 @@ def data_quality_report(dataframe: pd.DataFrame, columns: list[str] | None = Non
     Binary columns (two or fewer distinct values, e.g. event indicators) are not
     checked for runs, because long constant runs are normal for them.
     """
-    selected_columns = columns or list(dataframe.select_dtypes(include="number").columns)
+    with timed_step("data_quality", "Computed data quality report") as timer:
+        report = _build_report(dataframe, columns or list(dataframe.select_dtypes(include="number").columns))
+        timer.details.update({"columns": len(report), "flatlines": sum(item.is_flatline for item in report)})
+    return report
+
+
+def _build_report(dataframe: pd.DataFrame, selected_columns: list[str]) -> list[ColumnQuality]:
+    """Compute the quality summary for each selected column."""
     report: list[ColumnQuality] = []
     for column in selected_columns:
         values = pd.to_numeric(dataframe[column], errors="coerce")

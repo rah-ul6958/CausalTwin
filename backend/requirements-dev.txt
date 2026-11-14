@@ -1,0 +1,4 @@
+# Development-only tools (linting and type checking). Not needed to run CausalTwin.
+-r requirements.txt
+ruff==0.8.4
+mypy==1.13.0

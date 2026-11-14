@@ -159,7 +159,7 @@
       "lag": 1,
       "sign": "+",
       "edge_type": "self",
-      "explanation": "Wear accumulates: this step's wear is last step's wear plus an increment."
+      "explanation": "Wear accumulates: last step's wear plus an increment, plus occasional edge chipping."
     },
     {
       "cause": "ambient_temp",
@@ -174,6 +174,8 @@
     "vibration has NO causal effect on failure (the Correlation Trap).",
     "Control levers are also autocorrelated through operator setpoint persistence; this is operator behavior, not physics, so lever self-lags are not listed as edges.",
     "Faults change edge strengths: coolant_filter_clog weakens coolant_flow -> coolant_temp to about 20%, lube_leak removes lube_rate -> bearing_temp, bearing_damage strengthens motor_current -> bearing_temp.",
+    "Tool micro-chipping adds random jumps to tool_wear; it is a random event, not an edge.",
+    "Rows with machine_running == 0 (stopped after a failure) and the rows where tool_wear is reset (tool_change, maintenance events) are regime breaks, not causal dynamics.",
     "All coefficients are illustrative, not from a real machine datasheet."
   ]
 }

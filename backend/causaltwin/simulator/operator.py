@@ -5,7 +5,7 @@ top of that makes small random adjustments. This variation is what lets causal
 discovery tell causes apart later.
 """
 
-from causaltwin.config import DEFAULT_N_STEPS, LEVER_NAMES, SimulatorConfig
+from causaltwin.config import DEFAULT_N_STEPS, LEVER_NAMES, SETPOINT_EDGE_MARGIN, SimulatorConfig
 from causaltwin.simulator.random_stream import RandomStream
 
 
@@ -16,14 +16,19 @@ class OperatingProfile:
     to make conditions change over time (for example load creeping up).
     """
 
-    def __init__(self, config: SimulatorConfig, total_steps: int = DEFAULT_N_STEPS) -> None:
-        """Store the config and the planned run length (used to compute progress)."""
+    def __init__(self, config: SimulatorConfig, total_steps: int = DEFAULT_N_STEPS, start_step: int = 0) -> None:
+        """Store the config, the planned length, and the step at which the profile starts.
+
+        `start_step` lets a scenario be switched in mid-run: its progress is counted
+        from the moment it was applied.
+        """
         self.config = config
         self.total_steps = max(1, total_steps)
+        self.start_step = start_step
 
     def progress(self, step: int) -> float:
-        """Return how far through the run we are, from 0.0 to 1.0."""
-        return min(1.0, step / self.total_steps)
+        """Return how far through the profile we are, from 0.0 to 1.0."""
+        return min(1.0, max(0.0, (step - self.start_step) / self.total_steps))
 
     def lever_range(self, lever: str, step: int) -> tuple[float, float]:
         """Return the (min, max) range the operator uses for a lever at this step."""
@@ -68,7 +73,8 @@ class OperatorModel:
 
             if change_draw < change_probability:
                 old_setpoint = self.setpoints[lever]
-                self.setpoints[lever] = low + value_draw * (high - low)
+                setpoint_low, setpoint_high = self._setpoint_bounds(lever, low, high)
+                self.setpoints[lever] = setpoint_low + value_draw * (setpoint_high - setpoint_low)
                 setpoint_changes.append((lever, old_setpoint, self.setpoints[lever]))
 
             # Small operator adjustments follow an AR(1) process around the setpoint.
@@ -77,3 +83,17 @@ class OperatorModel:
             )
             lever_values[lever] = min(high, max(low, self.setpoints[lever] + self.adjustments[lever]))
         return lever_values, setpoint_changes
+
+    def _setpoint_bounds(self, lever: str, low: float, high: float) -> tuple[float, float]:
+        """Range for new setpoints, kept away from the edges so adjustments are rarely clipped.
+
+        Clipping at the range edge would create flat runs and a nonlinearity in the data.
+        The margin is a multiple of the long-run spread of the AR(1) adjustments.
+        """
+        settings = self.config.levers[lever]
+        adjustment_spread = settings.jitter_std / (1.0 - settings.jitter_persistence**2) ** 0.5
+        margin = SETPOINT_EDGE_MARGIN * adjustment_spread
+        if high - low <= 2.0 * margin:
+            middle = (low + high) / 2.0
+            return middle, middle
+        return low + margin, high - margin

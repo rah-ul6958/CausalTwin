@@ -7,7 +7,7 @@ so the format is a small Pydantic model that serializes cleanly to JSON.
 
 import logging
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -43,7 +43,7 @@ class ActivityLogger:
     ) -> ActivityLogEntry:
         """Record one entry, forward it to Python logging, and notify subscribers."""
         entry = ActivityLogEntry(
-            timestamp=datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+            timestamp=datetime.now(UTC).isoformat(timespec="milliseconds"),
             step_name=step_name,
             duration_ms=None if duration_ms is None else round(duration_ms, 2),
             message=message,

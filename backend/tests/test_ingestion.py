@@ -119,4 +119,6 @@ def test_data_quality_report_detects_flatlines() -> None:
     assert report["constant"].is_flatline
     assert not report["event_flag"].is_flatline and report["event_flag"].is_binary
     assert report["gappy"].missing_count == 20
-    assert report["healthy"].minimum < report["healthy"].mean < report["healthy"].maximum
+    healthy = report["healthy"]
+    assert healthy.minimum is not None and healthy.mean is not None and healthy.maximum is not None
+    assert healthy.minimum < healthy.mean < healthy.maximum

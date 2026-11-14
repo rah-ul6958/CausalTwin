@@ -22,6 +22,7 @@ TRUE_GRAPH_PATH = DATA_DIR / "true_graph.json"
 SECONDS_PER_STEP = 10  # 1 simulation step = 10 seconds of machine time
 STEPS_PER_DAY = 24 * 3600 // SECONDS_PER_STEP  # 8640 steps
 STEPS_PER_SHIFT = 8 * 3600 // SECONDS_PER_STEP  # 2880 steps (8 hour shift)
+SETPOINT_EDGE_MARGIN = 2.0  # new setpoints stay this many adjustment spreads inside the lever range
 SIMULATION_START_TIME = "2026-01-05 06:00:00"
 DEFAULT_SEED = 42
 DEFAULT_N_STEPS = 20_000
@@ -126,7 +127,7 @@ class SimulatorConfig:
     ambient_daily_amplitude: float = 5.0
     ambient_drift_persistence: float = 0.999  # slow mean-reverting random walk
     ambient_drift_std: float = 0.05
-    ambient_sensor_noise: float = 0.1
+    ambient_sensor_noise: float = 0.02
 
     # --- motor current: first-order response to mechanical load ---
     current_inertia: float = 0.5
@@ -134,14 +135,17 @@ class SimulatorConfig:
     current_per_load: float = 0.22  # A per % load
     current_per_rpm: float = 0.004  # A per rpm
     current_process_noise: float = 0.6
-    current_sensor_noise: float = 0.2
+    # Sensor noise is kept small relative to process noise on purpose: large reading
+    # noise on an autocorrelated variable makes older lags look informative and creates
+    # spurious lagged edges for causal discovery (measured in the Phase 1 report).
+    current_sensor_noise: float = 0.05
 
     # --- coolant temperature: Newton cooling toward ambient + heat rise - flow cooling ---
     coolant_inertia: float = 0.7
     coolant_heat_rise: float = 12.0  # deg C above ambient with no flow
     coolant_flow_gain: float = 0.45  # deg C removed per L/min
     coolant_process_noise: float = 0.3
-    coolant_sensor_noise: float = 0.1
+    coolant_sensor_noise: float = 0.03
 
     # --- bearing temperature: first-order thermal dynamics ---
     bearing_inertia: float = 0.8
@@ -150,30 +154,41 @@ class SimulatorConfig:
     bearing_per_rpm: float = 0.004  # deg C per rpm (friction heating)
     bearing_lube_gain: float = 11.0  # deg C removed per unit of lube rate
     bearing_process_noise: float = 0.4
-    bearing_sensor_noise: float = 0.15
+    bearing_sensor_noise: float = 0.05
 
     # --- vibration (mm/s RMS) ---
+    # Vibration summarizes speed, load and wear, the same conditions that drive failure,
+    # which is what makes it a strong (but non-causal) predictor: the Correlation Trap.
+    # Its process noise sets the trade-off: less noise makes the trap stronger for naive
+    # ML but makes vibration harder to separate from tool_wear for causal methods.
     vibration_inertia: float = 0.4
-    vibration_base: float = 0.3
-    vibration_per_load: float = 0.025
-    vibration_per_rpm: float = 0.0006
+    vibration_base: float = 0.2
+    vibration_per_load: float = 0.02
+    vibration_per_rpm: float = 0.00075
     vibration_per_wear: float = 0.02
-    vibration_process_noise: float = 0.25
-    vibration_sensor_noise: float = 0.1
+    vibration_process_noise: float = 0.075
+    vibration_sensor_noise: float = 0.015
 
     # --- tool wear (equivalent minutes of cutting) ---
     wear_reference_load: float = 70.0
     wear_reference_rpm: float = 3000.0
     wear_rpm_exponent: float = 1.3
-    wear_sensor_noise: float = 2.0  # wear is estimated, so its measurement is noisy
+    # Occasional micro-chipping of the cutting edge: a sudden wear jump. Besides being
+    # physical, it gives wear random innovations; a purely deterministic accumulator is
+    # invisible to conditional-independence tests once its own past is conditioned on.
+    wear_chip_probability: float = 0.01  # per running step
+    wear_chip_size: float = 8.0  # equivalent minutes added by one chip
+    # Wear is read from the controller's load-weighted cutting-time counter, so the
+    # reading is nearly exact. Larger noise would hide the tiny per-step increments.
+    wear_sensor_noise: float = 0.005
 
     # --- failure hazard: sigmoid(a*(T - T0) + b*(W - W0) + c) ---
     failures_enabled: bool = True
-    hazard_temp_coef: float = 0.35
+    hazard_temp_coef: float = 0.25
     hazard_temp_threshold: float = 80.0
-    hazard_wear_coef: float = 0.02
-    hazard_wear_threshold: float = 150.0
-    hazard_intercept: float = -0.5
+    hazard_wear_coef: float = 0.07
+    hazard_wear_threshold: float = 120.0
+    hazard_intercept: float = 2.0
     failure_downtime_steps: int = 12  # machine stopped this long after a failure
 
     # --- faults (change the causal structure) ---

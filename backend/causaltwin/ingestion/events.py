@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from causaltwin.config import EVENT_INDICATOR_PREFIX, EVENT_TYPES, STEPS_SINCE_MAINTENANCE_COLUMN
+from causaltwin.utils.timing import timed_step
 
 
 def _event_row_positions(sensor_dataframe: pd.DataFrame, event_dataframe: pd.DataFrame) -> np.ndarray:
@@ -26,26 +27,28 @@ def align_events(sensor_dataframe: pd.DataFrame, event_dataframe: pd.DataFrame) 
     recent maintenance event, or since the start of the data if none happened yet).
     Both inputs need a `timestamp` column; the sensor data must be sorted by time.
     """
-    aligned = sensor_dataframe.reset_index(drop=True).copy()
-    n_rows = len(aligned)
-    event_types = list(EVENT_TYPES)
-    if len(event_dataframe) > 0:
-        event_types += sorted(set(event_dataframe["event_type"]) - set(EVENT_TYPES))
-        positions = _event_row_positions(aligned, event_dataframe)
-    else:
-        positions = np.array([], dtype=int)
+    with timed_step("align_events", "Merged event log into sensor data") as timer:
+        aligned = sensor_dataframe.reset_index(drop=True).copy()
+        n_rows = len(aligned)
+        event_types = list(EVENT_TYPES)
+        if len(event_dataframe) > 0:
+            event_types += sorted(set(event_dataframe["event_type"]) - set(EVENT_TYPES))
+            positions = _event_row_positions(aligned, event_dataframe)
+        else:
+            positions = np.array([], dtype=int)
 
-    event_type_values = event_dataframe["event_type"].to_numpy() if len(event_dataframe) > 0 else np.array([])
-    maintenance_rows = np.array([], dtype=int)
-    for event_type in event_types:
-        indicator = np.zeros(n_rows, dtype=int)
-        rows_for_type = positions[event_type_values == event_type]
-        indicator[rows_for_type] = 1
-        aligned[f"{EVENT_INDICATOR_PREFIX}{event_type}"] = indicator
-        if event_type == "maintenance":
-            maintenance_rows = np.unique(rows_for_type)
+        event_type_values = event_dataframe["event_type"].to_numpy() if len(event_dataframe) > 0 else np.array([])
+        maintenance_rows = np.array([], dtype=int)
+        for event_type in event_types:
+            indicator = np.zeros(n_rows, dtype=int)
+            rows_for_type = positions[event_type_values == event_type]
+            indicator[rows_for_type] = 1
+            aligned[f"{EVENT_INDICATOR_PREFIX}{event_type}"] = indicator
+            if event_type == "maintenance":
+                maintenance_rows = np.unique(rows_for_type)
 
-    aligned[STEPS_SINCE_MAINTENANCE_COLUMN] = _steps_since(maintenance_rows, n_rows)
+        aligned[STEPS_SINCE_MAINTENANCE_COLUMN] = _steps_since(maintenance_rows, n_rows)
+        timer.details.update({"rows": n_rows, "events": len(event_dataframe), "event_types": len(event_types)})
     return aligned
 
 
