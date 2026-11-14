@@ -94,6 +94,61 @@ TIME_COLUMN_CANDIDATES: tuple[str, ...] = ("timestamp", "time", "datetime", "dat
 FLATLINE_MIN_RUN = 30  # this many identical consecutive values counts as a flatline
 STEPS_SINCE_MAINTENANCE_COLUMN = "steps_since_maintenance"
 EVENT_INDICATOR_PREFIX = "event_"
+# Rows flagged by these events are regime breaks (for example a tool reset), not dynamics.
+REGIME_BREAK_EVENTS: tuple[str, ...] = ("tool_change", "maintenance")
+MACHINE_RUNNING_COLUMN = "machine_running"
+
+# ---------------------------------------------------------------------------
+# Causal engine (Phase 2)
+# ---------------------------------------------------------------------------
+# Discovery
+DISCOVERY_WINDOW_STEPS = 3000  # PCMCI runs on the most recent window
+TAU_MAX = 3  # longest lag considered, in steps
+DISCOVERY_ALPHA = 0.01  # significance level for keeping an edge
+DISCOVERY_N_JOBS = 5  # parallel worker processes for PCMCI (one per target variable); 1 = sequential
+# Failure model (binary, rare): uses a longer history than the PCMCI window, because a
+# 3,000-step window holds too few failures (measured in the Phase 1 report).
+FAILURE_HISTORY_MAX_STEPS = 100_000
+FAILURE_MIN_EVENTS = 15  # below this the failure model is not fitted (reported, not guessed)
+# Only measured sensors are screened as direct failure causes: levers and environment are
+# assumed to act on failure through sensors. Fewer parameters keep the test powered.
+FAILURE_CANDIDATE_ROLES: tuple[str, ...] = ("sensor",)
+# Lags of a failure cause whose log-likelihoods differ by less than this are statistically
+# indistinguishable (half the 95% chi-square(1) critical value); the shortest is used.
+FAILURE_LAG_TIE_TOLERANCE = 1.92
+# Correlation graph
+CORRELATION_THRESHOLD = 0.3  # |lagged Pearson r| needed for a correlation edge between sensors
+FAILURE_CORRELATION_HORIZON = 30  # failure correlations use "failure within the next N steps"
+FAILURE_CORRELATION_THRESHOLD = 0.1
+# Edge confidence (moving-block bootstrap)
+BOOTSTRAP_BLOCK_LENGTH = 50
+BOOTSTRAP_RESAMPLES = 20
+BOOTSTRAP_MIN_CONFIDENCE = 0.6  # below this an edge is marked "uncertain"
+BOOTSTRAP_SEED = 7
+BOOTSTRAP_THREADS = 4  # threads for the failure-model resamples (measured fastest on an 8-core laptop)
+# Causal model fitting
+RIDGE_PENALTY = 1e-3
+HOLDOUT_FRACTION = 0.2  # final share of the window kept out for R squared
+RESIDUAL_SAMPLE_LIMIT = 5000  # residuals kept per equation for Monte Carlo noise
+# What-if engine
+WHATIF_HORIZON = 30  # steps (5 minutes)
+WHATIF_ROLLOUTS = 200
+WHATIF_SEED = 11
+WHATIF_INTERVAL_PERCENTILES = (5.0, 95.0)  # 90% interval
+# Root cause
+ROOT_CAUSE_RISK_THRESHOLD = 0.1  # failure probability within the horizon that counts as high
+ROOT_CAUSE_MAX_PATHS = 5
+ROOT_CAUSE_MAX_DEPTH = 4
+INTEGRATOR_THRESHOLD = 0.98  # self-lag sum at or above this: an accumulator (no steady state)
+SYMPTOM_THRESHOLD = 0.1  # |corr with failure soon| for a variable to count as a symptom
+# Validation against simulator ground truth
+VALIDATION_SCENARIO_CYCLE: tuple[str, ...] = ("heat_wave", "tool_wear", "normal", "overload")
+VALIDATION_CHUNK_STEPS = 1500  # steps per scenario before switching to the next one
+VALIDATION_TRAINING_STEPS = 60_000  # long enough for about 90 failures (needed for a powered failure model)
+VALIDATION_INTERVENTIONS = 20
+VALIDATION_SEEDS_PER_INTERVENTION = 8
+VALIDATION_SEED = 2026
+VALIDATION_RESULTS_PATH = DATA_DIR / "validation_results.json"
 
 
 @dataclass(frozen=True)

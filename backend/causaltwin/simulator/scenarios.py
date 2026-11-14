@@ -176,6 +176,41 @@ def switch_scenario(
     )
 
 
+def advance_scenario_cycle(
+    simulator: MachineSimulator,
+    n_steps: int,
+    cycle: tuple[str, ...],
+    chunk_steps: int,
+    base_config: SimulatorConfig = DEFAULT_CONFIG,
+) -> None:
+    """Run `n_steps`, switching scenario at every chunk boundary.
+
+    The scenario for a chunk depends only on the chunk number, so a run can be continued
+    later with another call and stays on the same schedule.
+    """
+    for _ in range(n_steps):
+        if simulator.current_step % chunk_steps == 0:
+            scenario_name = cycle[(simulator.current_step // chunk_steps) % len(cycle)]
+            switch_scenario(simulator, scenario_name, n_steps=chunk_steps, base_config=base_config)
+        simulator.step()
+
+
+def run_scenario_cycle(
+    cycle: tuple[str, ...],
+    chunk_steps: int,
+    n_steps: int,
+    seed: int,
+    base_config: SimulatorConfig = DEFAULT_CONFIG,
+) -> SimulationResult:
+    """One continuous run that cycles through several scenarios (no artificial joins)."""
+    with timed_step("simulate", f"Simulated scenario cycle {', '.join(cycle)}") as timer:
+        simulator = MachineSimulator(base_config, seed=seed)
+        advance_scenario_cycle(simulator, n_steps, cycle, chunk_steps, base_config)
+        sensors = simulator.get_sensor_dataframe()
+        timer.details.update({"n_steps": n_steps, "failures": int(sensors["failure"].sum())})
+    return SimulationResult(sensors, simulator.get_event_dataframe(), simulator.get_ground_truth_dataframe(), simulator)
+
+
 def run_scenario(
     scenario_name: str,
     n_steps: int = DEFAULT_N_STEPS,

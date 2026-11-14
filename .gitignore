@@ -22,6 +22,7 @@ frontend/.vercel/
 backend/data/*
 !backend/data/samples/
 !backend/data/true_graph.json
+!backend/data/validation_results.json
 
 # Editors / OS
 .vscode/
