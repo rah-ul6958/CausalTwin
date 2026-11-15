@@ -280,7 +280,7 @@ budget; this laptop's timings vary by up to 3x (Phase 2 report).
 
 ## Addendum: one live simulation per viewer
 
-Added after the Phase 6 commit, on request ("do the per-viewer simulation fix").
+Added after the Phase 6 commit.
 
 **Problem.** The server ran one live simulation for everybody. On a public deployment, one judge's Reset,
 fault injection or guided demo changed what every other judge saw.

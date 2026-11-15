@@ -1,5 +1,5 @@
 # Pinned for Python 3.11 (numba/tigramite compatibility).
-# Versions chosen as a known-good set; no GPU / deep learning packages (see CLAUDE.md section 4).
+# Versions chosen as a known-good set; no GPU / deep learning packages (lightweight by design).
 numpy==1.26.4
 pandas==2.2.3
 scipy==1.11.4

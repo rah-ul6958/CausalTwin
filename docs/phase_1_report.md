@@ -6,10 +6,9 @@ report was produced by code in the repository; the commands are listed next to e
 
 ## What was built
 
-- **Project skeleton** following CLAUDE.md section 6: `backend/` (Python 3.11 venv, pinned
-  `requirements.txt`, dev tools in `requirements-dev.txt`), `frontend/` placeholder, `docs/`
-  (phase prompts in `docs/prompts/`), GPL-3.0 `LICENSE`, `.gitignore`, README skeleton,
-  placeholder `docker-compose.yml`.
+- **Project skeleton:** `backend/` (Python 3.11 venv, pinned `requirements.txt`, dev tools in
+  `requirements-dev.txt`), `frontend/` placeholder, `docs/`, GPL-3.0 `LICENSE`, `.gitignore`, README
+  skeleton, placeholder `docker-compose.yml`.
 - **`causaltwin/config.py`**: single source of truth for every constant.
 - **`causaltwin/utils/`**: structured activity logger (`ActivityLogEntry`: timestamp, step
   name, duration in ms, message, details dict, with subscribers for later live streaming) and

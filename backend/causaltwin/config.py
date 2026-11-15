@@ -362,7 +362,8 @@ MODEL_CACHE_PATH = DATA_DIR / "model_cache.pkl"
 CORS_ORIGINS_ENV = "CAUSALTWIN_CORS_ORIGINS"  # comma-separated list
 AUTOSTART_ENV = "CAUSALTWIN_AUTOSTART"  # "0" keeps the live loop paused at start-up
 
-# Performance budgets from CLAUDE.md section 4, keyed by activity-log step name (milliseconds).
+# Performance budgets (no step may take more than about 10 s on a laptop CPU), keyed by activity-log
+# step name (milliseconds).
 # The console's pipeline tracker compares measured durations against these.
 PERFORMANCE_BUDGETS_MS: dict[str, float] = {
     "simulate": 2000.0,  # 20,000 steps

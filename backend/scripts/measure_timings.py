@@ -5,7 +5,7 @@ Run from backend/ on a quiet machine (stop the API server first):
     python scripts/measure_timings.py --skip-benchmark
 
 Each operation runs several times; the median is compared with its budget from config.py
-(PERFORMANCE_BUDGETS_MS, taken from CLAUDE.md section 4) and the slowest run is reported too.
+(PERFORMANCE_BUDGETS_MS) and the slowest run is reported too.
 The README's timing table is generated from the JSON file (scripts/update_readme_results.py).
 """
 

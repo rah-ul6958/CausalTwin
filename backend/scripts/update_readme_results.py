@@ -294,7 +294,7 @@ def drift_block(results: dict[str, dict[str, Any]]) -> str:
 
 
 def timings_block(results: dict[str, dict[str, Any]]) -> str:
-    """Measured timings against the CLAUDE.md budgets."""
+    """Measured timings against the performance budgets."""
     timings = results["timings"]
     lines = ["| Operation | Median | Slowest run | Budget | Within budget |", "|---|---|---|---|---|"]
     for item in timings["operations"]:
