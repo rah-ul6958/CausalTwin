@@ -12,14 +12,14 @@ the true graph:
 | Metric | With the failure edges | Between sensors and levers only |
 |---|---|---|
 | True edges | 15 | 13 |
-| Edges found (correct) | 13 (13) | 11 (11) |
+| Edges found (correct) | 15 (15) | 13 (13) |
 | Precision | 1.00 | 1.00 |
-| Recall | 0.87 | 0.85 |
-| F1 | 0.93 | 0.92 |
+| Recall | 1.00 | 1.00 |
+| F1 | 1.00 | 1.00 |
 | Lag accuracy (correct edges) | 1.00 | 1.00 |
-| Structural Hamming distance | 2 | 2 |
+| Structural Hamming distance | 0 | 0 |
 
-Missed: load_pct->tool_wear (lag 1), spindle_speed->tool_wear (lag 1). Extra (false) edges: none.
+Missed: none. Extra (false) edges: none.
 Trap check: discovered failure causes bearing_temp, tool_wear; vibration is not a discovered cause (failure-screen p = 0.93) although its correlation with failure is +0.25; predicted risk change when vibration is halved: 0.000.
 <!-- results:graph:end -->
 
@@ -52,7 +52,10 @@ would be the next step for real plants.
 - **Fit:** they describe this simulator well; the held-out accuracy is in the table below.
 
 The cost is that real machines have non-linear effects and thresholds that a linear model only
-approximates; `tigramite` has non-linear independence tests we did not use, because they are much slower.
+approximates. We measured that cost on the AI4I 2020 dataset, whose failures follow threshold rules:
+discovery found the right causes, but the linear failure model gave poor advice there (README, "Third-party
+data"). A non-linear failure model is the next step; `tigramite` also has non-linear independence tests we
+did not use, because they are much slower.
 
 <!-- results:intervention:start -->
 20 random lever changes, 8 seeds each, 30-step horizon, judged against the real simulator:
@@ -62,7 +65,7 @@ approximates; `tigramite` has non-linear independence tests we did not use, beca
 | Bearing temperature: direction of change correct | 18 / 19 |
 | Bearing temperature: mean absolute error at the horizon end | 1.26 deg C (true changes average 2.93 deg C) |
 | Failure risk: direction of change correct | 9 / 9 |
-| Failure risk: mean absolute error | 0.59 points (true changes average 1.56 points) |
+| Failure risk: mean absolute error | 0.57 points (true changes average 1.56 points) |
 
 | Fitted equation | Held-out accuracy |
 |---|---|
@@ -81,8 +84,10 @@ Nothing is invented; each value comes from a computation:
 - **Edge confidence:** the share of 20 moving-block bootstrap resamples in which causal discovery finds
   the edge again. Below 0.6 it is drawn dashed as uncertain.
 - **Risk intervals:** 200 Monte Carlo rollouts of the causal model; the interval runs from the 5th to the
-  95th percentile. It includes process noise only, not uncertainty in the fitted coefficients, so it is
-  narrower than the true uncertainty. We say this in the UI.
+  95th percentile. Each rollout has its own process noise and its own draw of the failure model's
+  coefficients (they come from a limited number of failures). Uncertainty in the linear equations'
+  coefficients is not included. How often the truth falls inside the interval is measured in the
+  benchmark's calibration table: well before an action, too rarely after one. We say this in the UI.
 - **Recommendation confidence:** the geometric mean of three parts, each shown in the expandable breakdown:
   - the lowest bootstrap confidence of the edges on its causal path;
   - how tight the predicted risk interval is;
@@ -93,10 +98,14 @@ Nothing is invented; each value comes from a computation:
 Partly, and we say exactly which part:
 
 - **Built:** the Bring Your Own Data page runs causal discovery and fits equations on any uploaded CSV.
-- **Not validated:** it has not been checked against a real machine, because we have none, and uploaded
-  data has no ground truth. The page says so.
-- **Not built yet:** a live connector to a real machine's sensors (for example MTConnect or OPC UA) is
-  designed but not built. The README explains how it would plug in.
+- **Built and tested, without a real machine:** a live MTConnect connector and a log-replay source. The
+  MTConnect path is tested end to end against a stand-in agent that serves simulator values. With a real
+  source the app shows "Live data", drops the ground truth and makes recommendations advisory.
+- **Third-party data:** on the AI4I 2020 dataset (synthetic, modelled on a real milling machine, with
+  published failure rules), discovery found exactly the documented failure mechanism. The advice was
+  weaker than XGBoost + SHAP there, because those failures follow thresholds a linear model cannot express.
+  We report that result as it is.
+- **Not validated:** nothing has been checked against a real machine, because we have none.
 
 Real data adds requirements:
 
@@ -106,7 +115,12 @@ Real data adds requirements:
 
 ## How does it scale?
 
-As a design, not something built yet:
+Measured today, with one backend process on a laptop: 25 and 50 simulated viewers at once (live stream
+plus requests) got every status answer and no failed live connection; heavy requests beyond two at a
+time got a clear "busy, retry"; the live simulation slowed from 5 to about 3 steps per second under that
+load (README, "Many simultaneous viewers"). The container runs within 512 MB.
+
+Many machines is a design, not something built yet:
 
 - **One twin per machine.** A twin is a handful of equations, and a risk estimate takes milliseconds.
 - **Discovery only when needed.** Full causal discovery runs only at commissioning and after a drift
@@ -152,13 +166,14 @@ Fault-free runs: 60,000 steps, 5 suspected alarms, 0 wrongly confirmed structura
 
 - **Simulated machine.** The physics constants and costs are illustrative.
 - **No hidden confounders assumed.** See the answer above.
-- **Linear effects with short lags** (1 to 3 steps).
-- **Two true links are always missed.** Load and speed affecting tool wear, so the twin cannot advise
-  "cut slower to save the tool".
+- **Linear effects with short lags** (1 to 3 steps). Threshold-type failures (AI4I) are modelled poorly.
 - **What-if holds untouched levers constant.** If an operator moves them during the horizon, predictions
   can be wrong.
-- **The twin under-predicts risk in some extreme states**, such as the demo's hot afternoon. The demo
-  shows the twin and the ground truth side by side, so this is visible.
+- **Risk estimates are right on average but not everywhere.** Across the benchmark the mean prediction
+  matches the truth closely, but in extreme states, such as the demo's hot afternoon, the twin
+  under-predicts. The cause is measured: the failure model rests on about 90 failures. The demo shows
+  the twin and the ground truth side by side, so this is visible.
+- **Intervals after an action are too narrow** (calibration table).
 - **The benchmark has 30 cases on one simulator.** CausalTwin misses the target in 2 of them; the
   benchmark table lists them.
 

@@ -1,0 +1,7456 @@
+{
+  "source": "AI4I 2020 Predictive Maintenance Dataset (UCI, CC BY 4.0, DOI 10.24432/C5HS5C); synthetic data modelled on a real milling machine. Judged by the dataset's documented failure rules.",
+  "settings": {
+    "target_probability": 0.05,
+    "change_steps_pct": [
+      -50,
+      -40,
+      -30,
+      -20,
+      -15,
+      -10,
+      -5,
+      5,
+      10,
+      15,
+      20,
+      30,
+      40,
+      50
+    ],
+    "tool_change_cost": 3.0,
+    "cost_per_pct": 0.1
+  },
+  "n_rows": 10000,
+  "n_failures": 339,
+  "n_scored": 330,
+  "n_random_only": 9,
+  "discovered_failure_causes": [
+    "power_w",
+    "temperature_difference_k",
+    "wear_torque"
+  ],
+  "discovered_edges": [
+    {
+      "cause": "air_temp_k",
+      "effect": "process_temp_k",
+      "confidence": 0.65,
+      "oriented": true
+    },
+    {
+      "cause": "air_temp_k",
+      "effect": "temperature_difference_k",
+      "confidence": 0.4,
+      "oriented": true
+    },
+    {
+      "cause": "speed_rpm",
+      "effect": "power_w",
+      "confidence": 1.0,
+      "oriented": true
+    },
+    {
+      "cause": "torque_nm",
+      "effect": "power_w",
+      "confidence": 1.0,
+      "oriented": true
+    },
+    {
+      "cause": "torque_nm",
+      "effect": "wear_torque",
+      "confidence": 1.0,
+      "oriented": true
+    },
+    {
+      "cause": "tool_wear_min",
+      "effect": "wear_torque",
+      "confidence": 1.0,
+      "oriented": true
+    },
+    {
+      "cause": "process_temp_k",
+      "effect": "temperature_difference_k",
+      "confidence": 0.55,
+      "oriented": false
+    },
+    {
+      "cause": "temperature_difference_k",
+      "effect": "failure",
+      "confidence": 1.0,
+      "oriented": true
+    },
+    {
+      "cause": "power_w",
+      "effect": "failure",
+      "confidence": 1.0,
+      "oriented": true
+    },
+    {
+      "cause": "wear_torque",
+      "effect": "failure",
+      "confidence": 1.0,
+      "oriented": true
+    }
+  ],
+  "failure_model": {
+    "variable": "failure",
+    "kind": "logistic",
+    "terms": [
+      {
+        "variable": "temperature_difference_k",
+        "lag": 0,
+        "coefficient": -0.6907711425939025
+      },
+      {
+        "variable": "power_w",
+        "lag": 0,
+        "coefficient": 0.0007106289135894756
+      },
+      {
+        "variable": "wear_torque",
+        "lag": 0,
+        "coefficient": 0.00023439321961846987
+      }
+    ],
+    "intercept": -2.770220010732538,
+    "equation": "logit P(failure(t)) = - 0.6908*temperature_difference_k(t) + 0.0007106*power_w(t) + 0.0002344*wear_torque(t) - 2.77",
+    "r_squared_holdout": null,
+    "residual_std": null,
+    "auc_holdout": 0.8144457955778711,
+    "n_train": 8000,
+    "n_holdout": 2000,
+    "notes": [
+      "Observed failure rate 3.39% per step on running rows."
+    ]
+  },
+  "baseline_auc": 0.9636240013598505,
+  "baseline_blamed": {
+    "torque_nm": 135,
+    "tool_wear_min": 97,
+    "air_temp_k": 61,
+    "speed_rpm": 36,
+    "process_temp_k": 1
+  },
+  "summary": {
+    "causaltwin": {
+      "success_rate": 0.37272727272727274,
+      "HDF": {
+        "n": 115,
+        "success_rate": 0.0
+      },
+      "PWF": {
+        "n": 95,
+        "success_rate": 0.47368421052631576
+      },
+      "OSF": {
+        "n": 98,
+        "success_rate": 0.8469387755102041
+      },
+      "TWF": {
+        "n": 46,
+        "success_rate": 0.08695652173913043
+      },
+      "mean_cost": 1.6015151515151516
+    },
+    "baseline": {
+      "success_rate": 0.6454545454545455,
+      "HDF": {
+        "n": 115,
+        "success_rate": 0.21739130434782608
+      },
+      "PWF": {
+        "n": 95,
+        "success_rate": 0.7684210526315789
+      },
+      "OSF": {
+        "n": 98,
+        "success_rate": 0.8163265306122449
+      },
+      "TWF": {
+        "n": 46,
+        "success_rate": 0.9347826086956522
+      },
+      "mean_cost": 1.8757575757575757
+    }
+  },
+  "cases": [
+    {
+      "row": 51,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.00016949274320398038,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 70,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.03924334228834454,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [
+          "PWF",
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 78,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0369103414362524,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 161,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.023003231505398035,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 162,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.0471806357951684,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 169,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.046532677967604096,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 195,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0005326634027194503,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 208,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.047877461544716365,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -15%",
+        "blamed": "torque_nm",
+        "cost": 1.5000000000000002,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 243,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.0428591170895903,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 249,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04838473398123187,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 250,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.042207828699412815,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 260,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.04470891520581235,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 328,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.046839880616584006,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 381,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0006064897391738042,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 443,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0408658460515315,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 464,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 7.03823749482916e-05,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 587,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.03512216914628452,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 604,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.03384291637633275,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 747,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.04467572572248886,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -15%",
+        "blamed": "torque_nm",
+        "cost": 1.5000000000000002,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 848,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0001352149854998696,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 881,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04112633103388526,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 904,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.000869177562446019,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 927,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.03767479203284484,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1017,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.038740381721221635,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1086,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.04654547171256161,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1088,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.011609048528364875,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1096,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0002829336753715268,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 1124,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.04992230971736899,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1125,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04327927530949087,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1145,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04807494794453333,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1162,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04146371205710448,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1163,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.049970274365608164,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1168,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.03592532575384075,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1285,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0004830190607039834,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1325,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.02449061406912501,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1335,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.04493716630640017,
+        "failures_after": [
+          "OSF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1336,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.042399707609009116,
+        "failures_after": [
+          "OSF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1392,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.00020533532852436178,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 1420,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.038397618432370446,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1493,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04394432334086415,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1497,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.026266460885931816,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1510,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.01678773570066758,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1584,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04169545158090394,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1596,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.04969046677251749,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1683,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.042305091446620556,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1764,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.013938365272555275,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1785,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0001833710601251802,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 1790,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.0482058488190825,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -15%",
+        "blamed": "torque_nm",
+        "cost": 1.5000000000000002,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1809,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0013839432005122573,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1834,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.035273175298473625,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 1997,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.02650736165829117,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "process_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 2016,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04285038177364596,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2076,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.04395667499540813,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2126,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.029349119265086068,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -30%",
+        "blamed": "torque_nm",
+        "cost": 3.0000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2167,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.007271947285195891,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2234,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.00220696158926216,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2245,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.04885719300596398,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2300,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.04421204563190461,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -30%",
+        "blamed": "torque_nm",
+        "cost": 3.0000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2332,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.046149684794567394,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2333,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.048312039879124524,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2427,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.049845827336421206,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2445,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04119825426479712,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2495,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04111671609049109,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2503,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.045708320783339765,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2582,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.04476622576360329,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2599,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.03847831586684642,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2672,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.03933086557411805,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2762,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.04567342314289602,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 2859,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.031725445705982465,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2865,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.04173789028062542,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2880,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.040219492559129835,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 2942,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.006464473742840419,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3001,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.03686960013547594,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -40%",
+        "blamed": "torque_nm",
+        "cost": 4.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3020,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.04369207724511396,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3141,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.001294705016271339,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3237,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.03947874360901738,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -30%",
+        "blamed": "torque_nm",
+        "cost": 3.0000000000000004,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 3267,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.029739268984099336,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3351,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.03635819460977294,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3357,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.03567223996119354,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3370,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0005041075293998016,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 3458,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0014976158226649998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3529,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.030094223253498656,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3530,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.041747016268414545,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3580,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0021084168810738164,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3612,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.04360364196982349,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3685,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.04955497017651795,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3696,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.04744545369334711,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3761,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.04365910093345731,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +15%",
+        "blamed": "speed_rpm",
+        "cost": 1.4999999999999991,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3788,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.02789714968814692,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3794,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.037013657423277994,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3807,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.02747139577049969,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3815,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04737574059964044,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 3830,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.0494769770080663,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +10%",
+        "blamed": "speed_rpm",
+        "cost": 1.0000000000000009,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3855,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%, tool change",
+        "cost": 4.5,
+        "predicted_probability": 0.04789922690248432,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -15%",
+        "blamed": "torque_nm",
+        "cost": 1.5000000000000002,
+        "failures_after": [
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 3866,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.03879212523305973,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3868,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0009500351210759118,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 3929,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -30%",
+        "cost": 3.500000000000001,
+        "predicted_probability": 0.04776389888579769,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -30%",
+        "blamed": "torque_nm",
+        "cost": 3.0000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 3936,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.04431028128261739,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 3944,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.040568084640665025,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -40%",
+        "blamed": "torque_nm",
+        "cost": 4.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4003,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.04367958400147492,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -30%",
+        "blamed": "torque_nm",
+        "cost": 3.0000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4025,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.04074558081589733,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4033,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.024790233067965687,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4035,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.022614244249513464,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4049,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0014349047815580345,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4072,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.044494319961541164,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -30%",
+        "blamed": "torque_nm",
+        "cost": 3.0000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4079,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.049156306325801175,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4081,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04989061594683031,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4082,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.048584726909378345,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4088,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04426770347755583,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4097,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.0409869194081564,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4118,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.04083497037745659,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4120,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.044704211103401045,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4121,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.043320634644939085,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4122,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.042524056076580274,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4131,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.03703903375923583,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -15%",
+        "blamed": "torque_nm",
+        "cost": 1.5000000000000002,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4139,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.042393283888597894,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +10%",
+        "blamed": "speed_rpm",
+        "cost": 1.0000000000000009,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4141,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.037220136360318824,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4152,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.03907645813419579,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +5%",
+        "blamed": "speed_rpm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4154,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04177307230879615,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed -10%",
+        "blamed": "speed_rpm",
+        "cost": 0.9999999999999999,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4156,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.038032325382229025,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4158,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.044680595017503724,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4165,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.03922505213442249,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +10%",
+        "blamed": "speed_rpm",
+        "cost": 1.0000000000000009,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4171,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.039108620448688444,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4174,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.044349939016763894,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +15%",
+        "blamed": "speed_rpm",
+        "cost": 1.4999999999999991,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4180,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04576612403817025,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +10%",
+        "blamed": "speed_rpm",
+        "cost": 1.0000000000000009,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4183,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.04976853062430397,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4185,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04867090062472089,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4186,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.03814927852782345,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4208,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.03595070620329226,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4212,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.03080287069660695,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4226,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.03728241932213279,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4248,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.04207595245123818,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4250,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.045982063468736824,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4252,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04559840254728841,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4254,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04274580510551488,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4255,
+      "modes": [
+        "HDF",
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -30%",
+        "cost": 3.500000000000001,
+        "predicted_probability": 0.04833959312171591,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -30%",
+        "blamed": "torque_nm",
+        "cost": 3.0000000000000004,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4259,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.03817333491329295,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4271,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04362197457927667,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4280,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.03895416725178338,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4283,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.04356916622178858,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4284,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.04028077918136893,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -40%",
+        "blamed": "torque_nm",
+        "cost": 4.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4286,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.0445076699003907,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4293,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.004576960155444071,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4297,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0008571084805532702,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4308,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.048153299718423644,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4324,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.04170548505264973,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +5%",
+        "blamed": "speed_rpm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4327,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.0449479678302524,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +15%",
+        "blamed": "speed_rpm",
+        "cost": 1.4999999999999991,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4329,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.046724895323120054,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4343,
+      "modes": [
+        "HDF",
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.03258215688612418,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -40%",
+        "blamed": "torque_nm",
+        "cost": 4.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4354,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.049414923221193875,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -40%",
+        "blamed": "torque_nm",
+        "cost": 4.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4356,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.049472967047602436,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +30%",
+        "blamed": "speed_rpm",
+        "cost": 3.0000000000000004,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4362,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04578907357241923,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4371,
+      "modes": [
+        "HDF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.03670271411321648,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +40%",
+        "blamed": "speed_rpm",
+        "cost": 3.9999999999999996,
+        "failures_after": [
+          "PWF",
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4384,
+      "modes": [
+        "HDF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -50%",
+        "cost": 5.0,
+        "predicted_probability": 0.03779976213098121,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -50%",
+        "blamed": "torque_nm",
+        "cost": 5.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4386,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.03336841723549599,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4390,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.026179964041796545,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4392,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.04314506171451328,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +5%",
+        "blamed": "speed_rpm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4401,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04072814206702919,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4406,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.04367709246491895,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4407,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04039806474680985,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4410,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04520009511252884,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4418,
+      "modes": [
+        "HDF",
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.03437691828879011,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -40%",
+        "blamed": "torque_nm",
+        "cost": 4.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4420,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0034817527080512616,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4422,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -30%",
+        "cost": 3.500000000000001,
+        "predicted_probability": 0.048037056817343084,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4428,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.043376326764531306,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4436,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.042943763377183926,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4442,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.04386542063759271,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4449,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.04778070693949242,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +20%",
+        "blamed": "speed_rpm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4450,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -30%",
+        "cost": 3.500000000000001,
+        "predicted_probability": 0.045028834666587955,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4463,
+      "modes": [
+        "HDF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -50%",
+        "cost": 5.0,
+        "predicted_probability": 0.03208748502721938,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -50%",
+        "blamed": "torque_nm",
+        "cost": 5.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4470,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04657007165863328,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4476,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.02067773871797235,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4481,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04601680509465759,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4496,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04551326410977606,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4502,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.046682255179356244,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4511,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.02994965368455766,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -40%",
+        "blamed": "torque_nm",
+        "cost": 4.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4528,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.04359360862211489,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +15%",
+        "blamed": "speed_rpm",
+        "cost": 1.4999999999999991,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4534,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.04393613160275334,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4537,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04269289011297182,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4545,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.048684625917604134,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "speed +5%",
+        "blamed": "speed_rpm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4557,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.04673402649527513,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4559,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.03439729139590603,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4566,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.04303594182914064,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4571,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.0448387909532824,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4580,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.045004913697002304,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4597,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04603346296082325,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4601,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.03912593766121812,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4602,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.049232950099226326,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4612,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.04065104149717661,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4619,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.046472363884642126,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4621,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.048670335545326,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4622,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.04285475826008537,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4633,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.03959348388782716,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4643,
+      "modes": [
+        "HDF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.03215982797264965,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4644,
+      "modes": [
+        "HDF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.04334182164104295,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4647,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.03765270233529554,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4652,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.03928255663291004,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4662,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.04296925622432447,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4666,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04443874181011504,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4670,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.03873934460416569,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4703,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.03231459884535816,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4719,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.04169239866447622,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4721,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.045544640780081164,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4724,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.032341243764823675,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4728,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04881317229183036,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4730,
+      "modes": [
+        "HDF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%, tool change",
+        "cost": 4.0,
+        "predicted_probability": 0.037794969488595204,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [
+          "HDF",
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4732,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04076066029065097,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4738,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.04830468215361243,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4740,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.03915640105581992,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4749,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.037609654141927226,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4756,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.04989729339886106,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4760,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.04833181590896607,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4762,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04745362847405695,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4763,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0023412182098241723,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4769,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04855832465832948,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4771,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04039669134118047,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4779,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04279129893240554,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4815,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.045346277706380125,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4817,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.04181176875881138,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4832,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.04677084683812642,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4834,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.01716765266161337,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4837,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.048993121941060105,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4841,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.047562228769387614,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4845,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.044997205468656036,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4852,
+      "modes": [
+        "HDF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.040006091283052374,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "HDF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4921,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.0391386933103915,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4937,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.04281657113794747,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -30%",
+        "blamed": "torque_nm",
+        "cost": 3.0000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4977,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.03758533054308813,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "no action",
+        "blamed": "air_temp_k",
+        "cost": 0.0,
+        "failures_after": [
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 4985,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.023943045981645057,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4989,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0011538350618188497,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 4998,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0011124570452057446,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5049,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.04920588832445633,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5062,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.03368292585721016,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -40%",
+        "blamed": "torque_nm",
+        "cost": 4.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5142,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.02705929786491159,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5220,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.04561939997922969,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5310,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.03932702740338422,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5335,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0009087244293340173,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 5395,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.04553592825631537,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 5400,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.022921240986899655,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5401,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.038407721528734895,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5402,
+      "modes": [
+        "OSF",
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.02816181954396806,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5489,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04838114598509591,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5491,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.043306699500699604,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5616,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.04611490379484102,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -30%",
+        "blamed": "torque_nm",
+        "cost": 3.0000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5618,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.04296818244937734,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5707,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -30%",
+        "cost": 3.0000000000000004,
+        "predicted_probability": 0.04599210067361648,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -30%",
+        "blamed": "torque_nm",
+        "cost": 3.0000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5735,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.04660879690596405,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 5910,
+      "modes": [
+        "PWF",
+        "OSF",
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.045838613327111484,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 6000,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.01672113949834246,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6025,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04849994120236929,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6079,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.042325213564095666,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6154,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04278936105779663,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6160,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.046424722016905846,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6173,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.04413130057907255,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6179,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.03788251246002393,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6249,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.042471516766518766,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6256,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.030698285498235365,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6257,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.03303153605322236,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6341,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.036018640966370204,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6420,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04867333477100095,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6498,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.04745058977876793,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 6526,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04492350536738417,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6541,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04042553503207331,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6619,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.039528157775922286,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6674,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.041964921581941705,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6679,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.03712971623239921,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6760,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04856218171837733,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6800,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0012021080336804529,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6925,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.035922107297813824,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6933,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.03924878464149996,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 6991,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0009584209771085473,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7012,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0007176186178378187,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7084,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.04933313593466549,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7088,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.015084647125372679,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7168,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -10%, torque -20%",
+        "cost": 2.9999999999999996,
+        "predicted_probability": 0.0498216756404385,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7281,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04875905995022873,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7427,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0039689211422367695,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7510,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.036340444453415006,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7511,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.014585949098582423,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7537,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0003631512684722383,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7565,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.03638877189159226,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7570,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04195889511604841,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7592,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04561422052174905,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7594,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.022268026851173624,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 7670,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.03545283686758492,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -15%",
+        "blamed": "torque_nm",
+        "cost": 1.5000000000000002,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7688,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0016728564131567945,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7757,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.033490728961861775,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -15%",
+        "blamed": "torque_nm",
+        "cost": 1.5000000000000002,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7760,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04193074501128467,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7764,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.026272899688360992,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7850,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.03715468687871828,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7885,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.04396294757610485,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7927,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04459058233989986,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 7998,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0002676578722149614,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 8027,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.0447738119793539,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8112,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.005496378828203143,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8193,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.03731816986112577,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8196,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.0379403040094883,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8200,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.003018200223115796,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8246,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04820106065052656,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8308,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.040729838070819084,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -10%",
+        "blamed": "torque_nm",
+        "cost": 0.9999999999999999,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 8358,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.032494692692289,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8399,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.00038529885109936645,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8438,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.03571218051736739,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8583,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "tool change",
+        "cost": 3.0,
+        "predicted_probability": 0.04998280330939313,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8609,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.04775735687245107,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8610,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.023051179851559342,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8691,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.01599408942643979,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 8847,
+      "modes": [
+        "OSF",
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.03436341758944663,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 8927,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, torque -20%",
+        "cost": 2.5,
+        "predicted_probability": 0.04159385719324708,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9015,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04608738523552801,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9017,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.04673264451580748,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9019,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.015134938825379186,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9085,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "speed -5%, tool change",
+        "cost": 3.5000000000000004,
+        "predicted_probability": 0.043386432931963176,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque +5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [
+          "PWF",
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 9175,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.003424749984794874,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9176,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.021797222825980286,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9415,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.03976999048970518,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9494,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.03569538274012763,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9577,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.002508349404229186,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9614,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.04139949335965524,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -5%",
+        "blamed": "torque_nm",
+        "cost": 0.5000000000000004,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9654,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.037993266606048605,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "speed +15%",
+        "blamed": "speed_rpm",
+        "cost": 1.4999999999999991,
+        "failures_after": [
+          "PWF",
+          "OSF"
+        ],
+        "success": false
+      }
+    },
+    {
+      "row": 9655,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.0409178843052806,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9660,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.04522931487725159,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9664,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -10%",
+        "cost": 0.9999999999999999,
+        "predicted_probability": 0.03485400021869291,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9665,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.03387730627010737,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9668,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -5%",
+        "cost": 0.5000000000000004,
+        "predicted_probability": 0.040219717342842326,
+        "failures_after": [
+          "OSF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9759,
+      "modes": [
+        "TWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.0009661145176514445,
+        "failures_after": [
+          "TWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9765,
+      "modes": [
+        "PWF"
+      ],
+      "causaltwin": {
+        "action": "no action",
+        "cost": 0.0,
+        "predicted_probability": 0.02279427666570022,
+        "failures_after": [
+          "PWF"
+        ],
+        "success": false
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9823,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -20%",
+        "cost": 1.9999999999999998,
+        "predicted_probability": 0.037929815907812046,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -20%",
+        "blamed": "torque_nm",
+        "cost": 1.9999999999999998,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9831,
+      "modes": [
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -15%",
+        "cost": 1.5000000000000002,
+        "predicted_probability": 0.03483100811272641,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "tool change",
+        "blamed": "tool_wear_min",
+        "cost": 3.0,
+        "failures_after": [],
+        "success": true
+      }
+    },
+    {
+      "row": 9975,
+      "modes": [
+        "PWF",
+        "OSF"
+      ],
+      "causaltwin": {
+        "action": "torque -40%",
+        "cost": 4.0,
+        "predicted_probability": 0.02640420073145717,
+        "failures_after": [],
+        "success": true
+      },
+      "baseline": {
+        "action": "torque -40%",
+        "blamed": "torque_nm",
+        "cost": 4.0,
+        "failures_after": [],
+        "success": true
+      }
+    }
+  ],
+  "seconds": 10.649335100002645
+}

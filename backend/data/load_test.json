@@ -1,0 +1,48 @@
+{
+  "source": "scripts/load_test.py",
+  "measured_at": "2026-11-15T07:22:41+00:00",
+  "base_url": "http://localhost:8000",
+  "viewers": 25,
+  "seconds": 63.3,
+  "requests": {
+    "GET /metrics": {
+      "count": 476,
+      "median_ms": 31.1,
+      "p95_ms": 271.0,
+      "max_ms": 435.7,
+      "statuses": {
+        "200": 476
+      }
+    },
+    "GET /recommend": {
+      "count": 34,
+      "median_ms": 1267.2,
+      "p95_ms": 1591.9,
+      "max_ms": 1669.0,
+      "statuses": {
+        "200": 30,
+        "503": 4
+      }
+    },
+    "POST /whatif": {
+      "count": 36,
+      "median_ms": 75.0,
+      "p95_ms": 283.7,
+      "max_ms": 494.6,
+      "statuses": {
+        "200": 29,
+        "503": 7
+      }
+    }
+  },
+  "websocket": {
+    "messages": 13255,
+    "messages_per_viewer_per_second": 8.4,
+    "failed_connections": 0
+  },
+  "live_loop": {
+    "steps": 197,
+    "steps_per_second": 3.11,
+    "target_steps_per_second": 5.0
+  }
+}

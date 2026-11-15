@@ -60,7 +60,9 @@ Already set by `render.yaml`:
 - **`CAUSALTWIN_AUTOSTART=1`:** the live simulation runs from start-up.
 - **`PORT`:** Render sets it itself; the container listens on it.
 
-All backend variables are documented in `backend/.env.example`.
+All backend variables are documented in `backend/.env.example`, including `CAUSALTWIN_DATA_SOURCE`
+for connecting a real machine over MTConnect instead of the simulator (README, "Real-world use"). Leave
+it unset for the simulated demo.
 
 ## 3. Frontend on Vercel
 

@@ -16,6 +16,7 @@ async function open(page: Page, path: string): Promise<string[]> {
 }
 
 async function capture(page: Page, name: string) {
+  if (test.info().project.name !== "chromium") return; // documentation screenshots come from Chromium only
   await page.waitForTimeout(1200); // let entry animations settle
   await page.screenshot({ path: `${SCREENSHOTS}/${name}.png`, fullPage: true });
 }

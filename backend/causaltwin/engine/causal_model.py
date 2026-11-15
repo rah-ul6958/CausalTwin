@@ -18,6 +18,7 @@ from sklearn.metrics import r2_score, roc_auc_score
 from statsmodels.discrete.discrete_model import Logit
 
 from causaltwin.engine.preprocessing import PreparedData, lagged_design
+from causaltwin.engine.robust import robust_outliers
 from causaltwin.engine.schemas import CausalGraph, EquationCard, EquationTerm
 from causaltwin.utils.timing import timed_step
 
@@ -35,6 +36,7 @@ class LinearEquation:
     r_squared_holdout: float | None
     n_train: int
     n_holdout: int
+    n_jumps: int = 0  # rare unexplained jumps left out of the fit (kept in `residuals`)
 
     def self_coefficient_sum(self) -> float:
         """Sum of the coefficients on the target's own lags (persistence)."""
@@ -57,6 +59,8 @@ class LogisticEquation:
     n_train: int
     n_holdout: int
     event_rate: float
+    # Covariance of (intercept, coefficients...) from the fit; None if it could not be estimated.
+    covariance: np.ndarray | None = None
 
 
 @dataclass
@@ -121,19 +125,30 @@ def _fit_linear(
     residual_limit: int,
     rng: np.random.Generator,
 ) -> LinearEquation | None:
-    """Fit one Ridge equation with a chronological holdout."""
+    """Fit one Ridge equation with a chronological holdout.
+
+    Rare jumps that the causes cannot explain (see engine/robust.py) are left out of the fit,
+    so they do not distort the coefficients, but their residuals stay in the noise pool used by
+    the what-if engine, so simulated futures still contain them at the observed rate. The
+    held-out R squared is measured on every holdout row, jumps included.
+    """
     design, target_values, _ = lagged_design(window, target, terms, first_row=0)
     if target_values.size < 20:
         return None
     n_train = int(target_values.size * (1.0 - holdout_fraction))
+    keep = np.ones(target_values.size, dtype=bool)
+    if terms:
+        first_pass = Ridge(alpha=penalty).fit(design, target_values)
+        keep = ~robust_outliers(target_values - first_pass.predict(design))
     r_squared = None
     if terms and target_values.size - n_train >= 5:
-        holdout_model = Ridge(alpha=penalty).fit(design[:n_train], target_values[:n_train])
+        train_keep = keep[:n_train]
+        holdout_model = Ridge(alpha=penalty).fit(design[:n_train][train_keep], target_values[:n_train][train_keep])
         r_squared = float(r2_score(target_values[n_train:], holdout_model.predict(design[n_train:])))
     if terms:
-        model = Ridge(alpha=penalty).fit(design, target_values)
+        model = Ridge(alpha=penalty).fit(design[keep], target_values[keep])
         coefficients, intercept = np.asarray(model.coef_, dtype=float), float(model.intercept_)
-        residuals = target_values - model.predict(design)
+        residuals = target_values - model.predict(design)  # every row: jumps remain part of the noise
     else:
         coefficients, intercept = np.zeros(0), float(target_values.mean())
         residuals = target_values - intercept
@@ -149,6 +164,7 @@ def _fit_linear(
         r_squared_holdout=r_squared,
         n_train=n_train,
         n_holdout=target_values.size - n_train,
+        n_jumps=int((~keep).sum()),
     )
 
 
@@ -180,6 +196,7 @@ def _fit_logistic(
             auc = float(roc_auc_score(outcome[n_train:], holdout_fit.predict(design[n_train:])))
         fit = Logit(outcome, design).fit(disp=0, maxiter=200)
     parameters = np.asarray(fit.params, dtype=float)
+    covariance = np.asarray(fit.cov_params(), dtype=float)
     return LogisticEquation(
         target=failure_history.outcome,
         terms=terms,
@@ -189,6 +206,7 @@ def _fit_logistic(
         n_train=n_train,
         n_holdout=rows.size - n_train,
         event_rate=float(outcome.mean()),
+        covariance=covariance if np.all(np.isfinite(covariance)) else None,
     )
 
 
@@ -287,6 +305,14 @@ def model_cards(model: CausalModel) -> list[EquationCard]:
                 residual_std=equation.residual_std,
                 n_train=equation.n_train,
                 n_holdout=equation.n_holdout,
+                notes=(
+                    [
+                        f"{equation.n_jumps} rare jumps that the causes cannot explain (for example tool "
+                        "chipping) were left out of the fit; they remain in the simulated noise."
+                    ]
+                    if equation.n_jumps
+                    else []
+                ),
             )
         )
     if model.failure is not None:

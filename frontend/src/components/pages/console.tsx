@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
-import { SimulatedBadge } from "@/components/transparency/transparency";
+import { DataSourceBadge } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -143,7 +143,7 @@ function LogStream() {
           </Label>
         </div>
       </div>
-      <div ref={container} className="h-80 overflow-y-auto rounded-lg border border-line bg-black/40 p-2 font-mono text-[11px] leading-5" role="log" aria-live="off">
+      <div ref={container} className="h-80 overflow-y-auto rounded-lg border border-line bg-black/40 p-2 font-mono text-[11px] leading-5" role="log" aria-live="off" aria-label="Activity log entries" tabIndex={0}>
         {shown.length === 0 ? (
           <EmptyState title="No log entries match" />
         ) : (
@@ -286,7 +286,7 @@ export function SystemConsole() {
   return (
     <div>
       <PageHeader title="System Console" description="Every process, its timing against the budget, and every model, in the open.">
-        <SimulatedBadge />
+        <DataSourceBadge />
       </PageHeader>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <PipelineTracker logs={logs} metrics={metrics.data} config={config.data} validationTimings={validation.data?.timings_ms} />

@@ -12,10 +12,10 @@
   "summary": {
     "causaltwin": {
       "success_rate": 0.9333333333333333,
-      "mean_risk_reduction": 0.26707610306527924,
-      "mean_true_risk_after": 0.03706430858990707,
+      "mean_risk_reduction": 0.2663897620810901,
+      "mean_true_risk_after": 0.03775064957409618,
       "mean_failure_rate_after": 0.0,
-      "mean_cost": 6.64,
+      "mean_cost": 6.585,
       "blamed": {
         "ambient_temp -> coolant_temp -> bearing_temp": 7,
         "tool_wear": 23
@@ -77,6 +77,11 @@
       "step": 3269,
       "true_risk_no_action": 0.21077824453461325,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.1976795909172219,
+      "twin_risk_no_action_interval": [
+        0.14098779666859937,
+        0.3075820598945239
+      ],
       "causaltwin": {
         "action": "coolant_flow +30%, lube_rate +30%",
         "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
@@ -84,7 +89,12 @@
         "true_risk_after": 0.08453259604353772,
         "risk_reduction": 0.12624564849107553,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.07547824034656367,
+        "predicted_risk_after_interval": [
+          0.05186975835895018,
+          0.11481845083943786
+        ]
       },
       "baseline": {
         "action": "ambient_temp cannot be controlled; no action.",
@@ -93,7 +103,9 @@
         "true_risk_after": 0.21077824453461325,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.125,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -104,6 +116,11 @@
       "step": 10103,
       "true_risk_no_action": 0.19982730061140874,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.2750541282403308,
+      "twin_risk_no_action_interval": [
+        0.20455009508708055,
+        0.4088212962450376
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -111,7 +128,12 @@
         "true_risk_after": 0.0009637017400542791,
         "risk_reduction": 0.19886359887135446,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.005261225638546764,
+        "predicted_risk_after_interval": [
+          0.004089475991895286,
+          0.0065976001939499875
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -120,7 +142,9 @@
         "true_risk_after": 0.19982730061140874,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.125,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -131,6 +155,11 @@
       "step": 11078,
       "true_risk_no_action": 0.4598081038636194,
       "failure_rate_no_action": 0.5,
+      "twin_risk_no_action": 0.4780070695804537,
+      "twin_risk_no_action_interval": [
+        0.3676075775887307,
+        0.65941641194086
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
@@ -138,7 +167,12 @@
         "true_risk_after": 0.005693635107607148,
         "risk_reduction": 0.45411446875601225,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.01052367457995905,
+        "predicted_risk_after_interval": [
+          0.007818914241510672,
+          0.013892330514199497
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -147,7 +181,9 @@
         "true_risk_after": 0.4598081038636194,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.5,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -158,6 +194,11 @@
       "step": 1636,
       "true_risk_no_action": 0.27292755770030297,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.2551696516423575,
+      "twin_risk_no_action_interval": [
+        0.18848356475801062,
+        0.3808406238674756
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -165,7 +206,12 @@
         "true_risk_after": 0.002408561689845462,
         "risk_reduction": 0.2705189960104575,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.007985685926128408,
+        "predicted_risk_after_interval": [
+          0.006269353190378463,
+          0.009549174745519657
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -174,7 +220,9 @@
         "true_risk_after": 0.27292755770030297,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.125,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -185,6 +233,11 @@
       "step": 12853,
       "true_risk_no_action": 0.24351988737191166,
       "failure_rate_no_action": 0.25,
+      "twin_risk_no_action": 0.31825062325519143,
+      "twin_risk_no_action_interval": [
+        0.23613115520835862,
+        0.45458123618737983
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -192,7 +245,12 @@
         "true_risk_after": 0.0005450542953140819,
         "risk_reduction": 0.24297483307659756,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.00799191390703405,
+        "predicted_risk_after_interval": [
+          0.00647230712876094,
+          0.009602209913009174
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -201,7 +259,9 @@
         "true_risk_after": 0.24351988737191166,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.25,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -212,14 +272,24 @@
       "step": 19041,
       "true_risk_no_action": 0.17350548146112624,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.1635230757162305,
+      "twin_risk_no_action_interval": [
+        0.1172112869429987,
+        0.26264602944988613
+      ],
       "causaltwin": {
-        "action": "coolant_flow +20%, lube_rate +20%",
+        "action": "coolant_flow +30%, lube_rate +15%",
         "blamed": "tool_wear",
-        "cost": 2.6000000000000005,
-        "true_risk_after": 0.08052019513951797,
-        "risk_reduction": 0.09298528632160827,
+        "cost": 2.6999999999999993,
+        "true_risk_after": 0.07760938388423934,
+        "risk_reduction": 0.0958960975768869,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.07685322008133844,
+        "predicted_risk_after_interval": [
+          0.0542434369862016,
+          0.11555712179837542
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -228,7 +298,9 @@
         "true_risk_after": 0.17350548146112624,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.125,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -239,14 +311,24 @@
       "step": 776,
       "true_risk_no_action": 0.1598481512827989,
       "failure_rate_no_action": 0.0,
+      "twin_risk_no_action": 0.18968654663050344,
+      "twin_risk_no_action_interval": [
+        0.13601730601150122,
+        0.29466327010936033
+      ],
       "causaltwin": {
-        "action": "coolant_flow +30%, lube_rate +20%",
+        "action": "coolant_flow +25%, lube_rate +25%",
         "blamed": "tool_wear",
-        "cost": 3.1000000000000005,
-        "true_risk_after": 0.08135737313960363,
-        "risk_reduction": 0.07849077814319526,
+        "cost": 3.25,
+        "true_risk_after": 0.07865132006001722,
+        "risk_reduction": 0.08119683122278167,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.0766871106532097,
+        "predicted_risk_after_interval": [
+          0.05283067995518792,
+          0.11308910075610587
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -255,7 +337,9 @@
         "true_risk_after": 0.1598481512827989,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.0,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -266,6 +350,11 @@
       "step": 2058,
       "true_risk_no_action": 0.19934117779245428,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.18420085261518843,
+      "twin_risk_no_action_interval": [
+        0.13300417491350922,
+        0.2889655431681559
+      ],
       "causaltwin": {
         "action": "coolant_flow +30%, lube_rate +25%",
         "blamed": "tool_wear",
@@ -273,7 +362,12 @@
         "true_risk_after": 0.09932316118342087,
         "risk_reduction": 0.10001801660903341,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.0767808485610701,
+        "predicted_risk_after_interval": [
+          0.05432525606844619,
+          0.11235186081844234
+        ]
       },
       "baseline": {
         "action": "ambient_temp cannot be controlled; no action.",
@@ -282,7 +376,9 @@
         "true_risk_after": 0.19934117779245428,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.125,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -293,14 +389,24 @@
       "step": 2888,
       "true_risk_no_action": 0.16188881373195052,
       "failure_rate_no_action": 0.0,
+      "twin_risk_no_action": 0.12542827574738397,
+      "twin_risk_no_action_interval": [
+        0.08928333742470757,
+        0.18300383358114716
+      ],
       "causaltwin": {
-        "action": "coolant_flow +15%, lube_rate +20%",
+        "action": "coolant_flow +15%, lube_rate +15%",
         "blamed": "tool_wear",
-        "cost": 2.3499999999999988,
-        "true_risk_after": 0.0850682746790736,
-        "risk_reduction": 0.07682053905287692,
+        "cost": 1.9499999999999993,
+        "true_risk_after": 0.09130167598628453,
+        "risk_reduction": 0.070587137745666,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.0771710153358421,
+        "predicted_risk_after_interval": [
+          0.0546033219155667,
+          0.11250390808303168
+        ]
       },
       "baseline": {
         "action": "ambient_temp cannot be controlled; no action.",
@@ -309,7 +415,9 @@
         "true_risk_after": 0.16188881373195052,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.0,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -320,6 +428,11 @@
       "step": 3328,
       "true_risk_no_action": 0.17003562477341863,
       "failure_rate_no_action": 0.0,
+      "twin_risk_no_action": 0.20440435304736218,
+      "twin_risk_no_action_interval": [
+        0.14884960896217225,
+        0.3132752655666852
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -327,7 +440,12 @@
         "true_risk_after": 0.001174421629743183,
         "risk_reduction": 0.16886120314367545,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.004667790848105161,
+        "predicted_risk_after_interval": [
+          0.003593496939758184,
+          0.005817657451545038
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -336,7 +454,9 @@
         "true_risk_after": 0.17003562477341863,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.0,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -347,6 +467,11 @@
       "step": 3813,
       "true_risk_no_action": 0.19143554709948335,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.2299035801754679,
+      "twin_risk_no_action_interval": [
+        0.16722645953475476,
+        0.34511725807719534
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -354,7 +479,12 @@
         "true_risk_after": 0.002257143941631512,
         "risk_reduction": 0.18917840315785184,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.006340673794971135,
+        "predicted_risk_after_interval": [
+          0.004751266898893225,
+          0.008191176419098072
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -363,7 +493,9 @@
         "true_risk_after": 0.19143554709948335,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.125,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -374,6 +506,11 @@
       "step": 8358,
       "true_risk_no_action": 0.24668955224779304,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.27271554241587126,
+      "twin_risk_no_action_interval": [
+        0.2042075553900574,
+        0.4030468339095339
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -381,7 +518,12 @@
         "true_risk_after": 0.0021138009368955185,
         "risk_reduction": 0.24457575131089754,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.009923303218689217,
+        "predicted_risk_after_interval": [
+          0.007985691040462917,
+          0.011621864236405221
+        ]
       },
       "baseline": {
         "action": "Change lube_rate from 0.662 to 0.53 (-20%).",
@@ -390,7 +532,9 @@
         "true_risk_after": 0.3442155451981854,
         "risk_reduction": -0.09752599295039238,
         "failure_rate_after": 0.25,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -401,6 +545,11 @@
       "step": 355,
       "true_risk_no_action": 0.19805343699673347,
       "failure_rate_no_action": 0.25,
+      "twin_risk_no_action": 0.23045077280412138,
+      "twin_risk_no_action_interval": [
+        0.16694571632051933,
+        0.3512857569057678
+      ],
       "causaltwin": {
         "action": "spindle_speed -10%, lube_rate +25%",
         "blamed": "tool_wear",
@@ -408,7 +557,12 @@
         "true_risk_after": 0.08265885988364523,
         "risk_reduction": 0.11539457711308825,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.0757236245078383,
+        "predicted_risk_after_interval": [
+          0.05293717284516191,
+          0.11070417642394345
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -417,7 +571,9 @@
         "true_risk_after": 0.19805343699673347,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.25,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -428,6 +584,11 @@
       "step": 2282,
       "true_risk_no_action": 0.19930678193598161,
       "failure_rate_no_action": 0.0,
+      "twin_risk_no_action": 0.18289190209298045,
+      "twin_risk_no_action_interval": [
+        0.13170451871253439,
+        0.26833154391041136
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -435,7 +596,12 @@
         "true_risk_after": 0.00044565801197009314,
         "risk_reduction": 0.1988611239240115,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.008837202056496535,
+        "predicted_risk_after_interval": [
+          0.007070928374650537,
+          0.01048802813321936
+        ]
       },
       "baseline": {
         "action": "Change the tool.",
@@ -444,7 +610,9 @@
         "true_risk_after": 0.00044565801197009314,
         "risk_reduction": 0.1988611239240115,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "tie"
     },
@@ -455,6 +623,11 @@
       "step": 3871,
       "true_risk_no_action": 0.2953249169896448,
       "failure_rate_no_action": 0.25,
+      "twin_risk_no_action": 0.27434471490918017,
+      "twin_risk_no_action_interval": [
+        0.20209924381033031,
+        0.4112754571719039
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -462,7 +635,12 @@
         "true_risk_after": 0.001506049610761312,
         "risk_reduction": 0.2938188673788835,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.00379144131518436,
+        "predicted_risk_after_interval": [
+          0.0028514008710059436,
+          0.004888103368928081
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -471,7 +649,9 @@
         "true_risk_after": 0.2953249169896448,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.25,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -482,6 +662,11 @@
       "step": 4452,
       "true_risk_no_action": 0.22011709897937315,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.24924688646179213,
+      "twin_risk_no_action_interval": [
+        0.17486475046816544,
+        0.3748845290074552
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -489,7 +674,12 @@
         "true_risk_after": 0.00459139689523716,
         "risk_reduction": 0.215525702084136,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.0050412302279466345,
+        "predicted_risk_after_interval": [
+          0.00292070911353155,
+          0.008161880243867919
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -498,7 +688,9 @@
         "true_risk_after": 0.22011709897937315,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.125,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -509,6 +701,11 @@
       "step": 7497,
       "true_risk_no_action": 0.21483732134607025,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.26480489300380067,
+      "twin_risk_no_action_interval": [
+        0.19392314808020014,
+        0.3970132848680522
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -516,7 +713,12 @@
         "true_risk_after": 0.0023901855210677198,
         "risk_reduction": 0.21244713582500252,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.006340329034971721,
+        "predicted_risk_after_interval": [
+          0.004698866001329328,
+          0.008286378087409976
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -525,7 +727,9 @@
         "true_risk_after": 0.21483732134607025,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.125,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -536,6 +740,11 @@
       "step": 8450,
       "true_risk_no_action": 0.4559403740727459,
       "failure_rate_no_action": 0.5,
+      "twin_risk_no_action": 0.4424951503603737,
+      "twin_risk_no_action_interval": [
+        0.33964253278468176,
+        0.616929628806268
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -543,7 +752,12 @@
         "true_risk_after": 0.006840566182895816,
         "risk_reduction": 0.4490998078898501,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.01413234306393317,
+        "predicted_risk_after_interval": [
+          0.010887912275184592,
+          0.0180444180257589
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -552,7 +766,9 @@
         "true_risk_after": 0.4559403740727459,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.5,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -563,6 +779,11 @@
       "step": 841,
       "true_risk_no_action": 0.770719602781297,
       "failure_rate_no_action": 0.625,
+      "twin_risk_no_action": 0.7604485128434285,
+      "twin_risk_no_action_interval": [
+        0.6240806680887268,
+        0.919513911021585
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
@@ -570,7 +791,12 @@
         "true_risk_after": 0.0307099574016282,
         "risk_reduction": 0.7400096453796688,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.04787827447612084,
+        "predicted_risk_after_interval": [
+          0.034351147412060815,
+          0.06387796846753818
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -579,7 +805,9 @@
         "true_risk_after": 0.770719602781297,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.625,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -590,14 +818,24 @@
       "step": 1368,
       "true_risk_no_action": 0.21018082926171072,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.18689989715357036,
+      "twin_risk_no_action_interval": [
+        0.12836059026832214,
+        0.2874638959200216
+      ],
       "causaltwin": {
-        "action": "spindle_speed -10%, coolant_flow +25%",
+        "action": "spindle_speed -10%, coolant_flow +20%",
         "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
-        "cost": 6.249999999999999,
-        "true_risk_after": 0.08751085258961519,
-        "risk_reduction": 0.12266997667209553,
+        "cost": 5.999999999999999,
+        "true_risk_after": 0.09357980385041732,
+        "risk_reduction": 0.1166010254112934,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.0785443883232145,
+        "predicted_risk_after_interval": [
+          0.05393615135391412,
+          0.12434063527233265
+        ]
       },
       "baseline": {
         "action": "ambient_temp cannot be controlled; no action.",
@@ -606,7 +844,9 @@
         "true_risk_after": 0.21018082926171072,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.125,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -617,6 +857,11 @@
       "step": 2101,
       "true_risk_no_action": 0.2926898469086092,
       "failure_rate_no_action": 0.25,
+      "twin_risk_no_action": 0.2593660643614786,
+      "twin_risk_no_action_interval": [
+        0.19329384511959802,
+        0.3866272702293726
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -624,7 +869,12 @@
         "true_risk_after": 0.0022189538968970107,
         "risk_reduction": 0.2904708930117122,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.0071572431115916844,
+        "predicted_risk_after_interval": [
+          0.005579319425418128,
+          0.008648724190126366
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -633,7 +883,9 @@
         "true_risk_after": 0.2926898469086092,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.25,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -644,14 +896,24 @@
       "step": 2511,
       "true_risk_no_action": 0.1810111282436498,
       "failure_rate_no_action": 0.125,
+      "twin_risk_no_action": 0.17755513332098846,
+      "twin_risk_no_action_interval": [
+        0.1192356044013352,
+        0.2753637127423658
+      ],
       "causaltwin": {
-        "action": "spindle_speed -10%, lube_rate +25%",
+        "action": "spindle_speed -10%, coolant_flow +30%",
         "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
-        "cost": 7.000000000000002,
-        "true_risk_after": 0.0977352370651028,
-        "risk_reduction": 0.08327589117854699,
+        "cost": 6.500000000000002,
+        "true_risk_after": 0.09443936991457096,
+        "risk_reduction": 0.08657175832907883,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.0749238732456816,
+        "predicted_risk_after_interval": [
+          0.04981617721673181,
+          0.12254270504146265
+        ]
       },
       "baseline": {
         "action": "ambient_temp cannot be controlled; no action.",
@@ -660,7 +922,9 @@
         "true_risk_after": 0.1810111282436498,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.125,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -671,6 +935,11 @@
       "step": 3147,
       "true_risk_no_action": 0.49568063763990144,
       "failure_rate_no_action": 0.5,
+      "twin_risk_no_action": 0.6347191863234591,
+      "twin_risk_no_action_interval": [
+        0.4981184281011858,
+        0.8319022762475755
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -678,7 +947,12 @@
         "true_risk_after": 0.007013733187287957,
         "risk_reduction": 0.4886669044526135,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.008826645209846995,
+        "predicted_risk_after_interval": [
+          0.00535259918459165,
+          0.014104609294925179
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -687,7 +961,9 @@
         "true_risk_after": 0.49568063763990144,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.5,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -698,6 +974,11 @@
       "step": 4059,
       "true_risk_no_action": 0.3748909845154063,
       "failure_rate_no_action": 0.25,
+      "twin_risk_no_action": 0.3565900770382118,
+      "twin_risk_no_action_interval": [
+        0.2678233853415204,
+        0.5130618334012531
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -705,7 +986,12 @@
         "true_risk_after": 0.006033977252650355,
         "risk_reduction": 0.36885700726275594,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.014340634174866206,
+        "predicted_risk_after_interval": [
+          0.01115317125180051,
+          0.018014630248002275
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -714,7 +1000,9 @@
         "true_risk_after": 0.3748909845154063,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.25,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -725,6 +1013,11 @@
       "step": 352,
       "true_risk_no_action": 0.7742701283490396,
       "failure_rate_no_action": 0.625,
+      "twin_risk_no_action": 0.8861737502706329,
+      "twin_risk_no_action_interval": [
+        0.7937482229635894,
+        0.9819978521525574
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -732,7 +1025,12 @@
         "true_risk_after": 0.006921376427645037,
         "risk_reduction": 0.7673487519213946,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.023548881954463096,
+        "predicted_risk_after_interval": [
+          0.018992703911868487,
+          0.028401508003045365
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -741,7 +1039,9 @@
         "true_risk_after": 0.7742701283490396,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.625,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -752,6 +1052,11 @@
       "step": 910,
       "true_risk_no_action": 0.6007079641750476,
       "failure_rate_no_action": 0.625,
+      "twin_risk_no_action": 0.47186082145799163,
+      "twin_risk_no_action_interval": [
+        0.3628040144625672,
+        0.6506307904032299
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -759,7 +1064,12 @@
         "true_risk_after": 0.005501087566172139,
         "risk_reduction": 0.5952068766088754,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.006743348767805715,
+        "predicted_risk_after_interval": [
+          0.0049991413682783595,
+          0.008772143590543716
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -768,7 +1078,9 @@
         "true_risk_after": 0.6007079641750476,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.625,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -779,6 +1091,11 @@
       "step": 1310,
       "true_risk_no_action": 0.4791608039505746,
       "failure_rate_no_action": 0.5,
+      "twin_risk_no_action": 0.48037175417056405,
+      "twin_risk_no_action_interval": [
+        0.3725323149236154,
+        0.6497760858445546
+      ],
       "causaltwin": {
         "action": "tool change",
         "blamed": "tool_wear",
@@ -786,7 +1103,12 @@
         "true_risk_after": 0.0008137586549049336,
         "risk_reduction": 0.4783470452956696,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.014920414162940227,
+        "predicted_risk_after_interval": [
+          0.01203949926573739,
+          0.017867021609693123
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -795,7 +1117,9 @@
         "true_risk_after": 0.4791608039505746,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.5,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -806,14 +1130,24 @@
       "step": 1740,
       "true_risk_no_action": 0.2391059193811299,
       "failure_rate_no_action": 0.25,
+      "twin_risk_no_action": 0.19613236873907539,
+      "twin_risk_no_action_interval": [
+        0.13970757225938876,
+        0.2955780313808071
+      ],
       "causaltwin": {
-        "action": "coolant_flow +30%, lube_rate +20%",
+        "action": "coolant_flow +25%, lube_rate +20%",
         "blamed": "tool_wear",
-        "cost": 3.1000000000000005,
-        "true_risk_after": 0.08769559460813162,
-        "risk_reduction": 0.1514103247729983,
+        "cost": 2.8500000000000005,
+        "true_risk_after": 0.09425191879250447,
+        "risk_reduction": 0.14485400058862544,
         "failure_rate_after": 0.0,
-        "success": true
+        "success": true,
+        "predicted_risk_after": 0.07846219787709267,
+        "predicted_risk_after_interval": [
+          0.054062571097405226,
+          0.11668465687019677
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -822,7 +1156,9 @@
         "true_risk_after": 0.2391059193811299,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.25,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -833,14 +1169,24 @@
       "step": 2168,
       "true_risk_no_action": 0.21210529904443903,
       "failure_rate_no_action": 0.0,
+      "twin_risk_no_action": 0.13187335906721173,
+      "twin_risk_no_action_interval": [
+        0.09359642796671877,
+        0.21086036417642723
+      ],
       "causaltwin": {
-        "action": "coolant_flow +15%, lube_rate +30%",
+        "action": "coolant_flow +5%, lube_rate +30%",
         "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
-        "cost": 3.150000000000001,
-        "true_risk_after": 0.12308212622883116,
-        "risk_reduction": 0.08902317281560787,
+        "cost": 2.6500000000000012,
+        "true_risk_after": 0.13372641048751518,
+        "risk_reduction": 0.07837888855692385,
         "failure_rate_after": 0.0,
-        "success": false
+        "success": false,
+        "predicted_risk_after": 0.07586316159368905,
+        "predicted_risk_after_interval": [
+          0.053323189087965094,
+          0.11466519615756691
+        ]
       },
       "baseline": {
         "action": "ambient_temp cannot be controlled; no action.",
@@ -849,7 +1195,9 @@
         "true_risk_after": 0.21210529904443903,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.0,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     },
@@ -860,6 +1208,11 @@
       "step": 2636,
       "true_risk_no_action": 0.2205038326133532,
       "failure_rate_no_action": 0.25,
+      "twin_risk_no_action": 0.14591241909604485,
+      "twin_risk_no_action_interval": [
+        0.10207819421737091,
+        0.23713564265609563
+      ],
       "causaltwin": {
         "action": "spindle_speed -10%, coolant_flow +5%",
         "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
@@ -867,7 +1220,12 @@
         "true_risk_after": 0.11230196718652348,
         "risk_reduction": 0.10820186542682973,
         "failure_rate_after": 0.0,
-        "success": false
+        "success": false,
+        "predicted_risk_after": 0.07831675291767912,
+        "predicted_risk_after_interval": [
+          0.05350603525030002,
+          0.1253391385083988
+        ]
       },
       "baseline": {
         "action": "Damp vibration (remove the vibration signal's noise component).",
@@ -876,11 +1234,32 @@
         "true_risk_after": 0.2205038326133532,
         "risk_reduction": 0.0,
         "failure_rate_after": 0.25,
-        "success": false
+        "success": false,
+        "predicted_risk_after": null,
+        "predicted_risk_after_interval": null
       },
       "winner": "causaltwin"
     }
   ],
+  "calibration": {
+    "n_cases": 30,
+    "no_action": {
+      "mean_predicted": 0.3075386984486156,
+      "mean_true": 0.3041404116551862,
+      "mean_error": 0.0033982867934293404,
+      "mean_absolute_error": 0.04063541266439898,
+      "interval_coverage": 0.8666666666666667,
+      "correlation": 0.9559547947468048
+    },
+    "after_action": {
+      "mean_predicted": 0.03530188963042734,
+      "mean_true": 0.03775064957409618,
+      "mean_error": -0.002448759943668833,
+      "mean_absolute_error": 0.01072270897829497,
+      "interval_coverage": 0.43333333333333335,
+      "correlation": 0.9677505903598685
+    }
+  },
   "baseline_accuracy": {
     "target": "failure within the next 30 steps",
     "n_train": 47121,
@@ -891,44 +1270,38 @@
     "precision": 0.3007380073800738,
     "recall": 0.3196078431372549,
     "f1": 0.30988593155893535,
-    "training_seconds": 7.246532900000602
+    "training_seconds": 1.7197276999977475
   },
   "graph_recovery": {
     "graph_recovery_with_failure": {
       "n_true_edges": 15,
-      "n_found_edges": 13,
-      "true_positives": 13,
+      "n_found_edges": 15,
+      "true_positives": 15,
       "precision": 1.0,
-      "recall": 0.8666666666666667,
-      "f1": 0.9285714285714286,
+      "recall": 1.0,
+      "f1": 1.0,
       "lag_accuracy": 1.0,
-      "structural_hamming_distance": 2,
-      "missed_edges": [
-        "load_pct->tool_wear (lag 1)",
-        "spindle_speed->tool_wear (lag 1)"
-      ],
+      "structural_hamming_distance": 0,
+      "missed_edges": [],
       "extra_edges": [],
       "wrong_lags": []
     },
     "graph_recovery_without_failure": {
       "n_true_edges": 13,
-      "n_found_edges": 11,
-      "true_positives": 11,
+      "n_found_edges": 13,
+      "true_positives": 13,
       "precision": 1.0,
-      "recall": 0.8461538461538461,
-      "f1": 0.9166666666666666,
+      "recall": 1.0,
+      "f1": 1.0,
       "lag_accuracy": 1.0,
-      "structural_hamming_distance": 2,
-      "missed_edges": [
-        "load_pct->tool_wear (lag 1)",
-        "spindle_speed->tool_wear (lag 1)"
-      ],
+      "structural_hamming_distance": 0,
+      "missed_edges": [],
       "extra_edges": [],
       "wrong_lags": []
     }
   },
   "timing_seconds": {
-    "situation_search": 9.518314200000532,
-    "total": 39.72721260000071
+    "situation_search": 22.893735699999525,
+    "total": 57.99304659999689
   }
 }

@@ -13,7 +13,7 @@ import { CountUp } from "@/components/common/count-up";
 import { PageHeader, variableColor } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
-import { GroundTruthBadge, InfoTip, SimulatedBadge } from "@/components/transparency/transparency";
+import { DataSourceBadge, GroundTruthBadge, InfoTip } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,6 +27,7 @@ import { Slider } from "@/components/ui/slider";
 import { api, type SimAction } from "@/lib/api";
 import { LIVE_BUFFER_POINTS } from "@/lib/config";
 import { formatNumber, formatPercent, humanize } from "@/lib/format";
+import { useDataSource } from "@/lib/data-source";
 import { useLiveStore, type RiskPoint } from "@/lib/store";
 import type { LiveAlert, LiveEvent, RiskEstimate } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
@@ -62,6 +63,7 @@ function useCurrentRisk(): { known: boolean; risk: RiskEstimate | null; truth: n
 
 function RiskPanel({ settings }: { settings: RiskSettings }) {
   const { known, risk, truth } = useCurrentRisk();
+  const source = useDataSource();
   const target = settings.target;
   const horizonMinutes = (settings.horizonSteps * settings.secondsPerStep) / 60;
   return (
@@ -76,7 +78,7 @@ function RiskPanel({ settings }: { settings: RiskSettings }) {
         <InfoTip label="How the risk is computed">
           The twin rolls its fitted causal model forward {settings.horizonSteps} steps ({formatNumber(horizonMinutes, 0)} minutes) from the
           latest live data with {settings.rollouts} Monte Carlo rollouts and reports the mean probability of at least one failure,
-          with a 90% interval across rollouts. Only process noise is included, not coefficient uncertainty.
+          with a 90% interval across rollouts. Each rollout includes process noise and its own draw of the failure model&apos;s coefficients (they were estimated from a limited number of failures); uncertainty in the other equations&apos; coefficients is not included.
         </InfoTip>
       }
     >
@@ -97,13 +99,21 @@ function RiskPanel({ settings }: { settings: RiskSettings }) {
               </p>
             )}
           </div>
-          <div className="mt-4 flex w-full items-center justify-between rounded-lg border border-good/20 bg-good/5 px-3 py-2">
-            <GroundTruthBadge />
-            <span className="tabular text-sm text-emerald-200">{formatPercent(truth)}</span>
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Shown only to check the twin; it comes from forks of the simulator, which the twin never sees.
-          </p>
+          {source.has_simulator ? (
+            <>
+              <div className="mt-4 flex w-full items-center justify-between rounded-lg border border-good/20 bg-good/5 px-3 py-2">
+                <GroundTruthBadge />
+                <span className="tabular text-sm text-emerald-200">{formatPercent(truth)}</span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Shown only to check the twin; it comes from forks of the simulator, which the twin never sees.
+              </p>
+            </>
+          ) : (
+            <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
+              No ground truth exists for real data: compare the estimate with the machine&apos;s own maintenance records.
+            </p>
+          )}
         </div>
       )}
     </Panel>
@@ -134,8 +144,15 @@ function RiskHistory({ target }: { target: number }) {
     [riskPoints],
   );
   const axis = useMemo(() => riskAxis(riskPoints, target), [riskPoints, target]);
+  const source = useDataSource();
   return (
-    <Panel index={1} demo="risk-chart" title="Risk over time" subtitle="Twin estimate with interval, and the simulator ground truth" icon={<Activity className="size-4" />}>
+    <Panel
+      index={1}
+      demo="risk-chart"
+      title="Risk over time"
+      subtitle={source.has_simulator ? "Twin estimate with interval, and the simulator ground truth" : "Twin estimate with interval"}
+      icon={<Activity className="size-4" />}
+    >
       {data.length < 2 ? (
         <EmptyState title="Waiting for live risk updates" hint="Resume the simulation if it is paused." />
       ) : (
@@ -188,10 +205,17 @@ function Controls() {
     }
   };
   const control = (action: SimAction, value?: number) => run(() => api.simControl(action, value));
+  const source = useDataSource();
   const shownSpeed = speed ?? status?.steps_per_second ?? 5;
 
   return (
-    <Panel index={2} title="Simulation controls" subtitle="Live simulated spindle" icon={<Zap className="size-4" />} actions={<SimulatedBadge />}>
+    <Panel
+      index={2}
+      title={source.has_simulator ? "Simulation controls" : "Live data controls"}
+      subtitle={source.description}
+      icon={<Zap className="size-4" />}
+      actions={<DataSourceBadge />}
+    >
       {!config.data || !status ? (
         config.error ? <ErrorState message={config.error} onRetry={config.reload} /> : <PanelSkeleton rows={4} />
       ) : (
@@ -200,13 +224,16 @@ function Controls() {
             <Button size="sm" onClick={() => void control(status.running ? "pause" : "resume")} aria-label={status.running ? "Pause" : "Resume"}>
               {status.running ? <Pause aria-hidden /> : <Play aria-hidden />} {status.running ? "Pause" : "Resume"}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => void control("step", 50)}>
-              <SkipForward aria-hidden /> Step 50
-            </Button>
+            {source.has_simulator && (
+              <Button size="sm" variant="outline" onClick={() => void control("step", 50)}>
+                <SkipForward aria-hidden /> Step 50
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={() => void control("reset")}>
               <RotateCcw aria-hidden /> Reset
             </Button>
           </div>
+          {source.has_simulator && (
           <div>
             <label className="mb-2 flex justify-between text-xs text-muted-foreground" htmlFor="speed-slider">
               <span>Speed</span>
@@ -223,6 +250,14 @@ function Controls() {
               onValueCommit={(values) => void control("speed", values[0])}
             />
           </div>
+          )}
+          {!source.has_simulator && (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Scenarios and fault injection exist only in the simulator. With real data, CausalTwin watches and
+              advises; changes are made on the machine.
+            </p>
+          )}
+          {source.has_simulator && (
           <div>
             <p className="mb-1 text-xs text-muted-foreground">Scenario</p>
             <Select value={status.scenario} onValueChange={(scenario) => void run(() => api.scenario(scenario))}>
@@ -238,6 +273,8 @@ function Controls() {
               </SelectContent>
             </Select>
           </div>
+          )}
+          {source.has_simulator && (
           <div className="flex flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -265,6 +302,7 @@ function Controls() {
               </Button>
             )}
           </div>
+          )}
           {error && <p className="text-xs text-risk">{error}</p>}
         </div>
       )}
@@ -352,7 +390,7 @@ function EventTimeline() {
       {shown.length === 0 ? (
         <EmptyState title="No events yet" />
       ) : (
-        <ol className="max-h-72 space-y-1.5 overflow-y-auto pr-1">
+        <ol className="max-h-72 space-y-1.5 overflow-y-auto pr-1" tabIndex={0} aria-label="Events, newest first">
           {shown.map((event, index) => (
             <li key={`${event.step}-${event.event_type}-${index}`} className="flex items-start gap-2 text-xs">
               <span className="tabular w-14 shrink-0 text-right text-muted-foreground">{event.step}</span>
@@ -388,7 +426,7 @@ function AlertFeed() {
           hint={`Alerts appear when predicted risk crosses ${threshold === undefined ? "the alert threshold" : formatPercent(threshold, 0)} or the causal structure changes.`}
         />
       ) : (
-        <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
+        <ul className="max-h-72 space-y-2 overflow-y-auto pr-1" tabIndex={0} aria-label="Alerts, newest first">
           <AnimatePresence initial={false}>
             {shown.map((alert, index) => {
               const drift = alert.kind === "drift";
@@ -428,6 +466,7 @@ function AlertFeed() {
 
 export function ControlRoom() {
   const config = useApi(() => api.config(), "config");
+  const source = useDataSource();
   const settings: RiskSettings | null = config.data
     ? {
         target: config.data.optimizer.target_risk,
@@ -438,8 +477,11 @@ export function ControlRoom() {
     : null;
   return (
     <div>
-      <PageHeader title="Control Room" description="The live simulated spindle, the twin's failure-risk estimate, events and alerts.">
-        <SimulatedBadge />
+      <PageHeader
+        title="Control Room"
+        description={`${source.has_simulator ? "The live simulated spindle" : source.description}: the twin's failure-risk estimate, events and alerts.`}
+      >
+        <DataSourceBadge />
       </PageHeader>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(300px,360px)_1fr_minmax(300px,360px)]">
         {settings ? (

@@ -49,6 +49,7 @@ class HealthResponse(BaseModel):
     live_running: bool
     step: int
     scenario: str
+    data_source: str = "simulator"
     simulated: bool = True
 
 
@@ -133,6 +134,7 @@ class SimStatus(BaseModel):
     active_faults: list[str]
     interventions: dict[str, float]
     drift_state: str
+    data_source: dict[str, Any] = Field(default_factory=dict)  # kind, description, has_simulator, simulated
     simulated: bool = True
 
 

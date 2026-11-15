@@ -13,6 +13,7 @@
 """
 
 import copy
+import math
 from collections import deque
 from dataclasses import dataclass
 from typing import Any, Literal
@@ -37,6 +38,7 @@ from causaltwin.config import (
     REGIME_BREAK_EVENTS,
     TAU_MAX,
 )
+from causaltwin.connectors.base import SourceInfo
 from causaltwin.engine.causal_model import CONSTANT_STD, CausalModel
 from causaltwin.engine.confidence import block_resample
 from causaltwin.engine.discovery import fast_mci, significant_lagged_edges, tigramite_mci
@@ -58,6 +60,20 @@ class SimulatorStepper:
         """Start reading events from the simulator's current position."""
         self.simulator = simulator
         self._event_index = len(simulator._events)
+
+    @property
+    def current_step(self) -> int:
+        """The simulator's next step index."""
+        return self.simulator.current_step
+
+    def describe(self) -> SourceInfo:
+        """The built-in simulated spindle (illustrative constants, ground truth available)."""
+        return SourceInfo(
+            kind="simulator",
+            description="Simulated CNC spindle (illustrative constants)",
+            has_simulator=True,
+            simulated_data=True,
+        )
 
     def step(self) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         """Advance one step. Returns (row, events that happened in this step)."""
@@ -96,10 +112,12 @@ class RollingBuffer:
 
 
 def row_is_usable(row: dict[str, Any]) -> bool:
-    """A row is normal dynamics if the machine runs and no regime-break event happened."""
+    """A row is normal dynamics if the machine runs, no regime-break event happened, and every
+    model variable has a value (a real data source may not have delivered one yet)."""
     return bool(
         row.get("machine_running", 1) == 1
         and not any(row.get(f"{EVENT_INDICATOR_PREFIX}{event}", 0) for event in REGIME_BREAK_EVENTS)
+        and all(math.isfinite(float(row.get(name, 0.0))) for name in MEASURED_VARIABLES)
     )
 
 
@@ -362,7 +380,10 @@ class DriftManager:
         """Rediscover on the collected window, rewire and refit if the structure changed."""
         assert self.pending is not None
         recent = self.buffer.dataframe(self.window)
-        new_graph, changes = rediscover(self.engine, recent)
+        new_graph, all_changes = rediscover(self.engine, recent)
+        # Only the equation whose predictions drifted has evidence of a change. Differences found
+        # elsewhere in a short window are not confirmed: a real change there raises its own alarm.
+        changes = [change for change in all_changes if change.effect == self.pending.equation]
         alert = self.pending.model_copy(
             update={
                 "rediscovery_step": step,

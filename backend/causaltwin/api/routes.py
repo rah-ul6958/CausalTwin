@@ -86,6 +86,17 @@ def _provenance(method: str, window: str, milliseconds: float | None = None, **p
     return Provenance(method=method, data_window=window, parameters=parameters, computation_ms=milliseconds)
 
 
+def _require_simulator(state: AppState) -> None:
+    """Fault injection, scenarios and the guided demo exist only with the built-in simulator."""
+    source = state.live.source_info
+    if not source.has_simulator:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Not available: the live data comes from {source.description}, not the simulator. "
+            "With real data, recommendations are advisory: apply them on the machine.",
+        )
+
+
 def _require_running(state: AppState) -> None:
     """Risk-based results need recent normal running data."""
     if not state.live.history_is_usable():
@@ -148,6 +159,8 @@ def health(request: Request) -> HealthResponse:
         live_running=state.live.running,
         step=state.live.step_count,
         scenario=state.live.scenario,
+        data_source=state.live.source_info.kind,
+        simulated=state.live.source_info.simulated_data,
     )
 
 
@@ -225,10 +238,9 @@ async def what_if(request: Request, body: WhatIfRequest) -> WhatIfResponse:
     def compute() -> tuple[Any, Any]:
         with live.lock:
             _require_running(state)
-            history = live.history()
-            return history, live.engine.what_if(
-                body.interventions, history, body.horizon, body.n_rollouts, None, body.noise_scale
-            )
+        engine, history = live.snapshot()
+        result = engine.what_if(body.interventions, history, body.horizon, body.n_rollouts, None, body.noise_scale)
+        return history, result
 
     try:
         history, result = await _run_heavy(state, compute, "what-if simulation")
@@ -255,7 +267,8 @@ async def root_cause(request: Request) -> RootCauseResponse:
     def compute() -> Any:
         with live.lock:
             _require_running(state)
-            return live.engine.root_cause(live.history())
+        engine, history = live.snapshot()
+        return engine.root_cause(history)
 
     result = await _run_heavy(state, compute, "root-cause analysis")
     return RootCauseResponse(
@@ -283,8 +296,7 @@ async def recommendation(
     def compute() -> tuple[Any, Any]:
         with live.lock:
             _require_running(state)
-            result = live.compute_recommendation(target)
-            return result, live.latest_baseline_action
+        return live.recommend_now(target)
 
     result, baseline_action = await _run_heavy(state, compute, "recommendation search")
     return RecommendResponse(
@@ -309,6 +321,7 @@ async def recommendation(
 def apply(request: Request) -> ActionResponse:
     """Apply the latest recommendation to the live simulator."""
     state = _state(request)
+    _require_simulator(state)
     try:
         applied = state.live.apply_recommendation()
     except ValueError as error:
@@ -319,6 +332,7 @@ def apply(request: Request) -> ActionResponse:
 def _fault_action(request: Request, body: FaultRequest, inject: bool) -> ActionResponse:
     """Inject or clear a fault."""
     state = _state(request)
+    _require_simulator(state)
     if body.fault not in FAULT_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown fault. Known: {list(FAULT_NAMES)}")
     state.live.set_fault(body.fault, inject)
@@ -343,6 +357,7 @@ def clear_fault(request: Request, body: FaultRequest) -> ActionResponse:
 def scenario(request: Request, body: ScenarioRequest) -> ActionResponse:
     """Switch the live scenario."""
     state = _state(request)
+    _require_simulator(state)
     if body.scenario not in SCENARIOS:
         raise HTTPException(status_code=400, detail=f"Unknown scenario. Known: {list(SCENARIOS)}")
     state.live.switch_scenario(body.scenario)
@@ -371,6 +386,7 @@ async def sim_control(request: Request, body: SimControlRequest) -> ActionRespon
         live.running = False
         await asyncio.to_thread(live.reset, LIVE_SEED, "normal")
     elif body.action == "release":
+        _require_simulator(state)
         live.release_all()
     return ActionResponse(ok=True, message=f"{body.action} done", status=_status(state))
 
@@ -379,6 +395,7 @@ async def sim_control(request: Request, body: SimControlRequest) -> ActionRespon
 async def demo_start(request: Request) -> dict[str, Any]:
     """Start the guided demo (fixed seed) and play the first beat."""
     state = _state(request)
+    _require_simulator(state)
     if state.demo_lock.locked():
         raise HTTPException(status_code=409, detail="A demo beat is still running; wait for it to finish.")
     async with state.demo_lock:
@@ -390,6 +407,7 @@ async def demo_start(request: Request) -> dict[str, Any]:
 async def demo_next(request: Request) -> dict[str, Any]:
     """Play the next demo beat."""
     state = _state(request)
+    _require_simulator(state)
     if state.demo.position < 0:
         raise HTTPException(status_code=409, detail="Start the demo first with /demo/start")
     if state.demo_lock.locked():

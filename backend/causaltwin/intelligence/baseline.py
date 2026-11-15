@@ -196,7 +196,22 @@ class BaselineModel:
 
 
 def _best_f1_threshold(labels: np.ndarray, probabilities: np.ndarray) -> float:
-    """Decision threshold with the best F1 on the training data (fair to the baseline)."""
+    """Decision threshold with the best F1 on the training data (fair to the baseline).
+
+    The F1 score of every candidate threshold is computed at once from the sorted
+    probabilities: the same candidates and the same F1 = 2TP / (2TP + FP + FN) as calling
+    scikit-learn's f1_score per threshold, but fast on large data.
+    """
     candidates = np.unique(np.quantile(probabilities, np.linspace(0.5, 0.999, 200)))
-    scores = [f1_score(labels, probabilities >= threshold, zero_division=0) for threshold in candidates]
+    order = np.argsort(probabilities, kind="stable")
+    sorted_probabilities = probabilities[order]
+    positives_below = np.concatenate([[0], np.cumsum(labels[order])])  # positives among the k lowest
+    total_positives = int(positives_below[-1])
+    first_predicted = np.searchsorted(sorted_probabilities, candidates, side="left")  # first p >= threshold
+    predicted_positive = probabilities.size - first_predicted
+    true_positive = total_positives - positives_below[first_predicted]
+    false_positive = predicted_positive - true_positive
+    false_negative = total_positives - true_positive
+    denominator = 2 * true_positive + false_positive + false_negative
+    scores = np.divide(2.0 * true_positive, denominator, out=np.zeros(candidates.size), where=denominator > 0)
     return float(candidates[int(np.argmax(scores))])

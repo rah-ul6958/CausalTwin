@@ -28,6 +28,7 @@ REPOSITORY_DIR = BACKEND_DIR.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
 from causaltwin.config import (  # noqa: E402
+    AI4I_RESULTS_PATH,
     BENCHMARK_RESULTS_PATH,
     DATA_DIR,
     DRIFT_REDISCOVERY_WINDOW,
@@ -37,6 +38,7 @@ from causaltwin.config import (  # noqa: E402
 )
 
 TIMINGS_PATH = DATA_DIR / "timings.json"
+LOAD_TEST_PATH = DATA_DIR / "load_test.json"
 TARGET_FILES = [
     REPOSITORY_DIR / "README.md",
     REPOSITORY_DIR / "docs" / "SLIDES_OUTLINE.md",
@@ -175,6 +177,25 @@ def benchmark_block(results: dict[str, dict[str, Any]]) -> str:
         )
     blamed = ", ".join(f"{name} {count}" for name, count in sorted(bl["blamed"].items(), key=lambda item: -item[1]))
     lines += ["", f"What the baseline blamed (top SHAP feature): {blamed}."]
+    calibration = benchmark.get("calibration") or {}
+    if calibration:
+        lines += [
+            "",
+            "Calibration: the twin's predicted risk against the simulator's true risk in the same cases.",
+            "",
+            "| Twin prediction | Mean predicted | Mean true | Mean absolute error | Truth inside the 90% interval "
+            "| Correlation |",
+            "|---|---|---|---|---|---|",
+        ]
+        for key, label in (("no_action", "Risk with no action"), ("after_action", "Risk after its own action")):
+            row = calibration.get(key) or {}
+            if row:
+                lines.append(
+                    f"| {label} | {_percent(row['mean_predicted'], 1)} | {_percent(row['mean_true'], 1)} | "
+                    f"{row['mean_absolute_error'] * 100:.1f} points | {_percent(row['interval_coverage'])} | "
+                    f"{row['correlation']:.2f} |"
+                )
+        lines.append("")
     lines.append(
         f"Settings: {settings['situations_per_scenario']} situations per scenario, {settings['seeds_per_situation']} "
         f"seeds each, {settings['horizon_steps']}-step horizon; benchmark run took "
@@ -290,6 +311,71 @@ def timings_block(results: dict[str, dict[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def ai4i_block(results: dict[str, dict[str, Any]]) -> str:
+    """AI4I 2020: recommendations judged by the dataset's documented failure rules."""
+    ai4i = results["ai4i"]
+    summary = ai4i["summary"]
+    total = ai4i["n_scored"]
+    names = {"HDF": "Heat dissipation", "PWF": "Power", "OSF": "Overstrain", "TWF": "Tool wear"}
+
+    def share(method: str) -> str:
+        rate = summary[method]["success_rate"]
+        return f"{_count(rate, total)} / {total} ({_percent(rate)})"
+
+    lines = [
+        "| Failed rows whose failure the action removes | CausalTwin | XGBoost + SHAP |",
+        "|---|---|---|",
+        f"| All scored rows | **{share('causaltwin')}** | **{share('baseline')}** |",
+    ]
+    for mode, name in names.items():
+        ours, theirs = summary["causaltwin"][mode], summary["baseline"][mode]
+        if ours["n"]:
+            lines.append(
+                f"| {name} failures ({ours['n']} rows) | {_percent(ours['success_rate'])} | "
+                f"{_percent(theirs['success_rate'])} |"
+            )
+    ours_cost, theirs_cost = summary["causaltwin"]["mean_cost"], summary["baseline"]["mean_cost"]
+    lines.append(f"| Mean cost (illustrative) | {ours_cost:.1f} | {theirs_cost:.1f} |")
+    failure = ai4i["failure_model"]
+    blamed = ", ".join(f"{name} {count}" for name, count in ai4i["baseline_blamed"].items())
+    lines += [
+        "",
+        f"{ai4i['n_rows']:,} rows, {ai4i['n_failures']} failures; {total} scored ({ai4i['n_random_only']} failures "
+        "without a preventable mode are not scored).",
+        f"Discovered failure causes: {', '.join(ai4i['discovered_failure_causes'])}. CausalTwin's failure model: "
+        f"`{failure['equation']}` (held-out AUC {failure['auc_holdout']:.3f}). Baseline XGBoost held-out AUC "
+        f"{ai4i['baseline_auc']:.3f}; it blamed {blamed}.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def load_block(results: dict[str, dict[str, Any]]) -> str:
+    """Many simultaneous viewers against one backend process."""
+    load = results["load"]
+    lines = [
+        f"{load['viewers']} simulated viewers for {load['seconds']:.0f} s (live stream open, status polled every 3 s, "
+        "occasional what-ifs and recommendations), against one backend process on the development laptop:",
+        "",
+        "| Request | Count | Median | 95th percentile | Outcomes |",
+        "|---|---|---|---|---|",
+    ]
+    for name, row in load["requests"].items():
+        outcomes = ", ".join(f"{status}: {count}" for status, count in sorted(row["statuses"].items()))
+        lines.append(
+            f"| {name} | {row['count']} | {_milliseconds(row['median_ms'])} | {_milliseconds(row['p95_ms'])} | "
+            f"{outcomes} |"
+        )
+    stream, loop = load["websocket"], load["live_loop"]
+    lines += [
+        "",
+        f"503 means \"busy, retry\": at most two heavy computations run at once by design. Live stream: "
+        f"{stream['messages_per_viewer_per_second']} messages per viewer per second, {stream['failed_connections']} "
+        f"failed connections. The live simulation ran at {loop['steps_per_second']} steps per second against a "
+        f"target of {loop['target_steps_per_second']:g}: under this load the CPU is shared with the heavy requests.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def _milliseconds(value: float) -> str:
     """1234.5 -> "1.23 s", 45.6 -> "46 ms"."""
     return f"{value / 1000:.2f} s" if value >= 1000 else f"{value:.0f} ms"
@@ -303,6 +389,8 @@ BLOCKS: dict[str, Callable[[dict[str, dict[str, Any]]], str]] = {
     "intervention": intervention_block,
     "drift": drift_block,
     "timings": timings_block,
+    "ai4i": ai4i_block,
+    "load": load_block,
 }
 
 
@@ -316,6 +404,8 @@ def render_all() -> dict[str, str]:
         "drift": _load(DRIFT_RESULTS_PATH),
         "validation": _load(VALIDATION_RESULTS_PATH),
         "timings": _load(TIMINGS_PATH),
+        "ai4i": _load(AI4I_RESULTS_PATH),
+        "load": _load(LOAD_TEST_PATH),
     }
     return {name: render(results) for name, render in BLOCKS.items()}
 

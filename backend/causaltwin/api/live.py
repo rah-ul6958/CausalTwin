@@ -8,8 +8,10 @@ separate "validation" field, clearly labelled as ground truth: the twin never us
 
 Thread safety: the background loop, the demo and API requests run in different threads,
 so every change to the simulator, buffer or engine happens while holding `LiveLoop.lock`
-(a re-entrant lock). Long computations that read the engine hold it too, so a drift
-rewiring can never happen half way through a recommendation.
+(a re-entrant lock). Long read-only computations (what-if, root cause, recommendations) take
+a snapshot under the lock and then run without it, so the live simulation keeps its pace: a
+drift rewiring replaces the engine's model and graph objects instead of editing them, so a
+shallow copy of the engine stays consistent.
 """
 
 import asyncio
@@ -17,6 +19,7 @@ import copy
 import threading
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -42,7 +45,9 @@ from causaltwin.config import (
     VARIABLE_INFO,
     WHATIF_HORIZON,
 )
+from causaltwin.connectors.base import DataSource, SourceInfo
 from causaltwin.engine.schemas import RiskEstimate, RootCauseResult
+from causaltwin.engine.twin import CausalTwinEngine
 from causaltwin.intelligence.drift import DriftManager, RollingBuffer, SimulatorStepper, row_is_usable
 from causaltwin.intelligence.optimizer import recommend
 from causaltwin.intelligence.schemas import BaselineAction, DriftAlert, Recommendation
@@ -66,6 +71,7 @@ DEMO_PUSH_SETTINGS = {
     "lube_rate": 0.75,
 }
 DEMO_FAULT = "coolant_filter_clog"
+DEMO_STEPS_AFTER_APPLY = 10  # beat "apply" runs this long; beat "risk drops" runs to the end of the horizon
 
 
 def _timestamp(step: int) -> str:
@@ -75,18 +81,26 @@ def _timestamp(step: int) -> str:
     return str(pd.Timestamp(SIMULATION_START_TIME) + pd.Timedelta(seconds=step * SECONDS_PER_STEP))
 
 
-class LiveLoop:
-    """Owns the live simulator, its data buffer, the live engine copy, and the drift manager."""
+class SimulatorRequiredError(ValueError):
+    """An action that only makes sense with the built-in simulator (the live data is real)."""
 
-    def __init__(self, models: TrainedModels, hub: StreamHub) -> None:
-        """Create the loop (paused) on the normal scenario."""
+
+class LiveLoop:
+    """Owns the live data source (the simulator by default), its buffer, the engine copy and drift."""
+
+    def __init__(
+        self, models: TrainedModels, hub: StreamHub, source_factory: Callable[[], DataSource] | None = None
+    ) -> None:
+        """Create the loop (paused). Without a source factory the live data comes from the simulator."""
         self.models = models
         self.hub = hub
+        self.source_factory = source_factory
         self.running = False
         self.steps_per_second = LIVE_STEPS_PER_SECOND
         self.task: asyncio.Task[None] | None = None
         self.run_id = 0  # increases on every reset, so clients can tell runs apart
         self.lock = threading.RLock()  # guards the simulator, buffer and engine (see module docstring)
+        self.baseline_lock = threading.Lock()  # the baseline's SHAP explainer, used one call at a time
         self.loop_errors = 0  # steps of the background loop that failed (it pauses and reports each one)
         self.reset(LIVE_SEED, "normal")
 
@@ -104,8 +118,13 @@ class LiveLoop:
         self.seed = seed
         self.scenario = scenario
         self.engine = copy.deepcopy(self.models.engine)
-        self.simulator: MachineSimulator = build_simulator(scenario, n_steps=LIVE_PROFILE_STEPS, seed=seed)
-        self.stepper = SimulatorStepper(self.simulator)
+        self.simulator: MachineSimulator | None = None
+        self.stepper: DataSource
+        if self.source_factory is None:
+            self.simulator = build_simulator(scenario, n_steps=LIVE_PROFILE_STEPS, seed=seed)
+            self.stepper = SimulatorStepper(self.simulator)
+        else:
+            self.stepper = self.source_factory()
         self.buffer = RollingBuffer()
         self.drift = DriftManager(self.engine, self.buffer)
         self.latest_risk: RiskEstimate | None = None
@@ -133,13 +152,28 @@ class LiveLoop:
         ]
         self._last_frame_time = 0.0
         self._last_flush = time.time()
-        for _ in range(WARM_UP_STEPS):
-            self._step(publish=False, estimate_risk=False)
+        if self.simulator is not None:  # a real source starts from its first live reading instead
+            for _ in range(WARM_UP_STEPS):
+                self._step(publish=False, estimate_risk=False)
 
     @property
     def step_count(self) -> int:
-        """Current simulation step."""
-        return self.simulator.current_step
+        """Current step of the live data source."""
+        return self.stepper.current_step
+
+    @property
+    def source_info(self) -> SourceInfo:
+        """What the live data is (simulator, recorded log or real machine)."""
+        return self.stepper.describe()
+
+    def _sim(self) -> MachineSimulator:
+        """The simulator, or a clear error when the live data comes from elsewhere."""
+        if self.simulator is None:
+            raise SimulatorRequiredError(
+                f"This needs the built-in simulator, but the live data comes from: {self.source_info.description}. "
+                "With real data, recommendations are advisory: apply them on the machine."
+            )
+        return self.simulator
 
     def history(self, rows: int | None = None) -> Any:
         """Recent rows of the model variables as a dataframe."""
@@ -175,7 +209,7 @@ class LiveLoop:
             self.events.append(event_record)
             if publish:
                 self.hub.broadcast("event", event_record)
-        if estimate_truth and (step % LIVE_TRUTH_EVERY == 0 or force_frame):
+        if self.simulator is not None and estimate_truth and (step % LIVE_TRUTH_EVERY == 0 or force_frame):
             self.latest_true_risk = self._true_risk()
             self.latest_true_risk_step = step
         if estimate_risk:
@@ -197,8 +231,8 @@ class LiveLoop:
                         "values": {name: row[name] for name in MEASURED_VARIABLES},
                         "machine_running": row["machine_running"],
                         "failure": row["failure"],
-                        "active_faults": sorted(self.simulator.active_faults),
-                        "interventions": dict(self.simulator.interventions),
+                        "active_faults": [] if self.simulator is None else sorted(self.simulator.active_faults),
+                        "interventions": {} if self.simulator is None else dict(self.simulator.interventions),
                         "simulated": True,
                     },
                 )
@@ -233,7 +267,7 @@ class LiveLoop:
                 "root_cause": None if self.latest_root_cause is None else self.latest_root_cause.model_dump(),
                 "validation": {
                     "label": GROUND_TRUTH_LABEL,
-                    "true_hazard_per_step": self.simulator.get_true_hazard(),
+                    "true_hazard_per_step": None if self.simulator is None else self.simulator.get_true_hazard(),
                     "true_risk_within_horizon": self.latest_true_risk,
                     "true_risk_step": self.latest_true_risk_step,
                 },
@@ -256,7 +290,7 @@ class LiveLoop:
 
     def _true_risk(self) -> float | None:
         """Ground-truth risk within the horizon from forks of the real simulator (validation only)."""
-        if not self.simulator.get_state()["machine_running"]:
+        if self.simulator is None or not self.simulator.get_state()["machine_running"]:
             return None
         risks = []
         for seed in range(LIVE_TRUTH_SEEDS):
@@ -342,22 +376,37 @@ class LiveLoop:
     # ------------------------------------------------------------------
     # Actions
     # ------------------------------------------------------------------
-    def compute_recommendation(self, target_risk: float = OPTIMIZER_TARGET_RISK) -> Recommendation:
-        """Run the optimizer on the current state and remember the result."""
+    def snapshot(self) -> tuple[CausalTwinEngine, Any]:
+        """A consistent (engine, history) pair for a computation that runs outside the lock."""
         with self.lock:
-            return self._compute_recommendation(target_risk)
+            return copy.copy(self.engine), self.history()
 
-    def _compute_recommendation(self, target_risk: float) -> Recommendation:
-        """Body of compute_recommendation (the caller holds the lock)."""
-        model = self.engine._require_fitted()
-        history = self.history(max(model.max_lag, 1) + 1).to_numpy(dtype=float)
-        recommendation = recommend(self.engine, history, target_risk=target_risk)
-        self.latest_recommendation = recommendation
-        self.drift.current_recommendation = recommendation
-        latest = self.buffer.dataframe(1).iloc[-1]
+    def compute_recommendation(self, target_risk: float = OPTIMIZER_TARGET_RISK) -> Recommendation:
+        """Run the optimizer on the current state and remember the result (and the baseline's action)."""
+        return self.recommend_now(target_risk)[0]
+
+    def recommend_now(self, target_risk: float = OPTIMIZER_TARGET_RISK) -> tuple[Recommendation, BaselineAction]:
+        """The optimizer and the baseline on a snapshot; the lock is held only to copy and to store.
+
+        If the simulation was reset meanwhile, the result is returned but not stored (it belongs to
+        the previous run).
+        """
+        with self.lock:
+            engine = copy.copy(self.engine)
+            model = engine._require_fitted()
+            history = self.history(max(model.max_lag, 1) + 1).to_numpy(dtype=float)
+            latest = self.buffer.dataframe(1).iloc[-1]
+            run_id = self.run_id
+        recommendation = recommend(engine, history, target_risk=target_risk)
         magnitude = max((abs(c.change_pct) for c in recommendation.changes), default=20.0)
-        self.latest_baseline_action = self.models.baseline.recommend(latest, magnitude)
-        return recommendation
+        with self.baseline_lock:  # the SHAP explainer is shared; one explanation at a time
+            baseline_action = self.models.baseline.recommend(latest, magnitude)
+        with self.lock:
+            if self.run_id == run_id:
+                self.latest_recommendation = recommendation
+                self.drift.current_recommendation = recommendation
+                self.latest_baseline_action = baseline_action
+        return recommendation, baseline_action
 
     def apply_recommendation(self) -> dict[str, Any]:
         """Apply the latest recommendation to the live simulator."""
@@ -369,11 +418,12 @@ class LiveLoop:
         recommendation = self.latest_recommendation
         if recommendation is None:
             raise ValueError("No recommendation to apply; call /recommend first")
+        simulator = self._sim()
         with timed_step("apply", "Applied recommendation to the live simulator"):
             for change in recommendation.changes:
-                self.simulator.intervene(change.lever, change.to_value)
+                simulator.intervene(change.lever, change.to_value)
             if recommendation.tool_change:
-                self.simulator.replace_tool()
+                simulator.replace_tool()
         applied = {
             "step": self.step_count,
             "changes": [c.model_dump() for c in recommendation.changes],
@@ -389,22 +439,23 @@ class LiveLoop:
     def switch_scenario(self, scenario: str) -> None:
         """Switch the live simulator's scenario without resetting the machine."""
         with self.lock:
-            switch_scenario(self.simulator, scenario, n_steps=LIVE_PROFILE_STEPS)
+            switch_scenario(self._sim(), scenario, n_steps=LIVE_PROFILE_STEPS)
             self.scenario = scenario
 
     def set_fault(self, fault: str, active: bool) -> None:
         """Inject (active=True) or clear a structural fault."""
         with self.lock:
             if active:
-                self.simulator.inject_fault(fault)
+                self._sim().inject_fault(fault)
             else:
-                self.simulator.clear_fault(fault)
+                self._sim().clear_fault(fault)
 
     def release_all(self) -> None:
         """Hand every lever back to the simulated operator."""
         with self.lock:
-            for variable in list(self.simulator.interventions):
-                self.simulator.release(variable)
+            simulator = self._sim()
+            for variable in list(simulator.interventions):
+                simulator.release(variable)
 
 
 @dataclass
@@ -498,7 +549,7 @@ class DemoScript:
     def _push(self) -> None:
         """The operator pushes load and speed and cuts cooling and lubrication, until risk is high."""
         for lever, value in DEMO_PUSH_SETTINGS.items():
-            self.loop.simulator.intervene(lever, value)
+            self.loop._sim().intervene(lever, value)
         for _ in range(40):
             self.loop.advance(10, fast=True)
             risk = self.loop.latest_risk
@@ -507,7 +558,7 @@ class DemoScript:
 
     def _risk_rises(self) -> dict[str, Any]:
         """A new aggressive job starts with a fresh tool; the heat builds up."""
-        self.loop.simulator.replace_tool()
+        self.loop._sim().replace_tool()
         self._push()
         settings = ", ".join(
             f"{name.replace('_', ' ')} {format_value(value)} {VARIABLE_INFO[name]['unit']}"
@@ -534,22 +585,37 @@ class DemoScript:
         }
 
     def _apply(self) -> dict[str, Any]:
-        """Apply the recommendation."""
+        """Apply the recommendation and run until its effect has started."""
         applied = self.loop.apply_recommendation()
-        self.loop.advance(30, fast=True)
+        self.loop.advance(DEMO_STEPS_AFTER_APPLY, fast=True)
         return {"narration": "The recommendation is applied to the machine.", "applied": applied}
 
     def _risk_drops(self) -> dict[str, Any]:
-        """Let the effect play out."""
-        self.loop.advance(60, fast=True)
-        return {"narration": f"After the change, predicted failure risk is {self._risk_text()}."}
+        """Run to the end of the prediction horizon and compare the risk now with what was predicted.
+
+        The recommendation promises a risk for the next WHATIF_HORIZON steps, so this beat checks
+        it exactly then. (Later, a fresh tool wears and risk creeps up again; the live risk
+        alert catches that, which the demo does not show.)
+        """
+        self.loop.advance(WHATIF_HORIZON - DEMO_STEPS_AFTER_APPLY, fast=True)
+        recommendation = self.loop.latest_recommendation
+        predicted = (
+            ""
+            if recommendation is None
+            else f" (predicted when recommending: {recommendation.risk_after.probability:.1%})"
+        )
+        minutes = WHATIF_HORIZON * SECONDS_PER_STEP / 60
+        return {
+            "narration": f"{minutes:g} minutes after the change, predicted failure risk is "
+            f"{self._risk_text()}{predicted}."
+        }
 
     def _fault_injected(self) -> dict[str, Any]:
         """The job ends (operator back in control), then the coolant filter clogs."""
-        for variable in list(self.loop.simulator.interventions):
-            self.loop.simulator.release(variable)
+        for variable in list(self.loop._sim().interventions):
+            self.loop._sim().release(variable)
         self.loop.advance(50, fast=True)
-        self.loop.simulator.inject_fault(DEMO_FAULT)
+        self.loop._sim().inject_fault(DEMO_FAULT)
         for _ in range(100):
             self.loop.advance(1, fast=True)
             if self.loop.drift.state == "collecting":
@@ -586,7 +652,7 @@ class DemoScript:
             )
             or []
         )
-        self.loop.simulator.replace_tool()
+        self.loop._sim().replace_tool()
         self._push()
         recommendation = self.loop.compute_recommendation()
         previous = (" Earlier advice is no longer valid: " + " ".join(invalid)) if invalid else ""

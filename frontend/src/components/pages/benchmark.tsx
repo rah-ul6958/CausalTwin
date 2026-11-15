@@ -124,7 +124,7 @@ function ComparisonChart({ results }: { results: BenchmarkResults }) {
 
 function CaseTable({ results }: { results: BenchmarkResults }) {
   return (
-    <div className="max-h-[420px] overflow-auto">
+    <div className="max-h-[420px] overflow-auto" tabIndex={0} role="region" aria-label="Every benchmark case, scrollable">
       <table className="w-full text-xs">
         <thead className="sticky top-0 bg-[#0b1222] text-left text-[10px] uppercase tracking-wider text-muted-foreground">
           <tr>
@@ -348,18 +348,20 @@ export function Benchmark() {
             {!baseline ? (
               <LoadingOrError state={config} rows={3} />
             ) : (
-              <dl className="grid grid-cols-2 gap-2 text-xs">
-                {(["auc", "precision", "recall", "f1"] as const).map((name) => (
-                  <div key={name} className="rounded-lg border border-line p-2">
-                    <dt className="uppercase tracking-wider text-muted-foreground">{name}</dt>
-                    <dd className="tabular text-xl text-slate-100">{formatNumber(Number(baseline[name]), 3)}</dd>
-                  </div>
-                ))}
-                <p className="col-span-2 text-muted-foreground">
+              <div className="space-y-2 text-xs">
+                <dl className="grid grid-cols-2 gap-2">
+                  {(["auc", "precision", "recall", "f1"] as const).map((name) => (
+                    <div key={name} className="rounded-lg border border-line p-2">
+                      <dt className="uppercase tracking-wider text-muted-foreground">{name}</dt>
+                      <dd className="tabular text-xl text-slate-100">{formatNumber(Number(baseline[name]), 3)}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="text-muted-foreground">
                   Target: {String(baseline.target)}; positive rate in the test period {formatPercent(Number(baseline.positive_rate_test))}; trained in{" "}
                   {formatNumber(Number(baseline.training_seconds), 1)} s.
                 </p>
-              </dl>
+              </div>
             )}
           </Panel>
           <Panel index={8} title="Methodology" className="col-span-full">

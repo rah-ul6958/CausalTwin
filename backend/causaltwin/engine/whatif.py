@@ -13,13 +13,17 @@ Choices (shown to users in the "How was this computed?" drawer):
   so rare jumps such as tool chipping are reproduced.
 - The baseline run uses exactly the same noise draws, so the reported change is caused
   by the intervention alone.
-- Parameter uncertainty is not included: the interval reflects process noise only.
+- The failure model's coefficients are uncertain (they were estimated from a limited number
+  of failures), so every rollout draws its own coefficients from their estimated sampling
+  distribution. The risk and its interval include this; uncertainty in the linear
+  equations' coefficients is not included.
 """
 
 import time
 
 import numpy as np
 
+from causaltwin.config import WHATIF_FAILURE_PARAMETER_UNCERTAINTY, WHATIF_PARAMETER_STREAM
 from causaltwin.engine.causal_model import CausalModel
 from causaltwin.engine.schemas import Intervention, RiskEstimate, VariableForecast, WhatIfResult
 from causaltwin.utils.timing import timed_step
@@ -33,7 +37,8 @@ ASSUMPTIONS = [
     "Exogenous variables that are not intervened on stay at their last observed value.",
     "Noise is resampled from each equation's fitted residuals; the baseline uses the same draws.",
     "Linear equations and a logistic failure model; no hidden confounders assumed.",
-    "Interval reflects process noise only, not uncertainty in the fitted coefficients.",
+    "Risk and interval include process noise and the failure model's coefficient uncertainty, not the "
+    "uncertainty of the linear equations' coefficients.",
     "No tool changes or maintenance are simulated inside the horizon.",
 ]
 
@@ -110,6 +115,24 @@ def _draw_noise(
     return noise_draws, exogenous_draws
 
 
+def _failure_parameters(model: CausalModel, seed: int, n_rollouts: int) -> np.ndarray | None:
+    """Failure-model (intercept, coefficients...) for each rollout, shape (rollouts, 1 + terms).
+
+    Drawn from a normal distribution around the fitted values with the fit's covariance,
+    from a random stream of its own, so the process-noise draws stay exactly the same.
+    Without a usable covariance every rollout uses the fitted values.
+    """
+    failure = model.failure
+    if failure is None:
+        return None
+    point = np.concatenate([[failure.intercept], failure.coefficients])
+    covariance = failure.covariance
+    if not WHATIF_FAILURE_PARAMETER_UNCERTAINTY or covariance is None or covariance.shape != (point.size, point.size):
+        return np.tile(point, (n_rollouts, 1))
+    rng = np.random.default_rng([seed, WHATIF_PARAMETER_STREAM])
+    return rng.multivariate_normal(point, covariance, size=n_rollouts, method="eigh")
+
+
 def _simulate(
     model: CausalModel,
     history: np.ndarray,
@@ -118,8 +141,13 @@ def _simulate(
     noise_draws: dict[str, np.ndarray],
     noise_scale: dict[str, float],
     exogenous_draws: dict[str, np.ndarray] | None = None,
+    failure_parameters: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray | None]:
-    """Roll the model forward. Returns paths (rollouts, history + horizon, variables) and hazards."""
+    """Roll the model forward. Returns paths (rollouts, history + horizon, variables) and hazards.
+
+    `failure_parameters` (rollouts, 1 + terms) gives each rollout its own failure-model
+    intercept and coefficients; without it the fitted values are used.
+    """
     n_rollouts = next(iter(noise_draws.values())).shape[0] if noise_draws else 1
     n_history, n_variables = history.shape
     paths = np.empty((n_rollouts, n_history + horizon, n_variables))
@@ -151,9 +179,14 @@ def _simulate(
             value += noise_scale.get(name, 1.0) * equation.residuals[noise_draws[name][:, step]]
             paths[:, row, position] = value
         if hazards is not None and model.failure is not None:
-            logit = np.full(n_rollouts, model.failure.intercept)
-            for (cause, lag), coefficient in zip(model.failure.terms, model.failure.coefficients, strict=True):
-                logit += coefficient * paths[:, row - lag, index[cause]]
+            parameters = (
+                failure_parameters
+                if failure_parameters is not None
+                else np.tile(np.concatenate([[model.failure.intercept], model.failure.coefficients]), (n_rollouts, 1))
+            )
+            logit = parameters[:, 0].copy()
+            for term_position, (cause, lag) in enumerate(model.failure.terms):
+                logit += parameters[:, 1 + term_position] * paths[:, row - lag, index[cause]]
             hazards[:, step] = 1.0 / (1.0 + np.exp(-np.clip(logit, -50, 50)))
     return paths, hazards
 
@@ -201,8 +234,11 @@ def run_what_if(
         noise_draws, exogenous_draws = _draw_noise(model, rng, n_rollouts, horizon, exogenous_mode)
         forced = _forcing(model, interventions, history[-1])
         scale = noise_scale or {}
-        paths, hazards = _simulate(model, history, forced, horizon, noise_draws, scale, exogenous_draws)
-        baseline_paths, baseline_hazards = _simulate(model, history, {}, horizon, noise_draws, scale, exogenous_draws)
+        parameters = _failure_parameters(model, seed, n_rollouts)
+        paths, hazards = _simulate(model, history, forced, horizon, noise_draws, scale, exogenous_draws, parameters)
+        baseline_paths, baseline_hazards = _simulate(
+            model, history, {}, horizon, noise_draws, scale, exogenous_draws, parameters
+        )
 
         future = paths[:, needed_rows:, :]
         baseline_future = baseline_paths[:, needed_rows:, :]
@@ -269,6 +305,9 @@ def batch_failure_risk(
     index = {name: position for position, name in enumerate(model.variables)}
     rng = np.random.default_rng(seed)
     noise_draws, exogenous_draws = _draw_noise(model, rng, n_rollouts, horizon, exogenous_mode)
+    parameters = _failure_parameters(model, seed, n_rollouts)
+    assert parameters is not None
+    tiled_parameters = np.tile(parameters, (n_candidates, 1))  # same draws for every candidate
     walk_steps = {
         name: model.exogenous_steps[name][draws].astype(STATE_DTYPE) for name, draws in exogenous_draws.items()
     }  # (rollouts, horizon), shared by every candidate
@@ -330,10 +369,10 @@ def batch_failure_risk(
             value += np.tile(noise_values[name][:, step], n_candidates)
             current[position] = value
             apply_forcing(current, position, step)
-        logit = np.full(n_rows, model.failure.intercept)
-        for (cause, lag), coefficient in zip(model.failure.terms, model.failure.coefficients, strict=True):
+        logit = tiled_parameters[:, 0].copy()
+        for term_position, (cause, lag) in enumerate(model.failure.terms):
             source = current if lag == 0 else recent[-lag]
-            logit += coefficient * source[index[cause]]
+            logit += tiled_parameters[:, 1 + term_position] * source[index[cause]]
         survival *= 1.0 - 1.0 / (1.0 + np.exp(-np.clip(logit, -50, 50)))
         recent.append(current)
         if len(recent) > needed_rows:

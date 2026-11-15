@@ -125,6 +125,9 @@ class BenchmarkMethodResult(BaseModel):
     risk_reduction: float
     failure_rate_after: float
     success: bool
+    # CausalTwin only: what the twin predicted for its own action (calibration check).
+    predicted_risk_after: float | None = None
+    predicted_risk_after_interval: tuple[float, float] | None = None
 
 
 class BenchmarkCase(BaseModel):
@@ -136,6 +139,9 @@ class BenchmarkCase(BaseModel):
     step: int
     true_risk_no_action: float
     failure_rate_no_action: float
+    # The twin's own estimate of the no-action risk and its 90% interval (calibration check).
+    twin_risk_no_action: float | None = None
+    twin_risk_no_action_interval: tuple[float, float] | None = None
     causaltwin: BenchmarkMethodResult
     baseline: BenchmarkMethodResult
     winner: Literal["causaltwin", "baseline", "tie"]

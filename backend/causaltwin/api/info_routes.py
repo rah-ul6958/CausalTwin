@@ -73,6 +73,7 @@ def configuration(request: Request) -> dict[str, Any]:
     }
     return {
         "illustrative_note": ILLUSTRATIVE_NOTE,
+        "data_source": state.live.source_info.as_dict(),
         "seconds_per_step": SECONDS_PER_STEP,
         "engine": engine.settings.model_dump(),
         "levers": levers,

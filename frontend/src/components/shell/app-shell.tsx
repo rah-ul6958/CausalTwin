@@ -21,11 +21,12 @@ import { useState, type ReactNode } from "react";
 
 import { DemoPanel } from "@/components/shell/demo-panel";
 import { LiveConnection } from "@/components/shell/live-connection";
-import { SimulatedBadge } from "@/components/transparency/transparency";
+import { DataSourceBadge } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { humanize } from "@/lib/format";
+import { useDataSource } from "@/lib/data-source";
 import { useLiveStore, type ConnectionState } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +84,7 @@ function TopBar({ onDemo }: { onDemo: () => void }) {
   const status = useLiveStore((state) => state.status);
   const setStatus = useLiveStore((state) => state.setStatus);
   const style = CONNECTION_STYLE[connection];
+  const source = useDataSource();
 
   const toggleRunning = async () => {
     if (!status) return;
@@ -94,14 +96,20 @@ function TopBar({ onDemo }: { onDemo: () => void }) {
     <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b border-line bg-[#05070d]/70 px-6 backdrop-blur-xl">
       <div className="flex items-center gap-3">
         <span className="font-heading text-base font-semibold tracking-tight text-slate-100">CausalTwin</span>
-        <SimulatedBadge />
+        <DataSourceBadge />
       </div>
       <div className="flex items-center gap-3 text-xs">
         {status && (
           <span className="hidden items-center gap-3 text-muted-foreground md:flex">
-            <span>
-              Scenario <span className="text-slate-200">{humanize(status.scenario)}</span>
-            </span>
+            {source.has_simulator ? (
+              <span>
+                Scenario <span className="text-slate-200">{humanize(status.scenario)}</span>
+              </span>
+            ) : (
+              <span className="max-w-56 truncate text-cyan-200" title={source.description}>
+                {source.description}
+              </span>
+            )}
             <span>
               Step <span className="tabular text-slate-200" data-testid="sim-step">{status.step}</span>
             </span>
@@ -120,7 +128,14 @@ function TopBar({ onDemo }: { onDemo: () => void }) {
           {status?.running ? <Pause aria-hidden /> : <Play aria-hidden />}
           {status?.running ? "Pause" : "Resume"}
         </Button>
-        <Button size="sm" variant="outline" onClick={onDemo} className="border-whatif/40 text-violet-200">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onDemo}
+          disabled={!source.has_simulator}
+          title={source.has_simulator ? undefined : "The guided demo runs on the simulator; the live data is real."}
+          className="border-whatif/40 text-violet-200"
+        >
           <Clapperboard aria-hidden /> Guided demo
         </Button>
         <span className="flex items-center gap-2 rounded-full border border-line px-2.5 py-1" role="status" aria-live="polite">

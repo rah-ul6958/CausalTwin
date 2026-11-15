@@ -248,6 +248,16 @@ export interface RecommendResponse {
   provenance: Provenance;
 }
 
+/** Where the live data comes from (GET /health, /metrics status, /config). */
+export interface DataSourceInfo {
+  kind: "simulator" | "replay" | "mtconnect" | string;
+  description: string;
+  /** Ground truth, fault injection, scenarios, the demo and Apply exist only with the simulator. */
+  has_simulator: boolean;
+  /** Whether the data itself is simulated (a replayed sample log still is). */
+  simulated: boolean;
+}
+
 export interface SimStatus {
   running: boolean;
   /** Increases on every server-side reset of the live simulation. */
@@ -258,6 +268,7 @@ export interface SimStatus {
   active_faults: string[];
   interventions: Record<string, number>;
   drift_state: string;
+  data_source?: DataSourceInfo;
   simulated?: boolean;
 }
 

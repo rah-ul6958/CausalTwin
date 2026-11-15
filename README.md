@@ -94,13 +94,16 @@ flowchart LR
    changes, setpoint changes) are aligned and quality-checked: gaps, flat lines, ranges.
 2. **Discover.** PCMCI (Runge et al., 2019, via `tigramite`) tests every candidate cause at lags of 1 to
    3 steps while conditioning on all other candidates, so links that only exist through a common
-   cause drop out. A logistic screen on the long failure history finds the direct causes of failure.
+   cause drop out. Rare jumps that a variable's causes cannot explain (such as tool chipping) are left
+   out of that variable's test, so they cannot hide its real causes. A logistic screen on the long
+   failure history finds the direct causes of failure.
    A moving-block bootstrap (20 resamples) gives every link a confidence value.
 3. **Fit.** Each variable gets a linear equation in its discovered causes; failure gets a logistic
    model. Accuracy is measured on held-out data and shown on model cards.
 4. **Simulate.** A what-if forces chosen variables to new values (Pearl's do-operator) and rolls the
    equations forward 200 times with resampled noise, with and without the change, using the same noise
-   for both. The result is the change in failure risk with an interval.
+   for both. Each rollout also draws its own failure-model coefficients from their estimated uncertainty.
+   The result is the change in failure risk with an interval.
 5. **Recommend.** The optimizer scores about 870 candidate changes (single levers, lever pairs, a tool
    change) in one batched pass, keeps those predicted to reach the risk target with a safety margin,
    re-checks the best five with fresh noise, and recommends the cheapest. Costs are illustrative units.
@@ -123,13 +126,13 @@ All results are on the simulator, judged by simulator ground truth.
 | Metric | CausalTwin | XGBoost + SHAP |
 |---|---|---|
 | Reached the 10% target (true risk) | **28 / 30 (93%)** | 1 / 30 (3%) |
-| Mean true risk after the action | 3.7% | 30.1% |
-| Mean risk reduction | 26.7 points | 0.3 points |
+| Mean true risk after the action | 3.8% | 30.1% |
+| Mean risk reduction | 26.6 points | 0.3 points |
 | Failure rate within 30 steps (simulated futures) | 0.0% | 23.8% |
 | Mean cost (illustrative units) | 6.6 | 2.5 |
 
 No action: mean true risk 30.4%. Head to head: CausalTwin better in 29, tied in 1, worse in 0 case(s).
-CausalTwin missed the target in 2 case(s): case 28 (tool_wear, true risk after 12.3%), case 29 (tool_wear, true risk after 11.2%).
+CausalTwin missed the target in 2 case(s): case 28 (tool_wear, true risk after 13.4%), case 29 (tool_wear, true risk after 11.2%).
 
 | Scenario | Cases | CausalTwin reached target | Baseline reached target |
 |---|---|---|---|
@@ -140,7 +143,15 @@ CausalTwin missed the target in 2 case(s): case 28 (tool_wear, true risk after 1
 | tool_wear | 6 | 67% | 0% |
 
 What the baseline blamed (top SHAP feature): vibration 22, ambient_temp 6, lube_rate 1, tool_wear 1.
-Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 40 s.
+
+Calibration: the twin's predicted risk against the simulator's true risk in the same cases.
+
+| Twin prediction | Mean predicted | Mean true | Mean absolute error | Truth inside the 90% interval | Correlation |
+|---|---|---|---|---|---|
+| Risk with no action | 30.8% | 30.4% | 4.1 points | 87% | 0.96 |
+| Risk after its own action | 3.5% | 3.8% | 1.1 points | 43% | 0.97 |
+
+Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 58 s.
 <!-- results:benchmark:end -->
 
 ### Causal graph recovery (against the simulator's true graph)
@@ -149,14 +160,14 @@ Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark ru
 | Metric | With the failure edges | Between sensors and levers only |
 |---|---|---|
 | True edges | 15 | 13 |
-| Edges found (correct) | 13 (13) | 11 (11) |
+| Edges found (correct) | 15 (15) | 13 (13) |
 | Precision | 1.00 | 1.00 |
-| Recall | 0.87 | 0.85 |
-| F1 | 0.93 | 0.92 |
+| Recall | 1.00 | 1.00 |
+| F1 | 1.00 | 1.00 |
 | Lag accuracy (correct edges) | 1.00 | 1.00 |
-| Structural Hamming distance | 2 | 2 |
+| Structural Hamming distance | 0 | 0 |
 
-Missed: load_pct->tool_wear (lag 1), spindle_speed->tool_wear (lag 1). Extra (false) edges: none.
+Missed: none. Extra (false) edges: none.
 Trap check: discovered failure causes bearing_temp, tool_wear; vibration is not a discovered cause (failure-screen p = 0.93) although its correlation with failure is +0.25; predicted risk change when vibration is halved: 0.000.
 <!-- results:graph:end -->
 
@@ -170,7 +181,7 @@ Trap check: discovered failure causes bearing_temp, tool_wear; vibration is not 
 | Bearing temperature: direction of change correct | 18 / 19 |
 | Bearing temperature: mean absolute error at the horizon end | 1.26 deg C (true changes average 2.93 deg C) |
 | Failure risk: direction of change correct | 9 / 9 |
-| Failure risk: mean absolute error | 0.59 points (true changes average 1.56 points) |
+| Failure risk: mean absolute error | 0.57 points (true changes average 1.56 points) |
 
 | Fitted equation | Held-out accuracy |
 |---|---|
@@ -207,24 +218,59 @@ Fault-free runs: 60,000 steps, 5 suspected alarms, 0 wrongly confirmed structura
 <!-- results:timings:start -->
 | Operation | Median | Slowest run | Budget | Within budget |
 |---|---|---|---|---|
-| Simulate 20,000 steps | 1.37 s | 1.39 s | 2.00 s | yes |
-| Causal discovery on one 3,000-step window | 2.02 s | 2.04 s | 3.00 s | yes |
-| Fit the causal model | 389 ms | 399 ms | 1.00 s | yes |
-| One what-if simulation (200 rollouts) | 39 ms | 45 ms | 200 ms | yes |
-| Recommendation search | 425 ms | 493 ms | 1.00 s | yes |
-| Baseline XGBoost training | 6.39 s | 6.87 s | 10.00 s | yes |
-| Full benchmark (30 cases) | 49.95 s | 49.95 s | 60.00 s | yes |
+| Simulate 20,000 steps | 1.51 s | 1.91 s | 2.00 s | yes |
+| Causal discovery on one 3,000-step window | 2.34 s | 3.06 s | 3.00 s | yes |
+| Fit the causal model | 424 ms | 450 ms | 1.00 s | yes |
+| One what-if simulation (200 rollouts) | 39 ms | 50 ms | 200 ms | yes |
+| Recommendation search | 488 ms | 560 ms | 1.00 s | yes |
+| Baseline XGBoost training | 1.81 s | 1.83 s | 10.00 s | yes |
+| Full benchmark (30 cases) | 56.96 s | 56.96 s | 60.00 s | yes |
 
 Measured 2026-11-15 on Windows (16 logical CPUs, Python 3.11.16) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
 <!-- results:timings:end -->
+
+### Third-party data: the AI4I 2020 dataset
+
+The AI4I 2020 Predictive Maintenance Dataset (UCI, CC BY 4.0) is synthetic data modelled on a real
+milling machine, published with the exact rules behind each failure mode; those rules reproduce its
+labels on every row, so they can judge recommendations. CausalTwin analysed it through the Bring Your
+Own Data path (tabular mode, with the physics features the documentation describes), recommended the
+smallest change for every failed row, and was compared with XGBoost + SHAP on the same rows.
+
+<!-- results:ai4i:start -->
+<!-- results:ai4i:end -->
+
+What this shows, honestly: causal discovery found exactly the documented mechanism (failure caused by
+the temperature difference, mechanical power and tool wear times torque, each built from the right
+inputs). But CausalTwin's failure model is linear in its causes, and these failure rules are
+thresholds: power must stay inside a window, and heat-dissipation failures need a speed above a limit.
+A linear model only knows "less power is safer", so its advice fails on low-power and heat-dissipation
+failures, where the tree-based baseline does better. A non-linear failure model is the next step
+(see Limitations).
+
+### Many simultaneous viewers
+
+<!-- results:load:start -->
+25 simulated viewers for 63 s (live stream open, status polled every 3 s, occasional what-ifs and recommendations), against one backend process on the development laptop:
+
+| Request | Count | Median | 95th percentile | Outcomes |
+|---|---|---|---|---|
+| GET /metrics | 476 | 31 ms | 271 ms | 200: 476 |
+| GET /recommend | 34 | 1.27 s | 1.59 s | 200: 30, 503: 4 |
+| POST /whatif | 36 | 75 ms | 284 ms | 200: 29, 503: 7 |
+
+503 means "busy, retry": at most two heavy computations run at once by design. Live stream: 8.4 messages per viewer per second, 0 failed connections. The live simulation ran at 3.11 steps per second against a target of 5: under this load the CPU is shared with the heavy requests.
+<!-- results:load:end -->
 
 Refresh these tables after re-running the experiments:
 
 ```bash
 cd backend
 python scripts/run_validation.py          # graph recovery, intervention accuracy, model cards
-python scripts/run_benchmark.py --drift   # benchmark and drift results
+python scripts/run_benchmark.py --drift   # benchmark, calibration and drift results
+python scripts/run_ai4i.py                # the AI4I 2020 check
 python scripts/measure_timings.py         # timings (stop the API server first)
+python scripts/load_test.py               # load test (against a running server)
 python scripts/update_readme_results.py   # rewrite the tables in README.md and docs/
 ```
 
@@ -235,18 +281,22 @@ python scripts/update_readme_results.py   # rewrite the tables in README.md and 
 - **No hidden confounders.** PCMCI assumes every common cause of two measured variables is itself
   measured (causal sufficiency). An unmeasured common cause can create a false link.
 - **Linear, lagged effects.** Equations are linear in their causes with lags of 1 to 3 steps; real
-  machines have non-linear effects and thresholds.
+  machines have non-linear effects and thresholds. The AI4I check above shows the cost: where failures
+  follow threshold rules, the linear failure model gives poor advice.
 - **Stable structure within a window.** Discovery assumes the structure does not change inside the
   analysed window; drift detection handles changes between windows, with a 600-step delay to rewire.
 - **What-if holds untouched levers constant.** If an operator changes them during the horizon, the
   prediction can be wrong; the Phase 2 report documents such a case.
-- **Intervals reflect process noise only**, not uncertainty in the fitted coefficients, so they are
-  narrower than the true uncertainty.
-- **Two true links are always missed** (load and spindle speed affecting tool wear; see the graph table),
-  so the twin cannot show that slower cutting slows wear.
-- **The twin under-predicts risk in some states**, for example the demo's hot afternoon, where its estimate
-  is clearly below the simulator's ground truth (the demo shows both side by side; the live ground truth
-  itself comes from only 4 simulator forks, so it is noisy too).
+- **Intervals include the failure model's coefficient uncertainty but not the linear equations'**, and
+  after an action they are too narrow: the benchmark's calibration table shows how often the true risk
+  falls inside them.
+- **Risk estimates are calibrated on average but not everywhere.** Across the benchmark cases the mean
+  predicted risk matches the true risk closely (calibration table), but in extreme states at the edge of
+  the training data, such as the demo's hot afternoon, the twin's estimate can be well below the ground
+  truth. The cause, measured: the failure model is estimated from about 90 failures; fits on other
+  60,000-step histories over- or under-estimate the same state by tens of percent. A longer history was
+  tried and is not used: it improved some results but worsened calibration and caused false drift
+  confirmations (Phase 6 report).
 - **Costs are illustrative units, not money**, and the benchmark covers this one simulator.
 
 What changes for a real deployment: the ground-truth checks disappear (there is no simulator to compare
@@ -261,22 +311,31 @@ as a control lever, sensor, environment variable or failure outcome, and CausalT
 fits the equations. It shows the discovered graph and model cards, and states clearly that no ground
 truth exists for uploaded data. Limits: 20 MB, 50,000 rows, 40 columns.
 
-**Connecting a real machine (not built yet; how it would work).** Sensors (bearing temperature probes,
-an accelerometer, a motor current clamp, a coolant flow meter) are read by the machine controller or an
-IoT gateway and published over a standard protocol: MTConnect (read-only, made for CNC machines),
-OPC UA, MQTT, or a historian database. Failures, maintenance and tool changes come from the maintenance
-system. The live loop reads rows through one small interface (`SimulatorStepper` in
-`intelligence/drift.py`); a connector with the same interface would read tags every 10 s, reduce fast
-signals such as vibration to one value per step, map tag names to variables, and feed the same buffer.
-Recommendations would stay advisory: shown to an engineer, never written to the machine automatically.
+**Connecting a real machine (built; tested against a stand-in agent, not a real machine).** The live
+loop reads rows through one small interface (`backend/causaltwin/connectors/`), so the simulator can be
+replaced by:
+
+- **MTConnect** (`CAUSALTWIN_DATA_SOURCE=mtconnect`): the read-only HTTP/XML standard many CNC machines
+  expose. The backend polls the agent's `/current` once per step (10 s) and maps data items to model
+  variables with `CAUSALTWIN_TAG_MAP`. It is tested end to end against `scripts/fake_mtconnect_agent.py`,
+  a stand-in agent that serves simulator values (a test tool; no real machine was available).
+- **Log replay** (`CAUSALTWIN_DATA_SOURCE=replay`): streams a recorded CSV as if it were live.
+
+With a non-simulator source the app says so everywhere (a "Live data" badge instead of "Simulated"),
+there is no ground truth, fault injection, scenarios and the guided demo are switched off, and
+recommendations are advisory: shown to an engineer, never written to the machine. Before using a real
+machine, the twin must be trained on that machine's own history (Bring Your Own Data) and its tags
+mapped; OPC UA, MQTT and historian connectors would follow the same interface.
 
 **Who it is for.** Small and medium manufacturers that cannot afford trial-and-error experiments on
 production machines. Unplanned downtime is costly for them `[source needed]`; the cost of a failed
 spindle or a scrapped batch `[source needed]`.
 
-## Scalability (design, not yet built)
+## Scalability
 
-The demo runs one twin of one machine. Scaling to a factory would follow this design:
+Measured today: one backend process serves many viewers (see "Many simultaneous viewers" above) and
+the container runs within 512 MB (docs/DEPLOYMENT.md). The demo still runs one twin of one machine;
+scaling to a factory would follow this design (not built yet):
 
 - **One twin per machine.** Each twin is small: its fitted model is a handful of linear equations plus a
   logistic model, and a risk estimate takes milliseconds. Many twins fit on one server.
@@ -358,7 +417,10 @@ No GPU and no deep learning: every model trains in seconds on a laptop CPU.
 - E. S. Page (1954). Continuous inspection schemes. *Biometrika* 41(1/2), 100-115. (CUSUM)
 - H. R. Künsch (1989). The jackknife and the bootstrap for general stationary observations.
   *Annals of Statistics* 17(3), 1217-1241. (moving-block bootstrap)
-- The AI4I 2020 predictive maintenance dataset was not used (the optional stretch goal was not attempted).
+- S. Matzka (2020). Explainable Artificial Intelligence for Predictive Maintenance Applications. *Third
+  International Conference on Artificial Intelligence for Industries (AI4I)*, 91-95. The AI4I 2020
+  Predictive Maintenance Dataset, UCI Machine Learning Repository, CC BY 4.0, DOI 10.24432/C5HS5C
+  (included in `backend/data/external/` with its attribution).
 
 ## License
 

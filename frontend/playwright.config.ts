@@ -17,7 +17,20 @@ export default defineConfig({
     viewport: { width: 1440, height: 900 },
     colorScheme: "dark",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } }],
+  // Every test runs in Chromium; Firefox and WebKit (Safari's engine) run the page smoke tests.
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    {
+      name: "firefox",
+      testMatch: /smoke\.spec\.ts/,
+      use: { ...devices["Desktop Firefox"], viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: "webkit",
+      testMatch: /smoke\.spec\.ts/,
+      use: { ...devices["Desktop Safari"], viewport: { width: 1440, height: 900 } },
+    },
+  ],
   webServer: [
     {
       command: "..\\backend\\.venv\\Scripts\\python.exe -m uvicorn causaltwin.api.app:app --port 8000",

@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView, edgeKey, type EdgeState, type GraphMode } from "@/components/graph/causal-graph";
-import { ConfidenceBar, HowComputed, SimulatedBadge } from "@/components/transparency/transparency";
+import { ConfidenceBar, HowComputed, DataSourceBadge } from "@/components/transparency/transparency";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { api } from "@/lib/api";
@@ -257,7 +257,7 @@ export function GraphExplorer() {
   return (
     <div>
       <PageHeader title="Causal Graph Explorer" description="Click an edge for its evidence, or a node for its fitted equation. Toggle correlation and causation to see the trap.">
-        <SimulatedBadge />
+        <DataSourceBadge />
         <HowComputed provenance={causal.data?.provenance} title="Discovery of this causal graph" />
       </PageHeader>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_340px]">

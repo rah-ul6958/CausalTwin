@@ -66,6 +66,8 @@ TIME_SERIES_ASSUMPTIONS = [
     "Control levers and environment variables have no causes inside the system.",
     "The causal structure is stable within the analysis window (drift is checked separately).",
     "Rows where the machine is stopped or a tool is reset are excluded as regime breaks.",
+    "Rare large jumps that a variable's causes cannot explain (for example tool chipping, beyond 6 robust "
+    "standard deviations) are left out when testing and fitting that variable's causes, and kept in its noise.",
 ]
 TABULAR_ASSUMPTIONS = [
     "Tabular mode: rows are treated as independent samples with no time order.",

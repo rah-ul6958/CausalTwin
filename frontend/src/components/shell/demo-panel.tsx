@@ -145,7 +145,9 @@ export function DemoPanel({ open, onClose }: { open: boolean; onClose: () => voi
                   Beat {result.position + 1} of {result.total}
                 </p>
                 <p className="font-heading text-slate-100">{result.title}</p>
-                <p className="max-h-40 overflow-y-auto text-xs leading-relaxed text-slate-300">{result.narration}</p>
+                <p className="max-h-40 overflow-y-auto text-xs leading-relaxed text-slate-300" tabIndex={0}>
+                  {result.narration}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Twin risk {formatPercent(result.twin_risk?.probability)} - simulator ground truth{" "}
                   {formatPercent(result.validation?.true_risk_within_horizon)} (validation only)

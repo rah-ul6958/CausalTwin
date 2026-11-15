@@ -43,6 +43,7 @@ from tigramite.pcmci import PCMCI
 
 from causaltwin.config import FAILURE_CANDIDATE_ROLES, FAILURE_LAG_TIE_TOLERANCE
 from causaltwin.engine.preprocessing import PreparedData
+from causaltwin.engine.robust import robust_outliers
 from causaltwin.engine.schemas import CausalEdge, CausalGraph, CausalNode
 from causaltwin.utils.timing import timed_step
 
@@ -149,7 +150,11 @@ def tigramite_mci(prepared: PreparedData, tau_max: int, n_jobs: int) -> LaggedDi
     """Lagged discovery with tigramite, one parallel job per endogenous target."""
     n_variables = len(prepared.variables)
     targets = [prepared.index_of(name) for name in prepared.endogenous()]
-    arguments = [(prepared.values, prepared.row_mask, prepared.variables, target, tau_max) for target in targets]
+    jump_masks = target_jump_masks(prepared.values, prepared.row_mask, targets, tau_max)
+    arguments = [
+        (prepared.values, jump_masks.get(target, prepared.row_mask), prepared.variables, target, tau_max)
+        for target in targets
+    ]
     if n_jobs > 1:
         outputs = Parallel(n_jobs=min(n_jobs, len(targets)))(
             delayed(_tigramite_target_mci)(*job_arguments) for job_arguments in arguments
@@ -161,8 +166,45 @@ def tigramite_mci(prepared: PreparedData, tau_max: int, n_jobs: int) -> LaggedDi
     for target_index, target_values, target_p_values in outputs:
         val_matrix[:, target_index, :] = target_values
         p_matrix[:, target_index, :] = target_p_values
-    _, _, joint_p_matrix, n_samples = full_condition_mci(prepared.values, prepared.row_mask, targets, tau_max)
+    _, _, joint_p_matrix, n_samples = full_condition_mci(
+        prepared.values, prepared.row_mask, targets, tau_max, jump_masks
+    )
     return LaggedDiscovery(prepared.variables, val_matrix, p_matrix, joint_p_matrix, n_samples, "pcmci")
+
+
+def _lagged_candidates(n_variables: int, tau_max: int) -> list[tuple[int, int]]:
+    """Every (cause, lag) pair considered for every target."""
+    return [(cause, lag) for cause in range(n_variables) for lag in range(1, tau_max + 1)]
+
+
+def _design_matrix(values: np.ndarray, rows: np.ndarray, candidates: list[tuple[int, int]]) -> np.ndarray:
+    """Intercept plus every candidate's lagged values for the given sample rows."""
+    return np.column_stack([np.ones(rows.size)] + [values[rows - lag, cause] for cause, lag in candidates])
+
+
+def target_jump_masks(
+    values: np.ndarray, row_mask: np.ndarray, endogenous_indices: list[int], tau_max: int
+) -> dict[int, np.ndarray]:
+    """Row masks for targets with rare, unexplained jumps (base mask plus the jump rows).
+
+    A first regression on every lagged candidate finds rows whose residual is a rare outlier
+    (`robust_outliers`). Only targets that have such rows get an entry; for the others the
+    base mask is used unchanged, so their tests are exactly as before.
+    """
+    rows = _sample_rows(row_mask, tau_max)
+    candidates = _lagged_candidates(values.shape[1], tau_max)
+    design = _design_matrix(values, rows, candidates)
+    targets = values[np.ix_(rows, np.asarray(endogenous_indices, dtype=int))]
+    coefficients, *_ = np.linalg.lstsq(design, targets, rcond=None)  # every target in one factorization
+    residuals = targets - design @ coefficients
+    masks = {}
+    for column, target in enumerate(endogenous_indices):
+        flagged = robust_outliers(residuals[:, column])
+        if flagged.any():
+            mask = row_mask.copy()
+            mask[rows[flagged]] = True
+            masks[target] = mask
+    return masks
 
 
 def _sample_rows(row_mask: np.ndarray, tau_max: int) -> np.ndarray:
@@ -175,7 +217,11 @@ def _sample_rows(row_mask: np.ndarray, tau_max: int) -> np.ndarray:
 
 
 def full_condition_mci(
-    values: np.ndarray, row_mask: np.ndarray, endogenous_indices: list[int], tau_max: int
+    values: np.ndarray,
+    row_mask: np.ndarray,
+    endogenous_indices: list[int],
+    tau_max: int,
+    target_masks: dict[int, np.ndarray] | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     """Exact NumPy equivalent of `tigramite_mci` (same samples, same test), plus joint tests.
 
@@ -184,19 +230,24 @@ def full_condition_mci(
     the p-value is the two-sided Student-t p-value with df = n - 2 - (number of
     conditions). The joint test of all lags of one cause is the F test of that
     coefficient block, computed from the same fit (Wald form, exact for OLS).
+    `target_masks` gives some targets their own row mask (see `target_jump_masks`).
     """
     n_variables = values.shape[1]
-    rows = _sample_rows(row_mask, tau_max)
-    candidates = [(cause, lag) for cause in range(n_variables) for lag in range(1, tau_max + 1)]
-    design = np.column_stack([values[rows - lag, cause] for cause, lag in candidates])
-    design = np.column_stack([np.ones(rows.size), design])
-    gram_inverse = np.linalg.pinv(design.T @ design)
-    degrees_of_freedom = rows.size - 2 - (len(candidates) - 1)
-    residual_degrees_of_freedom = rows.size - design.shape[1]
+    candidates = _lagged_candidates(n_variables, tau_max)
     val_matrix = np.zeros((n_variables, n_variables, tau_max + 1))
     p_matrix = np.full((n_variables, n_variables, tau_max + 1), np.nan)  # NaN = not tested
     joint_p_matrix = np.full((n_variables, n_variables), np.nan)
+    shared_rows = _sample_rows(row_mask, tau_max)
+    fits: dict[int, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}  # per mask: rows, design, gram inverse
     for target in endogenous_indices:
+        mask = (target_masks or {}).get(target, row_mask)
+        if id(mask) not in fits:
+            rows = shared_rows if mask is row_mask else _sample_rows(mask, tau_max)
+            mask_design = _design_matrix(values, rows, candidates)
+            fits[id(mask)] = (rows, mask_design, np.linalg.pinv(mask_design.T @ mask_design))
+        rows, design, gram_inverse = fits[id(mask)]
+        degrees_of_freedom = rows.size - 2 - (len(candidates) - 1)
+        residual_degrees_of_freedom = rows.size - design.shape[1]
         target_values = values[rows, target]
         coefficients = gram_inverse @ design.T @ target_values
         residuals = target_values - design @ coefficients
@@ -217,14 +268,15 @@ def full_condition_mci(
                 len(block) * mean_squared_error
             )
             joint_p_matrix[cause, target] = float(stats.f.sf(f_statistic, len(block), residual_degrees_of_freedom))
-    return val_matrix, p_matrix, joint_p_matrix, int(rows.size)
+    return val_matrix, p_matrix, joint_p_matrix, int(shared_rows.size)
 
 
 def fast_mci(prepared: PreparedData, tau_max: int) -> LaggedDiscovery:
     """Lagged discovery with the NumPy equivalent of the tigramite test."""
     endogenous = [prepared.index_of(name) for name in prepared.endogenous()]
+    jump_masks = target_jump_masks(prepared.values, prepared.row_mask, endogenous, tau_max)
     val_matrix, p_matrix, joint_p_matrix, n_samples = full_condition_mci(
-        prepared.values, prepared.row_mask, endogenous, tau_max
+        prepared.values, prepared.row_mask, endogenous, tau_max, jump_masks
     )
     return LaggedDiscovery(prepared.variables, val_matrix, p_matrix, joint_p_matrix, n_samples, "pcmci")
 

@@ -10,10 +10,11 @@ import { Bar, BarChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Too
 import { PageHeader } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
-import { ConfidenceBar, GroundTruthBadge, HowComputed, InfoTip, SimulatedBadge, TimingChip } from "@/components/transparency/transparency";
+import { ConfidenceBar, DataSourceBadge, GroundTruthBadge, HowComputed, InfoTip, TimingChip } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { formatNumber, formatPercent, formatPoints, formatSigned, humanize } from "@/lib/format";
+import { useDataSource } from "@/lib/data-source";
 import { useLiveStore } from "@/lib/store";
 import type { BaselineAction, CandidateResult, Recommendation, RiskEstimate, RootCausePath } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
@@ -55,6 +56,7 @@ function RecommendationCard({ recommendation, provenanceNode, onApply, applying 
 }) {
   const [expanded, setExpanded] = useState(false);
   const confidence = recommendation.confidence;
+  const source = useDataSource();
   return (
     <Panel index={0} demo="recommendation" testId="recommendation-card" title="CausalTwin recommendation" subtitle="Cheapest evaluated change that brings predicted risk below the target" icon={<Lightbulb className="size-4" />} actions={<>{provenanceNode}<TimingChip ms={recommendation.search_ms} label="search" /></>}>
       <div className="space-y-4 text-sm">
@@ -105,9 +107,16 @@ function RecommendationCard({ recommendation, provenanceNode, onApply, applying 
             Causal path: <span className="font-mono text-cyan-200">{recommendation.causal_paths.join("; ")}</span>
           </p>
         )}
-        <Button onClick={onApply} disabled={applying || recommendation.action_type === "none"} className="w-full">
-          <Sparkles aria-hidden /> {applying ? "Applying..." : "Apply to the live machine"}
-        </Button>
+        {source.has_simulator ? (
+          <Button onClick={onApply} disabled={applying || recommendation.action_type === "none"} className="w-full">
+            <Sparkles aria-hidden /> {applying ? "Applying..." : "Apply to the live machine"}
+          </Button>
+        ) : (
+          <p className="rounded-lg border border-causal/30 bg-causal/5 p-2 text-xs leading-relaxed text-cyan-100">
+            Advisory: the live data comes from {source.description}. Make this change on the machine and watch the
+            risk here.
+          </p>
+        )}
       </div>
     </Panel>
   );
@@ -212,36 +221,42 @@ function CandidateTable({ candidates }: { candidates: CandidateResult[] }) {
   const columns = "grid grid-cols-[56px_1fr_120px_130px_90px_70px] items-center gap-2 px-3";
   return (
     <Panel index={5} title={`Every evaluated option (${candidates.length})`} subtitle="The optimizer's full search, ranked: options that reach the target first, cheapest first" className="col-span-full">
-      <div className={cn(columns, "border-b border-line pb-2 text-[11px] uppercase tracking-wider text-muted-foreground")} role="row">
-        {header("rank", "Rank")}
-        <span>Option</span>
-        {header("risk", "Predicted risk")}
-        <span>90% interval</span>
-        {header("risk_reduction", "Reduction")}
-        {header("cost", "Cost")}
-      </div>
-      <div ref={container} className="h-80 overflow-y-auto" role="table" aria-label="Evaluated candidate interventions">
-        <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-          {virtualizer.getVirtualItems().map((item) => {
-            const candidate = sorted[item.index];
-            return (
-              <div
-                key={candidate.label}
-                role="row"
-                className={cn(columns, "absolute inset-x-0 border-b border-line/50 text-xs", candidate.meets_target && "text-emerald-100")}
-                style={{ height: item.size, transform: `translateY(${item.start}px)` }}
-              >
-                <span className="tabular text-muted-foreground">{candidate.rank}</span>
-                <span className="truncate">{candidate.label}</span>
-                <span className="tabular">{formatPercent(candidate.risk)}</span>
-                <span className="tabular text-muted-foreground">
-                  {formatPercent(candidate.risk_lower)} - {formatPercent(candidate.risk_upper)}
-                </span>
-                <span className="tabular">{formatPoints(candidate.risk_reduction)}</span>
-                <span className="tabular">{formatNumber(candidate.cost, 1)}</span>
-              </div>
-            );
-          })}
+      <div role="table" aria-label="Evaluated candidate interventions" aria-rowcount={sorted.length + 1}>
+        <div role="rowgroup">
+          <div className={cn(columns, "border-b border-line pb-2 text-[11px] uppercase tracking-wider text-muted-foreground")} role="row" aria-rowindex={1}>
+            <span role="columnheader">{header("rank", "Rank")}</span>
+            <span role="columnheader">Option</span>
+            <span role="columnheader">{header("risk", "Predicted risk")}</span>
+            <span role="columnheader">90% interval</span>
+            <span role="columnheader">{header("risk_reduction", "Reduction")}</span>
+            <span role="columnheader">{header("cost", "Cost")}</span>
+          </div>
+        </div>
+        {/* The scrolling body is focusable so keyboard users can scroll it. */}
+        <div ref={container} className="h-80 overflow-y-auto" role="rowgroup" tabIndex={0} aria-label="Evaluated options, scrollable">
+          <div role="presentation" style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+            {virtualizer.getVirtualItems().map((item) => {
+              const candidate = sorted[item.index];
+              return (
+                <div
+                  key={candidate.label}
+                  role="row"
+                  aria-rowindex={item.index + 2}
+                  className={cn(columns, "absolute inset-x-0 border-b border-line/50 text-xs", candidate.meets_target && "text-emerald-100")}
+                  style={{ height: item.size, transform: `translateY(${item.start}px)` }}
+                >
+                  <span role="cell" className="tabular text-muted-foreground">{candidate.rank}</span>
+                  <span role="cell" className="truncate">{candidate.label}</span>
+                  <span role="cell" className="tabular">{formatPercent(candidate.risk)}</span>
+                  <span role="cell" className="tabular text-muted-foreground">
+                    {formatPercent(candidate.risk_lower)} - {formatPercent(candidate.risk_upper)}
+                  </span>
+                  <span role="cell" className="tabular">{formatPoints(candidate.risk_reduction)}</span>
+                  <span role="cell" className="tabular">{formatNumber(candidate.cost, 1)}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </Panel>
@@ -339,7 +354,7 @@ export function Advisor() {
   return (
     <div>
       <PageHeader title="Intervention Advisor" description="Which lever actually prevents failure, how much to change it, what it costs, and how sure we are.">
-        <SimulatedBadge />
+        <DataSourceBadge />
         <Button size="sm" variant="outline" onClick={() => { recommendation.reload(); rootCause.reload(); }}>
           <RefreshCw aria-hidden /> Recompute for the current state
         </Button>

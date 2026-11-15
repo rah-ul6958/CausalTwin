@@ -106,6 +106,12 @@ DISCOVERY_WINDOW_STEPS = 3000  # PCMCI runs on the most recent window
 TAU_MAX = 3  # longest lag considered, in steps
 DISCOVERY_ALPHA = 0.01  # significance level for keeping an edge
 DISCOVERY_N_JOBS = 5  # parallel worker processes for PCMCI (one per target variable); 1 = sequential
+# Rare jumps that a variable's causes cannot explain (for example tool chipping) would drown the
+# small effects of its real causes. When testing and fitting a variable's causes, rows whose residual
+# lies beyond ROBUST_OUTLIER_Z robust standard deviations (1.4826 x MAD) are left out, but only if
+# they are rare (at most ROBUST_MAX_OUTLIER_SHARE of the rows). They stay in the equation's noise.
+ROBUST_OUTLIER_Z = 6.0
+ROBUST_MAX_OUTLIER_SHARE = 0.05
 # Failure model (binary, rare): uses a longer history than the PCMCI window, because a
 # 3,000-step window holds too few failures (measured in the Phase 1 report).
 FAILURE_HISTORY_MAX_STEPS = 100_000
@@ -133,6 +139,11 @@ RESIDUAL_SAMPLE_LIMIT = 5000  # residuals kept per equation for Monte Carlo nois
 # What-if engine
 WHATIF_HORIZON = 30  # steps (5 minutes)
 WHATIF_ROLLOUTS = 200
+# Each rollout draws its own failure-model coefficients from their estimated sampling
+# distribution (normal, with the fit's covariance), so the risk and its interval include the
+# uncertainty that comes from having seen only a limited number of failures.
+WHATIF_FAILURE_PARAMETER_UNCERTAINTY = True
+WHATIF_PARAMETER_STREAM = 7919  # separate random stream, so the noise draws are unchanged
 WHATIF_SEED = 11
 WHATIF_INTERVAL_PERCENTILES = (5.0, 95.0)  # 90% interval
 # Non-intervened exogenous variables: "random_walk" (historical one-step changes) or "constant".
@@ -377,6 +388,13 @@ CORS_ORIGIN_REGEX_ENV = "CAUSALTWIN_CORS_ORIGIN_REGEX"  # for example https://.*
 DISCOVERY_JOBS_ENV = "CAUSALTWIN_DISCOVERY_JOBS"  # discovery worker processes; 1 saves memory on small servers
 ALLOW_BENCHMARK_RUN_ENV = "CAUSALTWIN_ALLOW_BENCHMARK_RUN"  # "0" disables POST /benchmark/run (public demos)
 DEFAULT_CORS_ORIGINS = "http://localhost:3000"
+# Where the live data comes from (see causaltwin/connectors/): "simulator" (default), "replay" or "mtconnect".
+DATA_SOURCE_ENV = "CAUSALTWIN_DATA_SOURCE"
+REPLAY_PATH_ENV = "CAUSALTWIN_REPLAY_PATH"  # CSV to replay
+REPLAY_SIMULATED_ENV = "CAUSALTWIN_REPLAY_SIMULATED"  # "1" if the replayed log is itself simulated
+MTCONNECT_URL_ENV = "CAUSALTWIN_MTCONNECT_URL"  # for example http://agent.local:5000
+TAG_MAP_ENV = "CAUSALTWIN_TAG_MAP"  # JSON {model variable: data item id or CSV column}
+DATA_SOURCES: tuple[str, ...] = ("simulator", "replay", "mtconnect")
 
 # Heavy requests (what-if, root cause, recommendation, BYOD, multi-step) run in worker threads.
 MAX_CONCURRENT_HEAVY_REQUESTS = 2  # more at once get "busy, retry" (503) instead of queueing up
@@ -396,3 +414,20 @@ WHATIF_MAX_NOISE_SCALE = 10.0
 BYOD_MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
 BYOD_MAX_ROWS = 50_000
 BYOD_MAX_COLUMNS = 40
+
+# ---------------------------------------------------------------------------
+# AI4I 2020 check (third-party dataset with documented failure rules; see intelligence/ai4i.py)
+# ---------------------------------------------------------------------------
+AI4I_DATA_PATH = DATA_DIR / "external" / "ai4i2020.csv"
+AI4I_RESULTS_PATH = DATA_DIR / "ai4i_results.json"
+# Documented rules of the dataset (they reproduce its failure labels exactly).
+AI4I_HDF_TEMPERATURE_DIFFERENCE_K = 8.6
+AI4I_HDF_SPEED_RPM = 1380.0
+AI4I_PWF_POWER_RANGE_W = (3500.0, 9000.0)
+AI4I_OSF_LIMITS = {"L": 11000.0, "M": 12000.0, "H": 13000.0}  # tool wear x torque, min*Nm
+AI4I_TWF_MIN_WEAR = 198.0  # lowest wear at which a tool-wear failure occurs in the data
+# The search: failure probability target, lever steps, illustrative costs.
+AI4I_TARGET_PROBABILITY = 0.05
+AI4I_CHANGE_STEPS_PCT = (-50, -40, -30, -20, -15, -10, -5, 5, 10, 15, 20, 30, 40, 50)
+AI4I_COST_PER_PCT = 0.1
+AI4I_TOOL_CHANGE_COST = 3.0

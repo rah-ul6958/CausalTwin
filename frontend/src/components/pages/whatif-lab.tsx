@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView } from "@/components/graph/causal-graph";
-import { HowComputed, SimulatedBadge, TimingChip } from "@/components/transparency/transparency";
+import { HowComputed, DataSourceBadge, TimingChip } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { api } from "@/lib/api";
@@ -158,7 +158,7 @@ export function WhatIfLab() {
   return (
     <div>
       <PageHeader title="What-If Lab" description={`Move a lever and the twin simulates the next ${horizonText} with and without the change (${rollouts ?? "-"} Monte Carlo rollouts, same noise for both).`}>
-        <SimulatedBadge />
+        <DataSourceBadge />
         <HowComputed provenance={result?.provenance} title="How this what-if was simulated" />
         <Button size="sm" variant="outline" onClick={() => { setOverrides({}); setResult(null); }}>
           <RotateCcw aria-hidden /> Reset levers

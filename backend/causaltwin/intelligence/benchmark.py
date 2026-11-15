@@ -187,6 +187,8 @@ def evaluate_situation(
         step=situation.step,
         true_risk_no_action=no_action_risk,
         failure_rate_no_action=no_action_failures,
+        twin_risk_no_action=recommendation.risk_before.probability,
+        twin_risk_no_action_interval=(recommendation.risk_before.lower, recommendation.risk_before.upper),
         causaltwin=BenchmarkMethodResult(
             action=_describe(recommendation),
             blamed=blamed_ct,
@@ -195,6 +197,8 @@ def evaluate_situation(
             risk_reduction=no_action_risk - ct_risk,
             failure_rate_after=ct_failures,
             success=ct_risk <= OPTIMIZER_TARGET_RISK,
+            predicted_risk_after=recommendation.risk_after.probability,
+            predicted_risk_after_interval=(recommendation.risk_after.lower, recommendation.risk_after.upper),
         ),
         baseline=BenchmarkMethodResult(
             action=action.description,
@@ -207,6 +211,49 @@ def evaluate_situation(
         ),
         winner=winner,
     )
+
+
+def _calibration_pair(
+    predicted: list[float], intervals: list[tuple[float, float]], true: list[float]
+) -> dict[str, Any]:
+    """How well predicted risks match the true risks: bias, error, interval coverage, correlation."""
+    predicted_array, true_array = np.array(predicted), np.array(true)
+    covered = [lower <= value <= upper for (lower, upper), value in zip(intervals, true, strict=True)]
+    correlation = float(np.corrcoef(predicted_array, true_array)[0, 1]) if len(true) > 2 else None
+    return {
+        "mean_predicted": float(predicted_array.mean()),
+        "mean_true": float(true_array.mean()),
+        "mean_error": float((predicted_array - true_array).mean()),
+        "mean_absolute_error": float(np.abs(predicted_array - true_array).mean()),
+        "interval_coverage": float(np.mean(covered)),
+        "correlation": correlation,
+    }
+
+
+def calibration_summary(cases: list[BenchmarkCase]) -> dict[str, Any]:
+    """The twin's predicted risks against the simulator's true risks, before and after its action.
+
+    Interval coverage is the share of cases whose true risk falls inside the twin's 90% interval.
+    """
+    usable = [case for case in cases if case.twin_risk_no_action is not None]
+    if not usable:
+        return {}
+    acted = [case for case in usable if case.causaltwin.predicted_risk_after is not None]
+    return {
+        "n_cases": len(usable),
+        "no_action": _calibration_pair(
+            [case.twin_risk_no_action or 0.0 for case in usable],
+            [case.twin_risk_no_action_interval or (0.0, 1.0) for case in usable],
+            [case.true_risk_no_action for case in usable],
+        ),
+        "after_action": _calibration_pair(
+            [case.causaltwin.predicted_risk_after or 0.0 for case in acted],
+            [case.causaltwin.predicted_risk_after_interval or (0.0, 1.0) for case in acted],
+            [case.causaltwin.true_risk_after for case in acted],
+        )
+        if acted
+        else {},
+    }
 
 
 def _summary(cases: list[BenchmarkCase], method: str) -> dict[str, Any]:
@@ -279,6 +326,7 @@ def run_benchmark(
                 for scenario in SCENARIOS
             },
             "cases": [case.model_dump() for case in cases],
+            "calibration": calibration_summary(cases),
             "baseline_accuracy": models.baseline.metrics,
             "graph_recovery": {
                 key: validation.get(key) for key in ("graph_recovery_with_failure", "graph_recovery_without_failure")

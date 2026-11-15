@@ -1,8 +1,8 @@
 # Final audit against the judging criteria
 
 For each criterion: what proves it (features, screens, numbers) and what is still missing. Numbers
-come from the generated block below. Status checked at the end of Phase 5; see
-`docs/phase_5_report.md` for the test runs behind it.
+come from the generated block below. Status checked at the end of Phase 6 (closing the gaps found in
+Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test runs behind it.
 
 <!-- results:headline:start -->
 - **93%** of 30 simulated high-risk cases brought to 10% true failure risk or less by CausalTwin, against **3%** for a standard XGBoost + SHAP approach.
@@ -33,12 +33,17 @@ come from the generated block below. Status checked at the end of Phase 5; see
   - FastAPI with typed Pydantic schemas and a provenance block on every result, plus a WebSocket stream.
   - Next.js frontend, strict TypeScript.
 - **Quality:**
-  - 81 backend tests: simulator, engine, intelligence, API, hardening, concurrency chaos, docs.
-  - 13 end-to-end browser tests: every page, the full demo, outage, reconnect and random clicking.
+  - 88 backend tests: simulator, engine, intelligence, API, hardening, concurrency chaos, connectors,
+    the AI4I check, docs.
+  - 41 browser test runs: every page, the full demo, outage, reconnect, random clicking, an axe-core
+    accessibility audit and narrow screens in Chromium; the page smoke tests also in Firefox and WebKit.
   - ruff, mypy and ESLint all clean.
 - **Performance:** every step within its budget (README timings table, measured by
   `scripts/measure_timings.py`).
-- **Gaps:** no formal load test with many simultaneous users. Browser tests run in Chromium only.
+- **Load:** 25 and 50 simultaneous simulated viewers against one backend process, measured (README,
+  "Many simultaneous viewers").
+- **Gaps:** heavier load slows the live simulation (about 3 steps per second instead of 5 with 25 busy
+  viewers on a laptop); Edge and mobile browsers are not tested.
 
 ## Innovation and Originality (20%)
 
@@ -56,11 +61,13 @@ come from the generated block below. Status checked at the end of Phase 5; see
 - **Answers why, which lever and how much:** root-cause paths; the cheapest change below the risk
   target; time to effect, side effects and cost.
 - **Measured advantage over the standard approach:** see the headline numbers.
-- **Real-world path:** Bring Your Own Data works on any CSV, with a "no ground truth" warning. The
-  machine-connector design is in the README.
+- **Real-world path:**
+  - Bring Your Own Data works on any CSV, with a "no ground truth" warning.
+  - A live MTConnect connector and log replay are built and tested (against a stand-in agent).
+  - On the third-party AI4I 2020 dataset, discovery found the documented failure mechanism.
 - **Gaps:**
   - not validated on a real machine;
-  - no live machine connector built;
+  - on AI4I, the linear failure model's advice lost to XGBoost + SHAP (threshold-type failures);
   - industry impact figures are left as `[source needed]` for the team to fill.
 
 ## User Experience (15%)
@@ -68,10 +75,12 @@ come from the generated block below. Status checked at the end of Phase 5; see
 - **Pages:** eight, with a guided demo that navigates and highlights each beat.
 - **States:** loading skeletons, error messages with Retry on every panel, and a visible connection
   status that reconnects on its own.
-- **Honesty markers:** a Simulated badge everywhere; ground truth clearly labelled.
-- **Layout and motion:** works from 1280 px wide upwards (tested); reduced-motion support; keyboard
-  access and aria labels on the main controls.
-- **Gaps:** no formal accessibility audit (contrast not measured with a tool); narrower screens not tested.
+- **Honesty markers:** a Simulated badge everywhere (a "Live data" badge when connected to a machine);
+  ground truth clearly labelled and absent for real data.
+- **Accessibility:** no WCAG 2.1 A/AA violations found by axe-core on any page (including colour
+  contrast); keyboard-scrollable lists; reduced-motion support.
+- **Layout:** no horizontal scrolling at 1440, 1280, 1024 and 768 px (tested).
+- **Gaps:** automated audits do not replace testing with screen-reader users; phone widths not tested.
 
 ## Scalability and Feasibility (10%)
 
@@ -83,6 +92,8 @@ come from the generated block below. Status checked at the end of Phase 5; see
   pauses and reports instead of crashing.
 - **Design for many machines** (one twin per machine, discovery only on drift, incremental refits): see
   the README.
+- **Measured load:** 50 simultaneous viewers got every status answer and kept their live streams; heavy
+  requests beyond two at a time got "busy, retry".
 - **Gaps:**
   - multi-machine operation is a design, not built;
   - the server runs one shared live simulation for all viewers.
@@ -98,7 +109,7 @@ come from the generated block below. Status checked at the end of Phase 5; see
   - the backup video and README GIF;
   - the live deployment link (deployment was not part of this run, by request).
 
-## Gaps fixed in this phase
+## Gaps fixed in Phase 5
 
 - **Concurrency:** API threads, the demo and the background loop could change the live simulator at the
   same time. A lock now serializes every change, and a chaos test (4 threads, 160 random actions)
@@ -121,12 +132,32 @@ come from the generated block below. Status checked at the end of Phase 5; see
   - the demo narration printed a raw Python dictionary;
   - a failed demo beat was skipped instead of retried.
 
+## Gaps closed after Phase 5 (Phase 6)
+
+- **Two always-missed causal links found.** Rare tool-chipping jumps hid the effect of load and speed on
+  tool wear. Jumps that a variable's causes cannot explain are now left out of its test and fit (and kept
+  in its noise). Graph recovery is now 15 of 15 true links with no false ones, in all five scenarios.
+- **Risk under-prediction investigated and quantified.** The cause is estimation noise in the failure
+  model (about 90 failures), not a bias. Every risk estimate now includes the failure model's
+  coefficient uncertainty, and the benchmark measures calibration (prediction against truth in every
+  case). A longer training history was tried and rejected on the evidence (worse calibration, false
+  drift confirmations).
+- **Drift confirmation tightened.** Changes are confirmed only in the equation whose predictions drifted
+  (all nine real faults still detected; no false confirmations in 60,000 fault-free steps).
+- **AI4I 2020 stretch goal done**, with an honest result (see above).
+- **Live machine connector built:** MTConnect and log replay, with a "Live data" mode in the UI.
+- **Accessibility audit, other browsers and narrow screens**: tested and fixed (see User Experience).
+- **Load test:** 25 and 50 viewers measured; heavy requests now work on a snapshot so the live loop
+  keeps more of its pace (2.4 to 3.1 steps per second at 25 viewers).
+- **Faster baseline training** (6.4 s to 1.4 s) with an identical decision threshold.
+
 ## Gaps left (honest list)
 
 - Not deployed (by request); `render.yaml`, Dockerfiles and docs/DEPLOYMENT.md are ready.
-- No real-machine validation and no live machine connector.
-- The AI4I 2020 stretch goal was not attempted.
-- No formal accessibility audit; Chromium-only browser tests.
-- The twin under-predicts risk in some extreme states, visible in the demo next to the ground truth.
-- Two true causal links (load and speed affecting tool wear) are always missed.
+- No validation on a real machine (none available); the connector is tested against a stand-in agent.
+- The failure model is linear in its causes: threshold-type failures (AI4I) are advised poorly. A
+  non-linear failure model is the next engineering step.
+- The twin can under-predict risk in extreme states at the edge of its training data (visible in the demo
+  next to the ground truth); intervals after an action are too narrow.
+- One shared live simulation per server; many-machine operation is designed, not built.
 - Manual items: slides, video, GIF, the live URL in the README, and `[source needed]` statistics.

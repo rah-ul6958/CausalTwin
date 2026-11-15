@@ -5,12 +5,13 @@
  * HowComputed (provenance drawer), ConfidenceBar, SimulatedBadge, GroundTruthBadge, TimingChip, InfoTip.
  */
 
-import { FlaskConical, Info, ShieldCheck, Timer } from "lucide-react";
+import { FlaskConical, Info, Radio, ShieldCheck, Timer } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useDataSource } from "@/lib/data-source";
 import { formatMs, humanize } from "@/lib/format";
 import type { Provenance } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -132,6 +133,34 @@ export function ConfidenceBar({
         <div tabIndex={0}>{bar}</div>
       </TooltipTrigger>
       <TooltipContent className="max-w-xs text-xs leading-relaxed">{explanation}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/**
+ * The live data's label: "Simulated" for simulated data; otherwise a "Live data" badge naming the
+ * source and reminding that no ground truth exists, so results are hypotheses to confirm.
+ */
+export function DataSourceBadge({ className }: { className?: string }) {
+  const source = useDataSource();
+  if (source.simulated) return <SimulatedBadge className={className} />;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          tabIndex={0}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border border-causal/40 bg-causal/10 px-2 py-0.5 text-[11px] font-medium text-cyan-200",
+            className,
+          )}
+        >
+          <Radio className="size-3" aria-hidden /> Live data
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-xs">
+        {source.description}. No ground truth exists for this data: CausalTwin&apos;s results are hypotheses to confirm
+        with the machine&apos;s engineers, and recommendations are advisory.
+      </TooltipContent>
     </Tooltip>
   );
 }

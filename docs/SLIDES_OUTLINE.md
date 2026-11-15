@@ -41,13 +41,13 @@ copy them from here rather than typing them. Label anything from the simulator a
 <!-- results:timings:start -->
 | Operation | Median | Slowest run | Budget | Within budget |
 |---|---|---|---|---|
-| Simulate 20,000 steps | 1.37 s | 1.39 s | 2.00 s | yes |
-| Causal discovery on one 3,000-step window | 2.02 s | 2.04 s | 3.00 s | yes |
-| Fit the causal model | 389 ms | 399 ms | 1.00 s | yes |
-| One what-if simulation (200 rollouts) | 39 ms | 45 ms | 200 ms | yes |
-| Recommendation search | 425 ms | 493 ms | 1.00 s | yes |
-| Baseline XGBoost training | 6.39 s | 6.87 s | 10.00 s | yes |
-| Full benchmark (30 cases) | 49.95 s | 49.95 s | 60.00 s | yes |
+| Simulate 20,000 steps | 1.51 s | 1.91 s | 2.00 s | yes |
+| Causal discovery on one 3,000-step window | 2.34 s | 3.06 s | 3.00 s | yes |
+| Fit the causal model | 424 ms | 450 ms | 1.00 s | yes |
+| One what-if simulation (200 rollouts) | 39 ms | 50 ms | 200 ms | yes |
+| Recommendation search | 488 ms | 560 ms | 1.00 s | yes |
+| Baseline XGBoost training | 1.81 s | 1.83 s | 10.00 s | yes |
+| Full benchmark (30 cases) | 56.96 s | 56.96 s | 60.00 s | yes |
 
 Measured 2026-11-15 on Windows (16 logical CPUs, Python 3.11.16) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
 <!-- results:timings:end -->
@@ -71,13 +71,13 @@ Measured 2026-11-15 on Windows (16 logical CPUs, Python 3.11.16) by `scripts/mea
 | Metric | CausalTwin | XGBoost + SHAP |
 |---|---|---|
 | Reached the 10% target (true risk) | **28 / 30 (93%)** | 1 / 30 (3%) |
-| Mean true risk after the action | 3.7% | 30.1% |
-| Mean risk reduction | 26.7 points | 0.3 points |
+| Mean true risk after the action | 3.8% | 30.1% |
+| Mean risk reduction | 26.6 points | 0.3 points |
 | Failure rate within 30 steps (simulated futures) | 0.0% | 23.8% |
 | Mean cost (illustrative units) | 6.6 | 2.5 |
 
 No action: mean true risk 30.4%. Head to head: CausalTwin better in 29, tied in 1, worse in 0 case(s).
-CausalTwin missed the target in 2 case(s): case 28 (tool_wear, true risk after 12.3%), case 29 (tool_wear, true risk after 11.2%).
+CausalTwin missed the target in 2 case(s): case 28 (tool_wear, true risk after 13.4%), case 29 (tool_wear, true risk after 11.2%).
 
 | Scenario | Cases | CausalTwin reached target | Baseline reached target |
 |---|---|---|---|
@@ -88,32 +88,43 @@ CausalTwin missed the target in 2 case(s): case 28 (tool_wear, true risk after 1
 | tool_wear | 6 | 67% | 0% |
 
 What the baseline blamed (top SHAP feature): vibration 22, ambient_temp 6, lube_rate 1, tool_wear 1.
-Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 40 s.
+
+Calibration: the twin's predicted risk against the simulator's true risk in the same cases.
+
+| Twin prediction | Mean predicted | Mean true | Mean absolute error | Truth inside the 90% interval | Correlation |
+|---|---|---|---|---|---|
+| Risk with no action | 30.8% | 30.4% | 4.1 points | 87% | 0.96 |
+| Risk after its own action | 3.5% | 3.8% | 1.1 points | 43% | 0.97 |
+
+Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 58 s.
 <!-- results:benchmark:end -->
 
 <!-- results:graph:start -->
 | Metric | With the failure edges | Between sensors and levers only |
 |---|---|---|
 | True edges | 15 | 13 |
-| Edges found (correct) | 13 (13) | 11 (11) |
+| Edges found (correct) | 15 (15) | 13 (13) |
 | Precision | 1.00 | 1.00 |
-| Recall | 0.87 | 0.85 |
-| F1 | 0.93 | 0.92 |
+| Recall | 1.00 | 1.00 |
+| F1 | 1.00 | 1.00 |
 | Lag accuracy (correct edges) | 1.00 | 1.00 |
-| Structural Hamming distance | 2 | 2 |
+| Structural Hamming distance | 0 | 0 |
 
-Missed: load_pct->tool_wear (lag 1), spindle_speed->tool_wear (lag 1). Extra (false) edges: none.
+Missed: none. Extra (false) edges: none.
 Trap check: discovered failure causes bearing_temp, tool_wear; vibration is not a discovered cause (failure-screen p = 0.93) although its correlation with failure is +0.25; predicted risk change when vibration is halved: 0.000.
 <!-- results:graph:end -->
 
 ## Slide 6. Real-world use and scalability
 
 - **Key message:** The same engine runs on any factory's sensor log today (Bring Your Own Data, with a
-  clear "no ground truth" warning); live machine connectors and many-machine scaling are designed, not
-  built.
+  clear "no ground truth" warning), and a live MTConnect connector exists (tested against a stand-in
+  agent, not yet a real machine). On third-party data (AI4I 2020) it found the documented failure
+  mechanism, but its linear failure model advised poorly on threshold-type failures: say so. Many-machine
+  scaling is designed, not built; one server handled 50 simultaneous viewers.
 - **Visual:** `08-data.png` (upload panel); a simple diagram: machine -> MTConnect/OPC UA/MQTT ->
   connector -> one twin per machine -> alerts and advice.
-- **Numbers:** drift detection (how quickly a changed machine is noticed):
+- **Numbers:** the AI4I comparison and the load test from the README ("Third-party data", "Many
+  simultaneous viewers"), and drift detection (how quickly a changed machine is noticed):
 
 <!-- results:drift:start -->
 Each fault is injected at step 3,000 of an otherwise normal run (1 step = 10 s).

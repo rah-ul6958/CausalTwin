@@ -10,41 +10,53 @@ import { PageHeader } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView } from "@/components/graph/causal-graph";
-import { HowComputed, SimulatedBadge } from "@/components/transparency/transparency";
+import { HowComputed, DataSourceBadge } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { formatNumber, humanize } from "@/lib/format";
 import type { ByodResponse, ColumnQuality, SensorRow } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
+import { useDataSource } from "@/lib/data-source";
 import { cn } from "@/lib/utils";
 
 const ROLES = ["control", "environment", "sensor", "outcome", "ignore"] as const;
 type Role = (typeof ROLES)[number];
 
-function RawTable({ rows }: { rows: SensorRow[] }) {
+/** Virtualized table of the newest rows (newest first); `label` names the data for screen readers. */
+function RawTable({ rows, label }: { rows: SensorRow[]; label: string }) {
   const columns = useMemo(() => (rows[0] ? Object.keys(rows[0]).filter((key) => !key.startsWith("event_")) : []), [rows]);
   const container = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line react-hooks/incompatible-library -- the virtualizer is used as documented by TanStack
   const virtualizer = useVirtualizer({ count: rows.length, getScrollElement: () => container.current, estimateSize: () => 28, overscan: 20 });
   const template = { gridTemplateColumns: `repeat(${columns.length}, minmax(92px, 1fr))` };
   return (
-    <div ref={container} className="h-96 overflow-auto rounded-lg border border-line" role="table" aria-label="Recent simulated sensor rows">
-      <div className="sticky top-0 z-10 grid min-w-max gap-2 border-b border-line bg-[#0b1222] px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground" style={template} role="row">
-        {columns.map((column) => (
-          <span key={column} className="truncate">
-            {column}
-          </span>
-        ))}
+    // Focusable so keyboard users can scroll it; the table structure follows ARIA (rowgroups, rows, cells).
+    <div
+      ref={container}
+      className="h-96 overflow-auto rounded-lg border border-line"
+      role="table"
+      tabIndex={0}
+      aria-label={label}
+      aria-rowcount={rows.length + 1}
+    >
+      <div role="rowgroup" className="sticky top-0 z-10 min-w-max">
+        <div className="grid min-w-max gap-2 border-b border-line bg-[#0b1222] px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground" style={template} role="row" aria-rowindex={1}>
+          {columns.map((column) => (
+            <span key={column} role="columnheader" className="truncate">
+              {column}
+            </span>
+          ))}
+        </div>
       </div>
-      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }} className="min-w-max">
+      <div role="rowgroup" style={{ height: virtualizer.getTotalSize(), position: "relative" }} className="min-w-max">
         {virtualizer.getVirtualItems().map((item) => {
           const row = rows[rows.length - 1 - item.index];
           return (
-            <div key={item.key} role="row" className={cn("tabular absolute inset-x-0 grid gap-2 px-3 text-[11px]", row.failure === 1 && "bg-risk/15", row.machine_running === 0 && "text-slate-500")}
+            <div key={item.key} role="row" aria-rowindex={item.index + 2} className={cn("tabular absolute inset-x-0 grid gap-2 px-3 text-[11px]", row.failure === 1 && "bg-risk/15", row.machine_running === 0 && "text-slate-500")}
               style={{ ...template, height: item.size, transform: `translateY(${item.start}px)`, alignItems: "center" }}>
               {columns.map((column) => (
-                <span key={column} className="truncate">
+                <span key={column} role="cell" className="truncate">
                   {formatNumber(row[column], 3)}
                 </span>
               ))}
@@ -168,7 +180,7 @@ function ByodPanel() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="max-h-80 space-y-1.5 overflow-y-auto pr-1">
+              <div className="max-h-80 space-y-1.5 overflow-y-auto pr-1" tabIndex={0} role="region" aria-label="Uploaded data validation details">
                 {columns
                   .filter((name) => name !== timeColumn)
                   .map((name) => (
@@ -249,10 +261,11 @@ export function DataPage() {
   const recent = useApi(() => api.dataRecent(5000), "recent");
   const events = useApi(() => api.events(1000), "events");
   const quality = useApi(() => api.dataQuality(), "quality");
+  const source = useDataSource();
   return (
     <div>
       <PageHeader title="Data" description="The raw live data behind every number, its quality, and your own data.">
-        <SimulatedBadge />
+        <DataSourceBadge />
         <Button size="sm" variant="outline" asChild>
           <a href={api.exportUrl()} download>
             <Download aria-hidden /> Export CSV
@@ -263,8 +276,8 @@ export function DataPage() {
         </Button>
       </PageHeader>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_420px]">
-        <Panel index={0} title={`Raw sensor rows (${recent.data?.rows.length ?? 0}, newest first)`} subtitle="Simulated. Red rows: failure. Grey rows: machine stopped." icon={<Database className="size-4" />}>
-          {recent.error ? <ErrorState message={recent.error} onRetry={recent.reload} /> : !recent.data ? <PanelSkeleton rows={8} /> : <RawTable rows={recent.data.rows} />}
+        <Panel index={0} title={`Raw sensor rows (${recent.data?.rows.length ?? 0}, newest first)`} subtitle={`${source.simulated ? "Simulated" : source.description}. Red rows: failure. Grey rows: machine stopped.`} icon={<Database className="size-4" />}>
+          {recent.error ? <ErrorState message={recent.error} onRetry={recent.reload} /> : !recent.data ? <PanelSkeleton rows={8} /> : <RawTable rows={recent.data.rows} label={`Recent ${source.simulated ? "simulated " : ""}sensor rows`} />}
         </Panel>
         <Panel index={1} title="Event log" subtitle="Newest first">
           {events.error ? (
@@ -272,7 +285,7 @@ export function DataPage() {
           ) : !events.data ? (
             <PanelSkeleton rows={8} />
           ) : (
-            <ol className="h-96 space-y-1 overflow-y-auto pr-1 text-xs">
+            <ol className="h-96 space-y-1 overflow-y-auto pr-1 text-xs" tabIndex={0} aria-label="Event log, newest first">
               {[...events.data.events].reverse().map((event, index) => (
                 <li key={`${event.step}-${index}`} className="flex gap-2">
                   <span className="tabular w-14 shrink-0 text-right text-muted-foreground">{event.step}</span>

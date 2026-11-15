@@ -27,6 +27,9 @@ backend/data/*
 !backend/data/benchmark_results.json
 !backend/data/drift_results.json
 !backend/data/timings.json
+!backend/data/external/
+!backend/data/ai4i_results.json
+!backend/data/load_test.json
 
 # Editors / OS
 .vscode/
