@@ -267,7 +267,7 @@ export function DataPage() {
   const exportHref = useSessionId() ? api.exportUrl() : undefined;
   return (
     <div>
-      <PageHeader title="Data" description="The raw live data behind every number, its quality, and your own data.">
+      <PageHeader eyebrow="Module 07 / Data explorer" title="Data" description="The raw live data behind every number, its quality, and your own data.">
         <DataSourceBadge />
         <Button size="sm" variant="outline" asChild>
           <a href={exportHref} download>

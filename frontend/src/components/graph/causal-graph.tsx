@@ -7,6 +7,9 @@
  * - Symptom nodes (correlated, not causal) get an amber tag.
  * - Drift diffs: added edges draw in, changed edges flash, removed edges fade out.
  * - Modes: causal, correlation, or overlay. Both edge sets are always rendered and crossfade.
+ * - Hovering a node highlights its direct causes and effects and dims the rest. The hover state
+ *   travels through React context, not through the node and edge data: changing that data on
+ *   hover makes React Flow rebuild its elements and swallow the following click.
  */
 
 import {
@@ -23,7 +26,7 @@ import {
   type Node,
   type NodeProps,
 } from "@xyflow/react";
-import { memo, useMemo } from "react";
+import { createContext, memo, useContext, useMemo, useState } from "react";
 
 import { Sparkline } from "@/components/charts/sparkline";
 import { formatNumber, formatPercent, humanize } from "@/lib/format";
@@ -37,11 +40,11 @@ export type EdgeState = "added" | "removed" | "changed";
 
 export const edgeKey = (cause: string, effect: string) => `${cause}->${effect}`;
 
-const ROLE_STYLE: Record<string, { label: string; accent: string }> = {
-  control: { label: "Control lever", accent: "border-causal/50" },
-  environment: { label: "Environment", accent: "border-slate-400/40" },
-  sensor: { label: "Sensor", accent: "border-white/15" },
-  outcome: { label: "Outcome", accent: "border-risk/60" },
+const ROLE_STYLE: Record<string, { label: string; accent: string; dot: string; glow: string }> = {
+  control: { label: "Control lever", accent: "border-causal/50", dot: "bg-causal", glow: "shadow-[0_0_20px_-8px_var(--causal)]" },
+  environment: { label: "Environment", accent: "border-slate-400/40", dot: "bg-slate-400", glow: "" },
+  sensor: { label: "Sensor", accent: "border-sky-300/25", dot: "bg-sky-300", glow: "" },
+  outcome: { label: "Outcome", accent: "border-risk/70", dot: "bg-risk", glow: "shadow-[0_0_30px_-6px_rgb(244_63_94/0.65)]" },
 };
 
 interface VariableNodeData extends Record<string, unknown> {
@@ -55,6 +58,13 @@ interface VariableNodeData extends Record<string, unknown> {
   live: boolean;
 }
 type VariableNodeType = Node<VariableNodeData, "variable">;
+
+/** The hovered node and the nodes linked to it by a causal edge (null when nothing is hovered). */
+interface HoverFocus {
+  hovered: string;
+  linked: Set<string>;
+}
+const HoverContext = createContext<HoverFocus | null>(null);
 
 interface CausalEdgeData extends Record<string, unknown> {
   edge: CausalEdge;
@@ -94,20 +104,27 @@ function FailureValue() {
 
 function VariableNodeBase({ data }: NodeProps<VariableNodeType>) {
   const style = ROLE_STYLE[data.role] ?? ROLE_STYLE.sensor;
+  const focus = useContext(HoverContext);
+  const dimmed = focus !== null && !focus.linked.has(data.name);
   return (
     <div
       key={data.pulseKey}
       className={cn(
-        "rounded-xl border bg-[#0b1222]/90 px-3 py-2 shadow-lg backdrop-blur",
+        "rounded-xl border bg-gradient-to-b from-[#0e1729]/95 to-[#070c17]/95 px-3 py-2 shadow-lg backdrop-blur transition-[opacity,box-shadow,border-color] duration-200",
         style.accent,
+        style.glow,
         data.compact ? "w-[132px]" : "w-[164px]",
-        data.onPath && "border-risk shadow-[0_0_22px_-2px_rgb(244_63_94/0.7)]",
+        data.onPath && "border-risk shadow-[0_0_26px_-2px_rgb(244_63_94/0.75)]",
         data.pulseKey > 0 && "node-pulse",
+        dimmed && "opacity-30",
       )}
     >
       <Handle type="target" position={Position.Left} className="!size-1.5 !border-0 !bg-slate-500" />
       <div className="flex items-center justify-between gap-1">
-        <span className="truncate text-xs font-medium text-slate-100">{humanize(data.name)}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className={cn("size-1.5 shrink-0 rounded-full", style.dot, data.role === "outcome" && "status-light")} aria-hidden />
+          <span className="truncate text-xs font-medium text-slate-100">{humanize(data.name)}</span>
+        </span>
         {data.symptom && (
           <span className="rounded bg-warn/15 px-1 text-[9px] font-semibold uppercase tracking-wide text-warn">symptom</span>
         )}
@@ -130,10 +147,25 @@ const EDGE_COLOR: Record<CausalEdgeData["kind"], string> = {
 function CausalEdgeBase(props: EdgeProps<CausalEdgeType>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, markerEnd } = props;
   const [path, labelX, labelY] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
+  const hover = useContext(HoverContext);
   if (!data) return null;
+  const focus =
+    hover === null || data.kind === "correlation"
+      ? null
+      : data.edge.cause === hover.hovered || data.edge.effect === hover.hovered
+        ? "highlight"
+        : "dim";
   const color = data.onPath ? "#f43f5e" : EDGE_COLOR[data.kind];
   const dashed = data.edge.uncertain || data.kind === "correlation" || data.kind === "missing";
-  const opacity = data.visible ? (data.kind === "correlation" ? 0.7 : 0.95) : 0;
+  const baseOpacity = data.visible ? (data.kind === "correlation" ? 0.7 : 0.95) : 0;
+  const opacity = focus === "dim" ? baseOpacity * 0.15 : baseOpacity;
+  const glow = data.onPath
+    ? "drop-shadow(0 0 6px rgb(244 63 94 / 0.8))"
+    : focus === "highlight"
+      ? `drop-shadow(0 0 6px ${color})`
+      : data.kind === "causal"
+        ? "drop-shadow(0 0 2px rgb(34 211 238 / 0.45))"
+        : undefined;
   const stateClass = data.state ? `edge-${data.state}` : "";
   return (
     <>
@@ -144,16 +176,16 @@ function CausalEdgeBase(props: EdgeProps<CausalEdgeType>) {
         className={cn("edge-path", stateClass)}
         style={{
           stroke: color,
-          strokeWidth: data.width,
           strokeDasharray: dashed ? "5 5" : undefined,
+          strokeWidth: focus === "highlight" ? data.width + 1 : data.width,
           opacity,
-          filter: data.onPath ? "drop-shadow(0 0 6px rgb(244 63 94 / 0.8))" : undefined,
+          filter: glow,
         }}
       />
-      {data.visible && data.kind === "causal" && (
+      {data.visible && data.kind === "causal" && focus !== "dim" && (
         <>
           {[0, 0.5].map((offset) => (
-            <circle key={offset} r={2.2} fill={color} className="edge-particle">
+            <circle key={offset} r={focus === "highlight" ? 3 : 2.2} fill={color} className="edge-particle" style={{ filter: `drop-shadow(0 0 3px ${color})` }}>
               <animateMotion dur={`${1.4 + data.edge.lag * 0.5}s`} begin={`${offset * (1.4 + data.edge.lag * 0.5)}s`} repeatCount="indefinite" path={path} />
             </circle>
           ))}
@@ -233,6 +265,19 @@ export function CausalGraphView({
   onEdgeClick,
   onNodeClick,
 }: CausalGraphViewProps) {
+  const [hovered, setHovered] = useState<string | null>(null);
+  // The hovered node and the nodes directly linked to it by a causal edge.
+  const focus = useMemo<HoverFocus | null>(() => {
+    if (!hovered || mode === "correlation") return null;
+    const linked = new Set<string>([hovered]);
+    for (const edge of graph.edges) {
+      if (edge.is_self_loop) continue;
+      if (edge.cause === hovered) linked.add(edge.effect);
+      if (edge.effect === hovered) linked.add(edge.cause);
+    }
+    return { hovered, linked };
+  }, [hovered, graph, mode]);
+
   const nodes = useMemo<VariableNodeType[]>(() => {
     const positions = layoutGraph(graph);
     return graph.nodes.map((node) => ({
@@ -285,6 +330,7 @@ export function CausalGraphView({
   }, [graph, correlation, mode, pathEdges, edgeStates, fadingEdges, missingEdges, edgeKind]);
 
   return (
+    <HoverContext.Provider value={focus}>
     <div className={cn("h-full w-full", className)}>
       <ReactFlow
         nodes={nodes}
@@ -304,10 +350,13 @@ export function CausalGraphView({
           if (data?.visible && onEdgeClick) onEdgeClick(data.edge, data.kind);
         }}
         onNodeClick={(_, node) => onNodeClick?.(node.id)}
+        onNodeMouseEnter={compact ? undefined : (_, node) => setHovered(node.id)}
+        onNodeMouseLeave={compact ? undefined : () => setHovered(null)}
         minZoom={0.3}
       >
         {!compact && <Controls showInteractive={false} className="!border-line !bg-[#0b1222] [&_button]:!border-line [&_button]:!bg-[#0b1222] [&_button]:!fill-slate-300" />}
       </ReactFlow>
     </div>
+    </HoverContext.Provider>
   );
 }

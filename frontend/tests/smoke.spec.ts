@@ -17,6 +17,14 @@ async function open(page: Page, path: string): Promise<string[]> {
 
 async function capture(page: Page, name: string) {
   if (test.info().project.name !== "chromium") return; // documentation screenshots come from Chromium only
+  // Scroll through the page once, so sections that animate in on scroll are revealed.
+  await page.evaluate(async () => {
+    for (let top = 0; top < document.body.scrollHeight; top += 500) {
+      window.scrollTo(0, top);
+      await new Promise((resolve) => setTimeout(resolve, 80));
+    }
+    window.scrollTo(0, 0);
+  });
   await page.waitForTimeout(1200); // let entry animations settle
   await page.screenshot({ path: `${SCREENSHOTS}/${name}.png`, fullPage: true });
 }

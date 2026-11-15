@@ -12,7 +12,7 @@ export function PanelSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div className="space-y-3" aria-busy="true" aria-label="Loading">
       {Array.from({ length: rows }, (_, index) => (
-        <Skeleton key={index} className="h-6 w-full bg-white/5" />
+        <Skeleton key={index} className="shimmer h-6 w-full rounded-md bg-transparent" style={{ width: `${100 - (index % 3) * 12}%` }} />
       ))}
     </div>
   );
@@ -44,6 +44,9 @@ export function LoadingOrError({ state, rows = 4 }: { state: { error?: string; r
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1 py-8 text-center">
+      <span className="mb-2 flex size-10 items-center justify-center rounded-full border border-dashed border-causal/30" aria-hidden>
+        <span className="status-light size-1.5 bg-causal/70" />
+      </span>
       <p className="text-sm text-slate-300">{title}</p>
       {hint && <p className="max-w-sm text-xs text-muted-foreground">{hint}</p>}
     </div>

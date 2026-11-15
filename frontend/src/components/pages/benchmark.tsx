@@ -2,6 +2,7 @@
 
 /** Benchmark: the Correlation Trap judged by the real simulator, plus graph recovery and drift results. */
 
+import { motion, useReducedMotion } from "framer-motion";
 import { Play, Trophy } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -226,6 +227,59 @@ function GraphComparison({ truth, discovered }: { truth: TrueGraph; discovered: 
   );
 }
 
+/** Head-to-head result: both success rates, animated, with the losses stated next to them. */
+function VerdictStrip({ results }: { results: BenchmarkResults }) {
+  const reduceMotion = useReducedMotion();
+  const cases = results.n_cases;
+  const target = formatPercent(results.settings.target_risk, 0);
+  const rows = [
+    { name: "CausalTwin", rate: results.summary.causaltwin.success_rate, bar: "from-cyan-400 to-sky-400", text: "text-cyan-100" },
+    { name: "XGBoost + SHAP", rate: results.summary.baseline.success_rate, bar: "from-amber-500 to-amber-300", text: "text-amber-100" },
+  ];
+  const missed = cases - Math.round(results.summary.causaltwin.success_rate * cases);
+  const worse = results.summary.cases_where_causaltwin_is_worse.length;
+  return (
+    <section aria-label="Head-to-head result" className="glass mb-4 grid grid-cols-1 gap-6 p-5 lg:grid-cols-[1.4fr_1fr]">
+      <div className="space-y-4">
+        <p className="hud-label">Cases brought to {target} true risk or less, judged by the simulator</p>
+        {rows.map((row, index) => (
+          <div key={row.name}>
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <span className="text-sm text-slate-200">{row.name}</span>
+              <span className={cn("tabular text-2xl font-medium", row.text)}>
+                <CountUp value={row.rate} format={(value) => formatPercent(value, 0)} durationMs={1200} />
+                <span className="ml-2 text-xs text-muted-foreground">{Math.round(row.rate * cases)} / {cases}</span>
+              </span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-white/[0.05]">
+              <motion.div
+                className={cn("h-full rounded-full bg-gradient-to-r", row.bar)}
+                initial={reduceMotion ? false : { width: 0 }}
+                whileInView={{ width: `${row.rate * 100}%` }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.1, delay: index * 0.15, ease: [0.2, 0.8, 0.2, 1] }}
+                style={reduceMotion ? { width: `${row.rate * 100}%` } : undefined}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-3 self-center">
+        <div className="rounded-xl border border-warn/30 bg-warn/[0.06] p-3">
+          <p className="hud-label">CausalTwin missed</p>
+          <p className="tabular mt-1 text-2xl text-amber-100">{missed}</p>
+          <p className="text-[11px] text-muted-foreground">case(s) above the target after its action</p>
+        </div>
+        <div className="rounded-xl border border-line bg-white/[0.02] p-3">
+          <p className="hud-label">Baseline did better</p>
+          <p className="tabular mt-1 text-2xl text-slate-100">{worse}</p>
+          <p className="text-[11px] text-muted-foreground">case(s), listed in the table below</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function Benchmark() {
   const results = useApi(() => api.benchmark(), "benchmark");
   const drift = useApi(() => api.driftResults(), "drift");
@@ -253,7 +307,7 @@ export function Benchmark() {
     : "Faults injected into otherwise normal runs";
   return (
     <div>
-      <PageHeader title="Benchmark: the Correlation Trap" description="Both methods act on the same high-risk moments; the real simulator judges the outcome. Every case is shown, including losses.">
+      <PageHeader eyebrow="Module 05 / Scientific benchmark" title="Benchmark: the Correlation Trap" description="Both methods act on the same high-risk moments; the real simulator judges the outcome. Every case is shown, including losses.">
         <SimulatedBadge />
         <GroundTruthBadge />
         <HowComputed provenance={data?.provenance} title="How the benchmark was run" />
@@ -274,6 +328,8 @@ export function Benchmark() {
       ) : !data ? (
         <PanelSkeleton rows={10} />
       ) : (
+        <>
+        <VerdictStrip results={data} />
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <SummaryCard index={0} title={`CausalTwin (${data.n_cases} cases)`} summary={data.summary.causaltwin} tone="causal" horizonSteps={data.settings.horizon_steps} />
           <SummaryCard index={1} title="Standard ML baseline (XGBoost + SHAP)" summary={data.summary.baseline} tone="warn" horizonSteps={data.settings.horizon_steps} />
@@ -387,6 +443,7 @@ export function Benchmark() {
             </div>
           </Panel>
         </div>
+        </>
       )}
     </div>
   );

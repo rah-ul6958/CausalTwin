@@ -1,8 +1,11 @@
 "use client";
 
-/** Layout shell: sidebar navigation, top bar, live connection, and the guided demo panel. */
+/** Layout shell: collapsible sidebar, command bar, live connection, and the guided demo panel. */
 
+import { motion, useReducedMotion } from "framer-motion";
 import {
+  ChevronsLeft,
+  ChevronsRight,
   Clapperboard,
   Database,
   FlaskConical,
@@ -27,9 +30,11 @@ import { DataSourceBadge } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
-import { humanize } from "@/lib/format";
+import { formatPercent, humanize } from "@/lib/format";
 import { useDataSource } from "@/lib/data-source";
+import { setSidebarExpanded, useSidebarExpanded } from "@/lib/sidebar";
 import { useLiveStore, type ConnectionState } from "@/lib/store";
+import { useApi } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
 const NAVIGATION = [
@@ -43,37 +48,119 @@ const NAVIGATION = [
   { href: "/data", label: "Data", icon: Database },
 ];
 
+function isActive(href: string, pathname: string): boolean {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+/** The CausalTwin mark: a spindle ring with three causal nodes. */
+function BrandMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
+      <defs>
+        <linearGradient id="brand-gradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#7dd3fc" />
+          <stop offset="1" stopColor="#a78bfa" />
+        </linearGradient>
+      </defs>
+      <circle cx="16" cy="16" r="11" fill="none" stroke="url(#brand-gradient)" strokeWidth="1.6" strokeDasharray="3 2.2" />
+      <circle cx="16" cy="16" r="4.2" fill="none" stroke="#22d3ee" strokeWidth="1.6" />
+      <path d="M8 9 L13.5 13.6 M24 9 L18.5 13.6 M16 27 L16 20.4" stroke="url(#brand-gradient)" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="8" cy="9" r="1.8" fill="#7dd3fc" />
+      <circle cx="24" cy="9" r="1.8" fill="#a78bfa" />
+      <circle cx="16" cy="27" r="1.8" fill="#22d3ee" />
+    </svg>
+  );
+}
+
 function Sidebar() {
   const pathname = usePathname();
+  const expanded = useSidebarExpanded();
+  const reduceMotion = useReducedMotion();
   return (
-    <nav aria-label="Main" className="fixed inset-y-0 left-0 z-30 flex w-[72px] flex-col items-center gap-1 border-r border-line bg-[#060a14]/80 py-4 backdrop-blur-xl">
-      <Link href="/" className="mb-4 flex size-10 items-center justify-center rounded-xl border border-causal/40 bg-causal/10 font-heading text-sm font-bold text-causal">
-        CT
+    <nav
+      aria-label="Main"
+      className={cn(
+        "fixed inset-y-0 left-0 z-30 flex w-[72px] flex-col border-r border-line bg-[#04070d]/85 px-3 py-4 backdrop-blur-xl transition-[width] duration-300",
+        expanded && "lg:w-[228px]",
+      )}
+    >
+      <Link href="/" className="mb-6 flex h-10 items-center gap-2.5 rounded-xl px-1.5" aria-label="CausalTwin overview">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-causal/30 bg-causal/5 shadow-[0_0_24px_-8px_var(--causal)]">
+          <BrandMark className="size-6" />
+        </span>
+        <span className={cn("hidden flex-col leading-none", expanded && "lg:flex")}>
+          <span className="font-heading text-sm font-semibold tracking-tight text-slate-50">CausalTwin</span>
+          <span className="hud-label mt-1 !text-[9px]">Failure intelligence</span>
+        </span>
       </Link>
-      {NAVIGATION.map(({ href, label, icon: Icon }) => {
-        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-        return (
-          <Tooltip key={href}>
-            <TooltipTrigger asChild>
-              <Link
-                href={href}
-                aria-label={label}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex size-11 items-center justify-center rounded-xl text-slate-400 transition-all hover:bg-white/5 hover:text-slate-100 focus-visible:ring-2 focus-visible:ring-causal",
-                  active && "bg-causal/10 text-causal shadow-[0_0_18px_-4px_var(--causal)]",
-                )}
-              >
-                <Icon className="size-5" aria-hidden />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">{label}</TooltipContent>
-          </Tooltip>
-        );
-      })}
+      <p className={cn("hud-label mb-2 hidden px-2", expanded && "lg:block")}>Workspace</p>
+      <ul className="flex flex-col gap-1">
+        {NAVIGATION.map(({ href, label, icon: Icon }) => {
+          const active = isActive(href, pathname);
+          const link = (
+            <Link
+              href={href}
+              aria-label={label}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "group relative flex h-11 items-center gap-3 rounded-xl px-3 text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-slate-100 focus-visible:ring-2 focus-visible:ring-causal",
+                active && "text-cyan-100",
+              )}
+            >
+              {active && (
+                <motion.span
+                  layoutId="nav-active"
+                  transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 420, damping: 34 }}
+                  className="absolute inset-0 rounded-xl border border-causal/25 bg-gradient-to-r from-causal/15 to-causal/[0.02] shadow-[0_0_22px_-8px_var(--causal)]"
+                >
+                  <span className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-full bg-causal shadow-[0_0_10px_var(--causal)]" />
+                </motion.span>
+              )}
+              <Icon className="relative size-5 shrink-0 transition-transform duration-200 group-hover:scale-110" aria-hidden />
+              <span className={cn("relative hidden truncate text-sm", expanded && "lg:inline")}>{label}</span>
+            </Link>
+          );
+          return (
+            <li key={href}>
+              {expanded ? (
+                <>
+                  <span className="hidden lg:block">{link}</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="block lg:hidden">{link}</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{label}</TooltipContent>
+                  </Tooltip>
+                </>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>{link}</TooltipTrigger>
+                  <TooltipContent side="right">{label}</TooltipContent>
+                </Tooltip>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <button
+        type="button"
+        onClick={() => setSidebarExpanded(!expanded)}
+        className="mt-auto hidden h-10 items-center gap-3 rounded-xl px-3 text-xs text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-slate-100 lg:flex"
+        aria-label={expanded ? "Collapse the sidebar" : "Expand the sidebar"}
+        aria-expanded={expanded}
+      >
+        {expanded ? <ChevronsLeft className="size-5 shrink-0" aria-hidden /> : <ChevronsRight className="size-5 shrink-0" aria-hidden />}
+        <span className={cn("hidden", expanded && "lg:inline")}>Collapse</span>
+      </button>
     </nav>
   );
 }
+
+const CONNECTION_STYLE: Record<ConnectionState, { color: string; text: string; ring: string }> = {
+  open: { color: "bg-good", text: "Live", ring: "border-good/30 bg-good/5" },
+  connecting: { color: "bg-warn", text: "Connecting", ring: "border-warn/30 bg-warn/5" },
+  closed: { color: "bg-risk", text: "Offline - retrying", ring: "border-risk/30 bg-risk/5" },
+};
 
 /** Whether this tab has its own live simulation on the server or shares one (the reason is in the tooltip). */
 function SessionBadge() {
@@ -104,18 +191,30 @@ function SessionBadge() {
   );
 }
 
-const CONNECTION_STYLE: Record<ConnectionState, { color: string; text: string }> = {
-  open: { color: "bg-good", text: "Live" },
-  connecting: { color: "bg-warn animate-pulse", text: "Connecting" },
-  closed: { color: "bg-risk", text: "Offline - retrying" },
-};
+/** The twin's latest risk estimate, colored against the optimizer's target risk (live data only). */
+function RiskReadout() {
+  const latestRisk = useLiveStore((state) => state.latestRisk);
+  const config = useApi(() => api.config(), "config");
+  const probability = latestRisk?.twin_risk?.probability;
+  const target = config.data?.optimizer.target_risk;
+  if (probability === undefined || target === undefined) return null;
+  const tone = probability >= target ? "text-rose-300" : probability >= target / 2 ? "text-amber-200" : "text-emerald-200";
+  return (
+    <span className="hidden items-center gap-1.5 xl:flex">
+      <span className="hud-label">Twin risk</span>
+      <span className={cn("tabular text-xs", tone)}>{formatPercent(probability)}</span>
+    </span>
+  );
+}
 
 function TopBar({ onDemo }: { onDemo: () => void }) {
+  const pathname = usePathname();
   const connection = useLiveStore((state) => state.connection);
   const status = useLiveStore((state) => state.status);
   const setStatus = useLiveStore((state) => state.setStatus);
   const style = CONNECTION_STYLE[connection];
   const source = useDataSource();
+  const page = NAVIGATION.find((item) => isActive(item.href, pathname));
 
   const toggleRunning = async () => {
     if (!status) return;
@@ -124,29 +223,47 @@ function TopBar({ onDemo }: { onDemo: () => void }) {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b border-line bg-[#05070d]/70 px-6 backdrop-blur-xl">
-      <div className="flex items-center gap-3">
-        <span className="font-heading text-base font-semibold tracking-tight text-slate-100">CausalTwin</span>
+    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b border-line bg-[#03050a]/75 px-6 backdrop-blur-xl">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="hidden min-w-0 items-center gap-2 text-sm sm:flex">
+          <span className="font-heading font-semibold tracking-tight text-slate-100">CausalTwin</span>
+          {page && page.href !== "/" && (
+            <>
+              <span className="text-slate-600" aria-hidden>
+                /
+              </span>
+              <span className="truncate text-slate-400">{page.label}</span>
+            </>
+          )}
+        </span>
         <DataSourceBadge />
         <SessionBadge />
       </div>
       <div className="flex items-center gap-3 text-xs">
         {status && (
-          <span className="hidden items-center gap-3 text-muted-foreground md:flex">
+          <span className="hidden items-center gap-4 text-muted-foreground md:flex">
             {source.has_simulator ? (
-              <span>
-                Scenario <span className="text-slate-200">{humanize(status.scenario)}</span>
+              <span className="hidden items-center gap-1.5 lg:flex">
+                <span className="hud-label">Scenario</span>
+                <span className="text-slate-200">{humanize(status.scenario)}</span>
               </span>
             ) : (
               <span className="max-w-56 truncate text-cyan-200" title={source.description}>
                 {source.description}
               </span>
             )}
-            <span>
-              Step <span className="tabular text-slate-200" data-testid="sim-step">{status.step}</span>
+            <span className="flex items-center gap-1.5">
+              <span className="hud-label">Step</span>
+              <span className="tabular text-slate-100" data-testid="sim-step">
+                {status.step}
+              </span>
             </span>
+            <RiskReadout />
             {status.active_faults.length > 0 && (
-              <span className="text-warn">Fault: {status.active_faults.map(humanize).join(", ")}</span>
+              <span className="flex items-center gap-1.5 rounded-full border border-warn/40 bg-warn/10 px-2 py-0.5 text-warn">
+                <span className="status-light size-1.5 bg-warn" aria-hidden />
+                Fault: {status.active_faults.map(humanize).join(", ")}
+              </span>
             )}
           </span>
         )}
@@ -166,13 +283,13 @@ function TopBar({ onDemo }: { onDemo: () => void }) {
           onClick={onDemo}
           disabled={!source.has_simulator}
           title={source.has_simulator ? undefined : "The guided demo runs on the simulator; the live data is real."}
-          className="border-whatif/40 text-violet-200"
+          className="border-whatif/40 bg-whatif/5 text-violet-200 hover:bg-whatif/15 hover:shadow-[0_0_20px_-6px_var(--whatif)]"
         >
           <Clapperboard aria-hidden /> Guided demo
         </Button>
-        <span className="flex items-center gap-2 rounded-full border border-line px-2.5 py-1" role="status" aria-live="polite">
-          <span className={cn("size-2 rounded-full", style.color)} aria-hidden />
-          <span className="text-slate-300">{style.text}</span>
+        <span className={cn("flex items-center gap-2 rounded-full border px-2.5 py-1", style.ring)} role="status" aria-live="polite">
+          <span className={cn("size-2 rounded-full", style.color, connection !== "closed" && "status-light")} aria-hidden />
+          <span className="text-slate-200">{style.text}</span>
         </span>
       </div>
     </header>
@@ -181,11 +298,12 @@ function TopBar({ onDemo }: { onDemo: () => void }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [demoOpen, setDemoOpen] = useState(false);
+  const expanded = useSidebarExpanded();
   return (
     <>
       <LiveConnection />
       <Sidebar />
-      <div className="pl-[72px]">
+      <div className={cn("pl-[72px] transition-[padding] duration-300", expanded && "lg:pl-[228px]")}>
         <TopBar onDemo={() => setDemoOpen((open) => !open)} />
         <main className="mx-auto w-full max-w-[1600px] px-6 py-6">{children}</main>
       </div>

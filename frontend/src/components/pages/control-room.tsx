@@ -3,12 +3,30 @@
 /** Control Room: live sensors, the twin's risk gauge, events, alerts, and simulation controls. */
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Bell, ChevronDown, Gauge, History, Pause, Play, RotateCcw, SkipForward, Zap } from "lucide-react";
+import {
+  Activity,
+  Bell,
+  ChevronDown,
+  CircleDot,
+  Cog,
+  Gauge,
+  GitBranch,
+  History,
+  Pause,
+  Play,
+  Radio,
+  RotateCcw,
+  SkipForward,
+  SlidersHorizontal,
+  TriangleAlert,
+  Zap,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { Area, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { RiskGauge } from "@/components/charts/risk-gauge";
 import { SensorChart, type SeriesPoint } from "@/components/charts/sensor-chart";
+import { riskLevel, SpindleTwin, type RiskLevel } from "@/components/charts/spindle-twin";
 import { CountUp } from "@/components/common/count-up";
 import { PageHeader, variableColor } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
@@ -26,6 +44,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { api, type SimAction } from "@/lib/api";
 import { LIVE_BUFFER_POINTS } from "@/lib/config";
+import type { AppConfig } from "@/lib/types";
 import { formatNumber, formatPercent, humanize } from "@/lib/format";
 import { useDataSource } from "@/lib/data-source";
 import { useLiveStore, type RiskPoint } from "@/lib/store";
@@ -61,6 +80,131 @@ function useCurrentRisk(): { known: boolean; risk: RiskEstimate | null; truth: n
   return { known: true, risk, truth: lastTruth };
 }
 
+const LEVEL_STYLE: Record<RiskLevel, { text: string; className: string }> = {
+  low: { text: "Low risk", className: "border-good/40 bg-good/10 text-emerald-200" },
+  elevated: { text: "Elevated risk", className: "border-warn/40 bg-warn/10 text-amber-200" },
+  critical: { text: "Critical: above target", className: "border-risk/50 bg-risk/10 text-rose-200" },
+  unknown: { text: "No estimate", className: "border-line text-slate-300" },
+};
+
+/** Low, elevated or critical, relative to the optimizer's target risk. */
+function RiskLevelChip({ level }: { level: RiskLevel }) {
+  const style = LEVEL_STYLE[level];
+  return (
+    <span className={cn("mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium", style.className)}>
+      <span className={cn("size-1.5 rounded-full bg-current", level === "critical" && "status-light")} aria-hidden />
+      {style.text}
+    </span>
+  );
+}
+
+/** One tile of the machine status strip. */
+function StatusTile({ icon: Icon, label, value, tone = "text-slate-100", pulse }: { icon: typeof Activity; label: string; value: string; tone?: string; pulse?: string }) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-line bg-white/[0.02] px-3 py-2.5">
+      <span className="relative flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-[#060a13]">
+        <Icon className={cn("size-4", tone)} aria-hidden />
+        {pulse && <span className={cn("status-light absolute -top-0.5 -right-0.5 size-2", pulse)} aria-hidden />}
+      </span>
+      <div className="min-w-0">
+        <p className="hud-label truncate">{label}</p>
+        <p className={cn("tabular truncate text-sm", tone)}>{value}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Machine status at a glance; every value comes from the live stream or the status poll. */
+function MachineStatusStrip({ target }: { target: number | undefined }) {
+  const latest = useLiveStore((state) => state.latest);
+  const status = useLiveStore((state) => state.status);
+  const connection = useLiveStore((state) => state.connection);
+  const { risk } = useCurrentRisk();
+  const level = riskLevel(risk?.probability, target);
+  const running = latest ? latest.machine_running === 1 : null;
+  const failed = latest?.failure === 1;
+  const faults = status?.active_faults ?? [];
+  const interventions = Object.keys(status?.interventions ?? {}).length;
+  const drift = status?.drift_state ?? "unknown";
+  return (
+    <section aria-label="Machine status" className="col-span-full grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+      <StatusTile
+        icon={Cog}
+        label="Machine"
+        value={failed ? "Failure" : running === null ? "Waiting" : running ? "Running" : "Stopped"}
+        tone={failed ? "text-rose-300" : running ? "text-emerald-200" : "text-amber-200"}
+        pulse={running && !failed ? "bg-good" : failed ? "bg-risk" : undefined}
+      />
+      <StatusTile
+        icon={Radio}
+        label="Stream"
+        value={connection === "open" ? "Connected" : connection === "connecting" ? "Connecting" : "Reconnecting"}
+        tone={connection === "open" ? "text-cyan-100" : "text-amber-200"}
+      />
+      <StatusTile icon={CircleDot} label="Simulation step" value={status ? status.step.toLocaleString() : "-"} />
+      <StatusTile
+        icon={Gauge}
+        label="Twin risk"
+        value={risk ? `${formatPercent(risk.probability)} - ${LEVEL_STYLE[level].text.split(":")[0].replace(" risk", "")}` : "No estimate"}
+        tone={level === "critical" ? "text-rose-300" : level === "elevated" ? "text-amber-200" : level === "low" ? "text-emerald-200" : "text-slate-300"}
+        pulse={level === "critical" ? "bg-risk" : undefined}
+      />
+      <StatusTile
+        icon={GitBranch}
+        label="Drift monitor"
+        value={humanize(drift)}
+        tone={drift === "monitoring" ? "text-slate-100" : "text-amber-200"}
+        pulse={drift !== "monitoring" && drift !== "unknown" ? "bg-warn" : undefined}
+      />
+      <StatusTile
+        icon={faults.length ? TriangleAlert : SlidersHorizontal}
+        label={faults.length ? "Active fault" : "Interventions"}
+        value={faults.length ? faults.map(humanize).join(", ") : interventions ? `${interventions} lever(s) held` : "None"}
+        tone={faults.length ? "text-amber-200" : "text-slate-100"}
+        pulse={faults.length ? "bg-warn" : undefined}
+      />
+    </section>
+  );
+}
+
+/** The live spindle visualization with a legend of what drives it. */
+function SpindlePanel({ config, target }: { config: AppConfig; target: number }) {
+  const { risk } = useCurrentRisk();
+  return (
+    <Panel
+      index={0}
+      title="Live spindle"
+      subtitle="Every element follows the streamed readings"
+      icon={<Cog className="size-4" />}
+      actions={
+        <InfoTip label="What the spindle visual shows">
+          A drawing of the live readings, not a 3D model. The rotor turns faster with spindle speed (slowed down for readability)
+          and stops when the machine stops; the bearing ring turns amber, then red, as bearing temperature nears and passes the top
+          of its normal range; the rotor shakes only while vibration is above its normal range; the coolant channel flows with
+          coolant flow; the orange arc fills with tool wear. The core takes the colour of the twin&apos;s risk level, amber during an
+          injected fault and red at a failure. Normal ranges are illustrative.
+        </InfoTip>
+      }
+    >
+      <SpindleTwin config={config} riskLevel={riskLevel(risk?.probability, target)} className="mx-auto max-w-[400px]" />
+      <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <li className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-causal" aria-hidden /> Bearing ring: temperature
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-teal-400" aria-hidden /> Channel: coolant flow
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-orange-500" aria-hidden /> Arc: tool wear
+        </li>
+        <li className="flex items-center gap-1.5">
+          <span className="size-2 rounded-full bg-good" aria-hidden /> Core: twin risk level
+        </li>
+      </ul>
+    </Panel>
+  );
+}
+
 function RiskPanel({ settings }: { settings: RiskSettings }) {
   const { known, risk, truth } = useCurrentRisk();
   const source = useDataSource();
@@ -68,7 +212,7 @@ function RiskPanel({ settings }: { settings: RiskSettings }) {
   const horizonMinutes = (settings.horizonSteps * settings.secondsPerStep) / 60;
   return (
     <Panel
-      index={0}
+      index={1}
       demo="risk-gauge"
       testId="risk-panel"
       title={`Failure risk within ${formatNumber(horizonMinutes, 0)} minutes`}
@@ -98,6 +242,7 @@ function RiskPanel({ settings }: { settings: RiskSettings }) {
                 90% interval {formatPercent(risk.lower)} - {formatPercent(risk.upper)} - target {formatPercent(target, 0)}
               </p>
             )}
+            {risk && <RiskLevelChip level={riskLevel(risk.probability, target)} />}
           </div>
           {source.has_simulator ? (
             <>
@@ -147,8 +292,9 @@ function RiskHistory({ target }: { target: number }) {
   const source = useDataSource();
   return (
     <Panel
-      index={1}
+      index={3}
       demo="risk-chart"
+      className="lg:col-span-2"
       title="Risk over time"
       subtitle={source.has_simulator ? "Twin estimate with interval, and the simulator ground truth" : "Twin estimate with interval"}
       icon={<Activity className="size-4" />}
@@ -156,7 +302,7 @@ function RiskHistory({ target }: { target: number }) {
       {data.length < 2 ? (
         <EmptyState title="Waiting for live risk updates" hint="Resume the simulation if it is paused." />
       ) : (
-        <div className="h-60">
+        <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: -10 }}>
               <XAxis dataKey="step" tick={{ fontSize: 10, fill: "#64748b" }} />
@@ -176,9 +322,21 @@ function RiskHistory({ target }: { target: number }) {
                     : [formatPercent(Number(value)), name === "truth" ? "Simulator ground truth" : "Twin estimate"]
                 }
               />
-              <ReferenceLine y={target} stroke="#e2e8f0" strokeDasharray="3 3" strokeOpacity={0.4} />
-              <Area dataKey="band" stroke="none" fill="#22d3ee" fillOpacity={0.12} isAnimationActive={false} />
-              <Line dataKey="twin" stroke="#22d3ee" dot={false} strokeWidth={2} isAnimationActive={false} connectNulls={false} />
+              <defs>
+                <linearGradient id="risk-band" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.28} />
+                  <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.04} />
+                </linearGradient>
+              </defs>
+              <ReferenceLine
+                y={target}
+                stroke="#f43f5e"
+                strokeDasharray="4 4"
+                strokeOpacity={0.55}
+                label={{ value: "target", position: "insideTopRight", fill: "#fda4af", fontSize: 10 }}
+              />
+              <Area dataKey="band" stroke="none" fill="url(#risk-band)" isAnimationActive={false} />
+              <Line dataKey="twin" stroke="#22d3ee" dot={false} strokeWidth={2.2} isAnimationActive={false} connectNulls={false} style={{ filter: "drop-shadow(0 0 4px rgb(34 211 238 / 0.6))" }} />
               <Line dataKey="truth" stroke="#34d399" strokeDasharray="4 3" dot={false} strokeWidth={1.4} isAnimationActive={false} connectNulls />
             </ComposedChart>
           </ResponsiveContainer>
@@ -324,7 +482,7 @@ function SensorGrid() {
   }, [points, variables]);
   return (
     <Panel
-      index={3}
+      index={5}
       title="Live sensors"
       subtitle={`Rolling buffer of the last ${LIVE_BUFFER_POINTS} live readings${config.data ? ` (1 step = ${config.data.seconds_per_step} s of machine time)` : ""}`}
       icon={<Activity className="size-4" />}
@@ -377,8 +535,9 @@ function EventTimeline() {
   );
   return (
     <Panel
-      index={4}
+      index={6}
       title="Event timeline"
+      className="col-span-full"
       subtitle="Failures, maintenance, faults, setpoint changes"
       icon={<History className="size-4" />}
       actions={
@@ -419,7 +578,7 @@ function AlertFeed() {
   const threshold = config.data?.live.alert_risk_threshold;
   const shown = useMemo(() => alerts.slice(-30).reverse(), [alerts]);
   return (
-    <Panel index={5} demo="alert-feed" title="Alerts" subtitle="Risk threshold crossings, causal drift and system errors" icon={<Bell className="size-4" />}>
+    <Panel index={4} demo="alert-feed" title="Alerts" subtitle="Risk threshold crossings, causal drift and system errors" icon={<Bell className="size-4" />}>
       {shown.length === 0 ? (
         <EmptyState
           title="No alerts"
@@ -478,29 +637,34 @@ export function ControlRoom() {
   return (
     <div>
       <PageHeader
+        eyebrow="Module 01 / Live operations"
         title="Control Room"
         description={`${source.has_simulator ? "The live simulated spindle" : source.description}: the twin's failure-risk estimate, events and alerts.`}
       >
         <DataSourceBadge />
       </PageHeader>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(300px,360px)_1fr_minmax(300px,360px)]">
-        {settings ? (
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <MachineStatusStrip target={settings?.target} />
+        {settings && config.data ? (
           <>
+            <SpindlePanel config={config.data} target={settings.target} />
             <RiskPanel settings={settings} />
-            <RiskHistory target={settings.target} />
           </>
         ) : (
           <>
-            <Panel index={0} title="Failure risk">{config.error ? <ErrorState message={config.error} onRetry={config.reload} /> : <PanelSkeleton rows={3} />}</Panel>
-            <Panel index={1} title="Risk over time"><LoadingOrError state={config} rows={4} /></Panel>
+            <Panel index={0} title="Live spindle"><LoadingOrError state={config} rows={4} /></Panel>
+            <Panel index={1} title="Failure risk">{config.error ? <ErrorState message={config.error} onRetry={config.reload} /> : <PanelSkeleton rows={3} />}</Panel>
           </>
         )}
         <Controls />
+        {settings ? (
+          <RiskHistory target={settings.target} />
+        ) : (
+          <Panel index={3} title="Risk over time" className="lg:col-span-2"><LoadingOrError state={config} rows={4} /></Panel>
+        )}
+        <AlertFeed />
         <SensorGrid />
-        <div className="col-span-full grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <EventTimeline />
-          <AlertFeed />
-        </div>
+        <EventTimeline />
       </div>
     </div>
   );

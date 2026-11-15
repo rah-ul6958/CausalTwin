@@ -52,9 +52,14 @@ export function Panel({
       className={cn("glass flex min-w-0 flex-col", className)}
     >
       {(title || actions) && (
-        <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
-          <div className="flex min-w-0 items-center gap-2">
-            {icon && <span className="text-causal">{icon}</span>}
+        <header className="relative flex items-start justify-between gap-3 border-b border-line px-4 py-3">
+          <span className="pointer-events-none absolute inset-x-4 -bottom-px h-px bg-gradient-to-r from-transparent via-causal/25 to-transparent" aria-hidden />
+          <div className="flex min-w-0 items-center gap-2.5">
+            {icon && (
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-causal/20 bg-causal/[0.07] text-causal shadow-[0_0_16px_-6px_var(--causal)]">
+                {icon}
+              </span>
+            )}
             <div className="min-w-0">
               {title && <h2 className="truncate text-sm font-semibold text-slate-100">{title}</h2>}
               {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}

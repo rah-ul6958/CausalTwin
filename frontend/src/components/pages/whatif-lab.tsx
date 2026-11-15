@@ -2,7 +2,8 @@
 
 /** What-If Lab: move the levers, see the ripple through the causal graph and the predicted effect. */
 
-import { FlaskConical, RotateCcw, Timer } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowDownRight, ArrowUpRight, FlaskConical, RotateCcw, Timer } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ForecastChart } from "@/components/charts/forecast-chart";
@@ -18,8 +19,9 @@ import { WHATIF_DEBOUNCE_MS } from "@/lib/config";
 import { formatNumber, formatPercent, formatPoints, formatSigned, humanize, shortUnit } from "@/lib/format";
 import { lagDistances } from "@/lib/graph-layout";
 import { useLiveStore } from "@/lib/store";
-import type { CausalGraph, Intervention, LeverConfig, WhatIfResponse } from "@/lib/types";
+import type { CausalGraph, Intervention, LeverConfig, RiskEstimate, WhatIfResponse } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
+import { cn } from "@/lib/utils";
 
 const RIPPLE_MS_PER_LAG = 220;
 const NEGLIGIBLE_RISK_CHANGE = 0.002;
@@ -34,8 +36,14 @@ function LeverSlider({ name, config, current, value, onChange }: {
   const percent = current ? (100 * (value - current)) / current : 0;
   const cost = Math.abs(percent) * config.cost_per_pct;
   const step = (config.maximum - config.minimum) / 200;
+  const moved = Math.abs(percent) >= 0.5;
   return (
-    <div className="rounded-lg border border-line p-3">
+    <div
+      className={cn(
+        "rounded-xl border p-3 transition-[border-color,box-shadow,background] duration-300",
+        moved ? "border-whatif/50 bg-whatif/[0.06] shadow-[0_0_24px_-10px_var(--whatif)]" : "border-line bg-white/[0.015]",
+      )}
+    >
       <div className="mb-2 flex items-baseline justify-between">
         <label htmlFor={`lever-${name}`} className="text-sm text-slate-100">
           {humanize(name)}
@@ -63,6 +71,48 @@ function LeverSlider({ name, config, current, value, onChange }: {
         </span>
         <span className="text-right">{config.cost_per_pct} per %</span>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Before-and-after failure risk as two bars on one scale, each with its 90% Monte Carlo interval
+ * drawn as a band (the uncertainty of the rollouts).
+ */
+function RiskComparison({ before, after }: { before: RiskEstimate | null | undefined; after: RiskEstimate | null | undefined }) {
+  const reduceMotion = useReducedMotion();
+  const top = Math.max(0.05, before?.upper ?? 0, after?.upper ?? 0) * 1.1;
+  const rows = [
+    { label: "Without change", risk: before, bar: "bg-slate-400/70", band: "bg-slate-300/20" },
+    { label: "With change", risk: after, bar: "bg-gradient-to-r from-violet-500 to-fuchsia-400", band: "bg-whatif/25" },
+  ];
+  return (
+    <div className="space-y-3">
+      {rows.map((row) => (
+        <div key={row.label}>
+          <div className="mb-1 flex items-baseline justify-between text-xs">
+            <span className="text-muted-foreground">{row.label}</span>
+            <span className="tabular text-slate-100">{formatPercent(row.risk?.probability)}</span>
+          </div>
+          <div className="relative h-2.5 overflow-hidden rounded-full bg-white/[0.05]">
+            {row.risk && (
+              <span
+                className={cn("absolute inset-y-0 rounded-full", row.band)}
+                style={{ left: `${(row.risk.lower / top) * 100}%`, width: `${Math.max(0.5, ((row.risk.upper - row.risk.lower) / top) * 100)}%` }}
+                aria-hidden
+              />
+            )}
+            <motion.span
+              className={cn("absolute inset-y-0 left-0 rounded-full", row.bar)}
+              initial={false}
+              animate={{ width: `${((row.risk?.probability ?? 0) / top) * 100}%` }}
+              transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 140, damping: 22 }}
+              aria-hidden
+            />
+          </div>
+        </div>
+      ))}
+      <p className="text-[10px] text-muted-foreground">Bands: 90% interval across the Monte Carlo rollouts.</p>
     </div>
   );
 }
@@ -157,13 +207,23 @@ export function WhatIfLab() {
 
   return (
     <div>
-      <PageHeader title="What-If Lab" description={`Move a lever and the twin simulates the next ${horizonText} with and without the change (${rollouts ?? "-"} Monte Carlo rollouts, same noise for both).`}>
+      <PageHeader eyebrow="Module 03 / Simulation environment" title="What-If Lab" description={`Move a lever and the twin simulates the next ${horizonText} with and without the change (${rollouts ?? "-"} Monte Carlo rollouts, same noise for both).`}>
         <DataSourceBadge />
         <HowComputed provenance={result?.provenance} title="How this what-if was simulated" />
         <Button size="sm" variant="outline" onClick={() => { setOverrides({}); setResult(null); }}>
           <RotateCcw aria-hidden /> Reset levers
         </Button>
       </PageHeader>
+      <div className="mb-4 h-5" aria-live="polite">
+        {pending ? (
+          <div className="flex items-center gap-3">
+            <span className="hud-label shrink-0 !text-violet-300">Evaluating new simulation: {rollouts ?? "-"} Monte Carlo rollouts</span>
+            <div className="scan-bar flex-1" aria-hidden />
+          </div>
+        ) : what ? (
+          <span className="hud-label !text-slate-400">Experiment ready: {changed.length} lever(s) changed, {rollouts ?? "-"} rollouts per arm</span>
+        ) : null}
+      </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[380px_1fr]">
         <Panel index={0} title="Control levers" subtitle="Allowed range and illustrative cost per % change" icon={<FlaskConical className="size-4 text-whatif" />}>
           {config.error ? (
@@ -186,23 +246,26 @@ export function WhatIfLab() {
             </div>
           )}
         </Panel>
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className={cn("flex min-w-0 flex-col gap-4 transition-opacity duration-300", pending && "opacity-70")}>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Panel index={1} title="Failure risk" subtitle={`Twin estimate, next ${horizonText}`} actions={what && <TimingChip ms={what.computation_ms} />}>
               {!what ? (
                 <EmptyState title={pending ? "Simulating..." : "Move a lever to start"} />
               ) : (
-                <div className="tabular space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    without change <span className="text-slate-100">{formatPercent(what.baseline_risk?.probability)}</span>
-                  </p>
-                  <p className="text-3xl text-violet-100">{formatPercent(what.risk?.probability)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    90% interval {formatPercent(what.risk?.lower)} - {formatPercent(what.risk?.upper)}
-                  </p>
-                  <p className={(what.risk_change ?? 0) < 0 ? "text-sm text-good" : "text-sm text-risk"}>
-                    {formatPoints(what.risk_change, 2, "percentage points")}
-                  </p>
+                <div className="tabular space-y-3">
+                  <div className="flex items-end justify-between gap-2">
+                    <p className="text-3xl text-violet-100">{formatPercent(what.risk?.probability)}</p>
+                    <p
+                      className={cn(
+                        "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs",
+                        (what.risk_change ?? 0) < 0 ? "border-good/40 bg-good/10 text-good" : "border-risk/40 bg-risk/10 text-risk",
+                      )}
+                    >
+                      {(what.risk_change ?? 0) < 0 ? <ArrowDownRight className="size-3" aria-hidden /> : <ArrowUpRight className="size-3" aria-hidden />}
+                      {formatPoints(what.risk_change, 2, "percentage points")}
+                    </p>
+                  </div>
+                  <RiskComparison before={what.baseline_risk} after={what.risk} />
                 </div>
               )}
             </Panel>

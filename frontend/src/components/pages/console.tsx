@@ -285,7 +285,7 @@ export function SystemConsole() {
   const logs = useMemo(() => mergeLogs(mainLogs, routineLogs), [mainLogs, routineLogs]);
   return (
     <div>
-      <PageHeader title="System Console" description="Every process, its timing against the budget, and every model, in the open.">
+      <PageHeader eyebrow="Module 06 / Execution environment" title="System Console" description="Every process, its timing against the budget, and every model, in the open.">
         <DataSourceBadge />
       </PageHeader>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

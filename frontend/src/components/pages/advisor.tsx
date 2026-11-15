@@ -3,6 +3,7 @@
 /** Intervention Advisor: recommendation, baseline contrast, root cause, full search table, apply and verify. */
 
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ArrowUpDown, ChevronDown, CircleCheck, Lightbulb, RefreshCw, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Bar, BarChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -48,6 +49,64 @@ function actionText(recommendation: Recommendation): string {
   return parts.join(" + ");
 }
 
+/** The recommended action, its parameter adjustments and the risk drop, revealed in sequence. */
+function ActionHero({ recommendation }: { recommendation: Recommendation }) {
+  const reduceMotion = useReducedMotion();
+  const drop = recommendation.risk_before.probability - recommendation.risk_after.probability;
+  const reveal = (delay: number) =>
+    reduceMotion
+      ? {}
+      : { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, delay, ease: [0.2, 0.8, 0.2, 1] as const } };
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-causal/35 bg-gradient-to-br from-causal/[0.09] via-transparent to-whatif/[0.07] p-4 shadow-[0_0_40px_-18px_var(--causal)]">
+      <span className="pointer-events-none absolute -top-16 -right-10 size-40 rounded-full bg-causal/15 blur-3xl" aria-hidden />
+      <motion.p className="hud-label !text-cyan-300/90" {...reveal(0)}>
+        Recommended intervention
+      </motion.p>
+      <motion.p className="text-gradient mt-1 font-heading text-xl font-semibold leading-snug" {...reveal(0.08)}>
+        {actionText(recommendation)}
+      </motion.p>
+      {recommendation.changes.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {recommendation.changes.map((change, index) => (
+            <motion.li
+              key={change.lever}
+              className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-[#060a13]/70 px-3 py-2 text-xs"
+              {...reveal(0.16 + index * 0.08)}
+            >
+              <span className="min-w-28 text-slate-300">{humanize(change.lever)}</span>
+              <span className="tabular text-slate-400">{formatNumber(change.from_value)}</span>
+              <ArrowRight className="size-3.5 text-causal" aria-hidden />
+              <span className="tabular text-cyan-100">{formatNumber(change.to_value)}</span>
+              <span className="tabular ml-auto rounded-full border border-causal/30 bg-causal/10 px-2 py-0.5 text-cyan-200">
+                {formatSigned(change.change_pct, 0)}%
+              </span>
+            </motion.li>
+          ))}
+        </ul>
+      )}
+      <motion.div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs" {...reveal(0.3)}>
+        <span className="flex items-center gap-1.5">
+          <span className="hud-label">Risk</span>
+          <span className="tabular text-rose-200">{formatPercent(recommendation.risk_before.probability)}</span>
+          <ArrowRight className="size-3 text-muted-foreground" aria-hidden />
+          <span className="tabular text-emerald-200">{formatPercent(recommendation.risk_after.probability)}</span>
+        </span>
+        {drop > 0 && <span className="tabular text-good">-{formatPercent(drop, 1).replace("%", "")} percentage points predicted</span>}
+      </motion.div>
+      {recommendation.causal_paths.length > 0 && (
+        <motion.p className="mt-2 text-xs text-muted-foreground" {...reveal(0.38)}>
+          <span className="hud-label mr-1.5">Root cause addressed</span>
+          <span className="font-mono text-cyan-200">{recommendation.causal_paths[0]}</span>
+        </motion.p>
+      )}
+      <motion.p className="mt-3 text-xs leading-relaxed text-slate-300" {...reveal(0.45)}>
+        {recommendation.explanation}
+      </motion.p>
+    </div>
+  );
+}
+
 function RecommendationCard({ recommendation, provenanceNode, onApply, applying }: {
   recommendation: Recommendation;
   provenanceNode: React.ReactNode;
@@ -60,10 +119,7 @@ function RecommendationCard({ recommendation, provenanceNode, onApply, applying 
   return (
     <Panel index={0} demo="recommendation" testId="recommendation-card" title="CausalTwin recommendation" subtitle="Cheapest evaluated change that brings predicted risk below the target" icon={<Lightbulb className="size-4" />} actions={<>{provenanceNode}<TimingChip ms={recommendation.search_ms} label="search" /></>}>
       <div className="space-y-4 text-sm">
-        <div className="rounded-lg border border-causal/30 bg-causal/5 p-3">
-          <p className="font-heading text-lg text-cyan-100">{actionText(recommendation)}</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-300">{recommendation.explanation}</p>
-        </div>
+        <ActionHero key={actionText(recommendation)} recommendation={recommendation} />
         <div className="space-y-3">
           <RiskBar label="Predicted risk before" risk={recommendation.risk_before} target={recommendation.target_risk} tone="before" />
           <RiskBar label="Predicted risk after" risk={recommendation.risk_after} target={recommendation.target_risk} tone="after" />
@@ -102,13 +158,17 @@ function RecommendationCard({ recommendation, provenanceNode, onApply, applying 
             </div>
           )}
         </div>
-        {recommendation.causal_paths.length > 0 && (
+        {recommendation.causal_paths.length > 1 && (
           <p className="text-xs text-muted-foreground">
-            Causal path: <span className="font-mono text-cyan-200">{recommendation.causal_paths.join("; ")}</span>
+            All causal paths: <span className="font-mono text-cyan-200">{recommendation.causal_paths.join("; ")}</span>
           </p>
         )}
         {source.has_simulator ? (
-          <Button onClick={onApply} disabled={applying || recommendation.action_type === "none"} className="w-full">
+          <Button
+            onClick={onApply}
+            disabled={applying || recommendation.action_type === "none"}
+            className="w-full bg-gradient-to-r from-cyan-400 to-sky-400 font-semibold text-slate-950 shadow-[0_0_28px_-8px_var(--causal)] hover:shadow-[0_0_36px_-6px_var(--causal)]"
+          >
             <Sparkles aria-hidden /> {applying ? "Applying..." : "Apply to the live machine"}
           </Button>
         ) : (
@@ -353,7 +413,7 @@ export function Advisor() {
   const data = recommendation.data;
   return (
     <div>
-      <PageHeader title="Intervention Advisor" description="Which lever actually prevents failure, how much to change it, what it costs, and how sure we are.">
+      <PageHeader eyebrow="Module 04 / Recommendation engine" title="Intervention Advisor" description="Which lever actually prevents failure, how much to change it, what it costs, and how sure we are.">
         <DataSourceBadge />
         <Button size="sm" variant="outline" onClick={() => { recommendation.reload(); rootCause.reload(); }}>
           <RefreshCw aria-hidden /> Recompute for the current state

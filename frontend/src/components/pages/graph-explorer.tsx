@@ -256,7 +256,7 @@ export function GraphExplorer() {
 
   return (
     <div>
-      <PageHeader title="Causal Graph Explorer" description="Click an edge for its evidence, or a node for its fitted equation. Toggle correlation and causation to see the trap.">
+      <PageHeader eyebrow="Module 02 / Causal intelligence network" title="Causal Graph Explorer" description="Click an edge for its evidence, or a node for its fitted equation. Toggle correlation and causation to see the trap.">
         <DataSourceBadge />
         <HowComputed provenance={causal.data?.provenance} title="Discovery of this causal graph" />
       </PageHeader>

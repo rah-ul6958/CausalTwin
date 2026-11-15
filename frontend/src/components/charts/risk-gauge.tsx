@@ -3,6 +3,7 @@
 /**
  * Animated semicircle gauge for the twin's failure-risk estimate with its interval.
  * The scale is square-root (small risks stay visible); tick labels show the true values.
+ * Zones: low (below half the target), elevated (up to the target), critical (at or above it).
  */
 
 import { motion, useReducedMotion, useSpring, useTransform } from "framer-motion";
@@ -41,6 +42,8 @@ export function RiskGauge({ risk, target }: { risk: RiskEstimate | null; target:
   const reduceMotion = useReducedMotion();
   const spring = useSpring(0, reduceMotion ? { duration: 0 } : { stiffness: 80, damping: 18 });
   const valuePath = useTransform(spring, (value) => arcPath(0, value));
+  const needleX = useTransform(spring, (value) => point(value, RADIUS - 30)[0]);
+  const needleY = useTransform(spring, (value) => point(value, RADIUS - 30)[1]);
   const value = risk?.probability ?? 0;
 
   useEffect(() => {
@@ -50,7 +53,20 @@ export function RiskGauge({ risk, target }: { risk: RiskEstimate | null; target:
   const color = riskColor(value, target);
   return (
     <svg viewBox="0 0 240 150" className="w-full max-w-[320px]" role="img" aria-label={`Twin risk estimate ${formatPercent(risk?.probability)}`}>
-      <path d={arcPath(0, 1)} stroke="rgb(148 163 184 / 0.15)" strokeWidth={14} fill="none" strokeLinecap="round" />
+      <defs>
+        <filter id="gauge-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <path d={arcPath(0, 1)} stroke="rgb(148 163 184 / 0.12)" strokeWidth={14} fill="none" strokeLinecap="round" />
+      {/* Zones: low, elevated, critical (relative to the target risk). */}
+      <path d={arcPath(0, toScale(target / 2), RADIUS - 13)} stroke="#34d399" strokeOpacity={0.55} strokeWidth={2.5} fill="none" />
+      <path d={arcPath(toScale(target / 2), toScale(target), RADIUS - 13)} stroke="#fbbf24" strokeOpacity={0.6} strokeWidth={2.5} fill="none" />
+      <path d={arcPath(toScale(target), 1, RADIUS - 13)} stroke="#f43f5e" strokeOpacity={0.55} strokeWidth={2.5} fill="none" />
       {risk && (
         <path
           d={arcPath(toScale(risk.lower), toScale(risk.upper), RADIUS + 13)}
@@ -61,7 +77,13 @@ export function RiskGauge({ risk, target }: { risk: RiskEstimate | null; target:
           strokeLinecap="round"
         />
       )}
-      <motion.path d={valuePath} stroke={color} strokeWidth={14} fill="none" strokeLinecap="round" style={{ filter: `drop-shadow(0 0 8px ${color})` }} />
+      <motion.path d={valuePath} stroke={color} strokeWidth={14} fill="none" strokeLinecap="round" filter="url(#gauge-glow)" />
+      {risk && (
+        <>
+          <motion.line x1={CENTER_X} y1={CENTER_Y} x2={needleX} y2={needleY} stroke="#e2e8f0" strokeWidth={1.6} strokeLinecap="round" />
+          <circle cx={CENTER_X} cy={CENTER_Y} r={4} fill="#03050a" stroke={color} strokeWidth={2} />
+        </>
+      )}
       {(() => {
         const [x1, y1] = point(toScale(target), RADIUS - 12);
         const [x2, y2] = point(toScale(target), RADIUS + 9);
