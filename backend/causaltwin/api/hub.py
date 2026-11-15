@@ -20,10 +20,14 @@ class StreamHub:
         self._log_lock = threading.Lock()
         self.sent_counts: dict[str, int] = {}
 
-    def bind(self, loop: asyncio.AbstractEventLoop) -> None:
-        """Remember the event loop that owns the client queues."""
+    def bind(self, loop: asyncio.AbstractEventLoop, loop_thread: int | None = None) -> None:
+        """Remember the event loop that owns the client queues.
+
+        `loop_thread` is the id of the thread running `loop`; it defaults to the calling thread,
+        so pass it when binding from another thread (a session created in a worker thread).
+        """
         self.loop = loop
-        self.loop_thread = threading.get_ident()
+        self.loop_thread = threading.get_ident() if loop_thread is None else loop_thread
 
     def register(self) -> asyncio.Queue[dict[str, Any]]:
         """Add a client and return its queue."""

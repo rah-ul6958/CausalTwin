@@ -14,8 +14,10 @@ from causaltwin.config import (
     DATA_SOURCE_ENV,
     DATA_SOURCES,
     DEFAULT_CORS_ORIGINS,
+    DEFAULT_MAX_SESSIONS,
     DISCOVERY_JOBS_ENV,
     DISCOVERY_N_JOBS,
+    MAX_SESSIONS_ENV,
     MTCONNECT_URL_ENV,
     REPLAY_PATH_ENV,
     REPLAY_SIMULATED_ENV,
@@ -32,8 +34,8 @@ def _flag(name: str, default: bool) -> bool:
     return value.strip().lower() not in ("0", "false", "no", "off")
 
 
-def _positive_int(name: str, default: int) -> int:
-    """A positive integer environment variable; a missing or invalid value gives the default."""
+def _whole_number(name: str, default: int, minimum: int) -> int:
+    """A whole-number environment variable; missing gives the default, invalid or too small an error."""
     value = os.environ.get(name, "").strip()
     if not value:
         return default
@@ -41,9 +43,14 @@ def _positive_int(name: str, default: int) -> int:
         number = int(value)
     except ValueError as error:
         raise ValueError(f"{name} must be a whole number, got {value!r}") from error
-    if number < 1:
-        raise ValueError(f"{name} must be at least 1, got {number}")
+    if number < minimum:
+        raise ValueError(f"{name} must be at least {minimum}, got {number}")
     return number
+
+
+def _positive_int(name: str, default: int) -> int:
+    """A positive integer environment variable; a missing value gives the default."""
+    return _whole_number(name, default, minimum=1)
 
 
 def _choice(name: str, allowed: tuple[str, ...]) -> str:
@@ -79,6 +86,7 @@ class RuntimeSettings:
     replay_simulated: bool = True
     mtconnect_url: str | None = None
     tag_map: dict[str, str] = field(default_factory=dict)
+    max_sessions: int = DEFAULT_MAX_SESSIONS  # private live simulations at once (0: every viewer shares one)
 
     def source_factory(self) -> Callable[[], DataSource] | None:
         """How the live loop gets its data; None means the built-in simulator."""
@@ -110,4 +118,5 @@ class RuntimeSettings:
             replay_simulated=_flag(REPLAY_SIMULATED_ENV, True),
             mtconnect_url=os.environ.get(MTCONNECT_URL_ENV) or None,
             tag_map=_tag_map(),
+            max_sessions=_whole_number(MAX_SESSIONS_ENV, DEFAULT_MAX_SESSIONS, minimum=0),
         )

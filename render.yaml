@@ -22,5 +22,10 @@ services:
         value: "1"
       - key: CAUSALTWIN_ALLOW_BENCHMARK_RUN
         value: "0"
+      # Each browser tab gets its own private live simulation, up to this many at once (later viewers
+      # share one). Every watched simulation needs CPU: 2 suits the free plan, 3 to 4 a paid one.
+      # Simulations step only while someone watches them, so unused ones cost no CPU.
+      - key: CAUSALTWIN_MAX_SESSIONS
+        value: "2"
       - key: CAUSALTWIN_AUTOSTART
         value: "1"

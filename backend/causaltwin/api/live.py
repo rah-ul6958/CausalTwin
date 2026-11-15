@@ -12,10 +12,15 @@ so every change to the simulator, buffer or engine happens while holding `LiveLo
 a snapshot under the lock and then run without it, so the live simulation keeps its pace: a
 drift rewiring replaces the engine's model and graph objects instead of editing them, so a
 shallow copy of the engine stays consistent.
+
+Every viewer can have its own loop (see sessions.py). The trained models are shared by all
+loops: each loop works on its own deep copy of the engine, and the baseline's SHAP explainer
+is used one call at a time across all loops.
 """
 
 import asyncio
 import copy
+import itertools
 import threading
 import time
 from collections import deque
@@ -53,7 +58,7 @@ from causaltwin.intelligence.optimizer import recommend
 from causaltwin.intelligence.schemas import BaselineAction, DriftAlert, Recommendation
 from causaltwin.intelligence.training import TrainedModels
 from causaltwin.simulator import MachineSimulator, build_simulator, failure_probability, switch_scenario
-from causaltwin.utils.activity_log import get_activity_logger
+from causaltwin.utils.activity_log import get_activity_logger, set_log_session
 from causaltwin.utils.formatting import format_value
 from causaltwin.utils.timing import timed_step
 
@@ -72,6 +77,11 @@ DEMO_PUSH_SETTINGS = {
 }
 DEMO_FAULT = "coolant_filter_clog"
 DEMO_STEPS_AFTER_APPLY = 10  # beat "apply" runs this long; beat "risk drops" runs to the end of the horizon
+# Run ids are unique in the whole process, so a viewer whose simulation was replaced by a new one
+# (for example after a long absence) always sees a new run id and redraws its charts.
+_RUN_IDS = itertools.count(1)
+# The baseline's SHAP explainer belongs to the shared trained models; one explanation at a time.
+_BASELINE_LOCK = threading.Lock()
 
 
 def _timestamp(step: int) -> str:
@@ -89,18 +99,30 @@ class LiveLoop:
     """Owns the live data source (the simulator by default), its buffer, the engine copy and drift."""
 
     def __init__(
-        self, models: TrainedModels, hub: StreamHub, source_factory: Callable[[], DataSource] | None = None
+        self,
+        models: TrainedModels,
+        hub: StreamHub,
+        source_factory: Callable[[], DataSource] | None = None,
+        session_id: str | None = None,
+        needs_viewer: bool = False,
     ) -> None:
-        """Create the loop (paused). Without a source factory the live data comes from the simulator."""
+        """Create the loop (paused). Without a source factory the live data comes from the simulator.
+
+        `session_id` tags this loop's activity log entries. With `needs_viewer`, the background
+        task steps only while at least one WebSocket client is connected to the hub (a private
+        simulation nobody watches costs no CPU).
+        """
         self.models = models
         self.hub = hub
         self.source_factory = source_factory
+        self.session_id = session_id
+        self.needs_viewer = needs_viewer
         self.running = False
         self.steps_per_second = LIVE_STEPS_PER_SECOND
         self.task: asyncio.Task[None] | None = None
-        self.run_id = 0  # increases on every reset, so clients can tell runs apart
+        self.run_id = 0  # changes on every reset (unique in the process), so clients can tell runs apart
         self.lock = threading.RLock()  # guards the simulator, buffer and engine (see module docstring)
-        self.baseline_lock = threading.Lock()  # the baseline's SHAP explainer, used one call at a time
+        self.baseline_lock = _BASELINE_LOCK  # the baseline's SHAP explainer, used one call at a time
         self.loop_errors = 0  # steps of the background loop that failed (it pauses and reports each one)
         self.reset(LIVE_SEED, "normal")
 
@@ -114,7 +136,7 @@ class LiveLoop:
 
     def _reset(self, seed: int, scenario: str) -> None:
         """Body of reset (the caller holds the lock)."""
-        self.run_id += 1
+        self.run_id = next(_RUN_IDS)
         self.seed = seed
         self.scenario = scenario
         self.engine = copy.deepcopy(self.models.engine)
@@ -233,7 +255,7 @@ class LiveLoop:
                         "failure": row["failure"],
                         "active_faults": [] if self.simulator is None else sorted(self.simulator.active_faults),
                         "interventions": {} if self.simulator is None else dict(self.simulator.interventions),
-                        "simulated": True,
+                        "simulated": self.source_info.simulated_data,
                     },
                 )
             self.flush_logs()
@@ -343,14 +365,20 @@ class LiveLoop:
             self._last_flush = time.time()
             self.hub.flush_logs()
 
+    @property
+    def should_step(self) -> bool:
+        """True if the background task should step now (running, and watched if it needs a viewer)."""
+        return self.running and (not self.needs_viewer or len(self.hub.clients) > 0)
+
     async def run_forever(self) -> None:
-        """Background task: step while running, otherwise idle.
+        """Background task: step while running (and watched, if it needs a viewer), otherwise idle.
 
         Steps run in a worker thread so the event loop (WebSockets, health checks) stays
         responsive. If a step fails, the loop pauses and reports the error instead of dying.
         """
+        set_log_session(self.session_id)  # this task's log entries belong to this loop's session
         while True:
-            if self.running:
+            if self.should_step:
                 try:
                     await asyncio.to_thread(self.advance, 1)
                 except Exception as error:  # noqa: BLE001 - any failure must pause the loop, not kill it

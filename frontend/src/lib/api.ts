@@ -1,6 +1,7 @@
 /** The one typed client for the CausalTwin backend API. */
 
 import { API_URL, DEMO_TIMEOUT_MS, REQUEST_TIMEOUT_MS, UPLOAD_TIMEOUT_MS } from "@/lib/config";
+import { SESSION_HEADER, sessionId, withSession } from "@/lib/session";
 import type {
   ActionResponse,
   AppConfig,
@@ -41,13 +42,17 @@ export class ApiError extends Error {
 /**
  * Fetch JSON from the backend. Network failures and requests slower than `timeoutMs` become
  * an ApiError with a plain-English message, so every panel can show it with a Retry button.
+ * Every request carries the tab's session id, so it acts on this tab's own live simulation.
  */
 async function request<T>(path: string, init?: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const headers = new Headers(init?.headers);
+  const session = sessionId();
+  if (session) headers.set(SESSION_HEADER, session);
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { cache: "no-store", ...init, signal: controller.signal });
+    response = await fetch(`${API_URL}${path}`, { cache: "no-store", ...init, headers, signal: controller.signal });
   } catch {
     if (controller.signal.aborted) {
       throw new ApiError(0, `The backend did not answer within ${Math.round(timeoutMs / 1000)} s. It may be waking up or busy; retry.`);
@@ -117,7 +122,8 @@ export const api = {
   alerts: (limit = 100) => request<{ alerts: LiveAlert[] }>(`/alerts?limit=${limit}`),
   dataRecent: (n = 300) => request<{ simulated: boolean; rows: SensorRow[] }>(`/data/recent?n=${n}`),
   dataQuality: () => request<{ simulated: boolean; rows: number; columns: ColumnQuality[] }>("/data/quality"),
-  exportUrl: () => `${API_URL}/data/export`,
+  /** A plain link cannot send headers, so the session id goes in the query string. */
+  exportUrl: () => withSession(`${API_URL}/data/export`),
   byodUpload: (file: File, roles: Record<string, string>, timeColumn?: string) => {
     const form = new FormData();
     form.append("file", file);

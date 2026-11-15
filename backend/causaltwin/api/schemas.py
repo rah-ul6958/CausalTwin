@@ -123,6 +123,15 @@ class SimControlRequest(BaseModel):
     value: float | None = Field(default=None, allow_inf_nan=False)
 
 
+class SessionStatus(BaseModel):
+    """Whether the viewer has a private live simulation or shares one, and why."""
+
+    private: bool
+    note: str  # one or two sentences for the viewer
+    private_sessions: int  # private simulations on the server now
+    max_sessions: int  # the server's limit (0: private simulations are off)
+
+
 class SimStatus(BaseModel):
     """Live simulator status."""
 
@@ -136,6 +145,7 @@ class SimStatus(BaseModel):
     drift_state: str
     data_source: dict[str, Any] = Field(default_factory=dict)  # kind, description, has_simulator, simulated
     simulated: bool = True
+    session: SessionStatus | None = None
 
 
 class ModelCardsResponse(BaseModel):

@@ -258,6 +258,16 @@ export interface DataSourceInfo {
   simulated: boolean;
 }
 
+/** Whether this tab has its own live simulation on the server or shares one, and why. */
+export interface SessionStatus {
+  private: boolean;
+  /** One or two sentences for the viewer. */
+  note: string;
+  /** Private simulations on the server now, and the server's limit (0: turned off). */
+  private_sessions: number;
+  max_sessions: number;
+}
+
 export interface SimStatus {
   running: boolean;
   /** Increases on every server-side reset of the live simulation. */
@@ -270,6 +280,7 @@ export interface SimStatus {
   drift_state: string;
   data_source?: DataSourceInfo;
   simulated?: boolean;
+  session?: SessionStatus | null;
 }
 
 export interface ActionResponse {

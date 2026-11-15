@@ -33,17 +33,19 @@ Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test
   - FastAPI with typed Pydantic schemas and a provenance block on every result, plus a WebSocket stream.
   - Next.js frontend, strict TypeScript.
 - **Quality:**
-  - 88 backend tests: simulator, engine, intelligence, API, hardening, concurrency chaos, connectors,
-    the AI4I check, docs.
-  - 41 browser test runs: every page, the full demo, outage, reconnect, random clicking, an axe-core
-    accessibility audit and narrow screens in Chromium; the page smoke tests also in Firefox and WebKit.
+  - 96 backend tests: simulator, engine, intelligence, API, hardening, concurrency chaos, connectors,
+    per-viewer sessions, the AI4I check, docs.
+  - 42 browser test runs: every page, the full demo, two viewers side by side, outage, reconnect, random
+    clicking, an axe-core accessibility audit and narrow screens in Chromium; the page smoke tests also
+    in Firefox and WebKit.
   - ruff, mypy and ESLint all clean.
 - **Performance:** every step within its budget (README timings table, measured by
   `scripts/measure_timings.py`).
 - **Load:** 25 and 50 simultaneous simulated viewers against one backend process, measured (README,
   "Many simultaneous viewers").
-- **Gaps:** heavier load slows the live simulation (about 3 steps per second instead of 5 with 25 busy
-  viewers on a laptop); Edge and mobile browsers are not tested.
+- **Gaps:** watched simulations share the CPU, so heavy load slows them (about 1.4 steps per second
+  instead of 5 with 25 busy viewers and five simulations on a laptop); Edge and mobile browsers are not
+  tested.
 
 ## Innovation and Originality (20%)
 
@@ -94,9 +96,12 @@ Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test
   the README.
 - **Measured load:** 50 simultaneous viewers got every status answer and kept their live streams; heavy
   requests beyond two at a time got "busy, retry".
+- **One simulation per viewer:** each browser tab gets its own private live simulation, demo and stream,
+  so judges cannot disturb each other (tested with two browsers side by side).
 - **Gaps:**
   - multi-machine operation is a design, not built;
-  - the server runs one shared live simulation for all viewers.
+  - private simulations are limited by CPU (4 by default, 2 on Render's free plan); later viewers share
+    one, and the top bar says so.
 
 ## Presentation and Demo (10%)
 
@@ -150,6 +155,8 @@ Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test
 - **Load test:** 25 and 50 viewers measured; heavy requests now work on a snapshot so the live loop
   keeps more of its pace (2.4 to 3.1 steps per second at 25 viewers).
 - **Faster baseline training** (6.4 s to 1.4 s) with an identical decision threshold.
+- **One simulation per viewer:** every browser tab has its own live simulation, so one judge's Reset,
+  fault or demo no longer changes what others see (limited number; see Scalability).
 
 ## Gaps left (honest list)
 
@@ -159,5 +166,6 @@ Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test
   non-linear failure model is the next engineering step.
 - The twin can under-predict risk in extreme states at the edge of its training data (visible in the demo
   next to the ground truth); intervals after an action are too narrow.
-- One shared live simulation per server; many-machine operation is designed, not built.
+- Private simulations are limited by CPU (4 by default, 2 on Render's free plan); viewers beyond the
+  limit share one. Many-machine operation is designed, not built.
 - Manual items: slides, video, GIF, the live URL in the README, and `[source needed]` statistics.

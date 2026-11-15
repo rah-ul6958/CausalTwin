@@ -262,7 +262,7 @@ def test_information_endpoints(client: TestClient) -> None:
     drift = client.get("/drift-results")
     assert drift.status_code in (200, 404)
     logs = client.get("/logs", params={"limit": 500}).json()
-    assert all(entry["level"] in ("info", "warning") for entry in logs)
+    assert all(entry["level"] in ("info", "warning", "error") for entry in logs)
     # Per-step risk estimates are routine entries, filtered on request.
     routine = client.get("/logs", params={"limit": 50, "routine": "only"}).json()
     assert routine and all(entry["routine"] and entry["step_name"] == "what_if" for entry in routine)

@@ -1,4 +1,8 @@
-"""REST and WebSocket routes."""
+"""REST and WebSocket routes.
+
+Live routes work on the viewer's own simulation (its session, attached to the request by the
+session middleware in app.py); see causaltwin/api/sessions.py.
+"""
 
 import asyncio
 import json
@@ -12,6 +16,7 @@ import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 
+from causaltwin.api.live import LiveLoop
 from causaltwin.api.schemas import (
     ActionResponse,
     ByodResponse,
@@ -29,6 +34,7 @@ from causaltwin.api.schemas import (
     WhatIfRequest,
     WhatIfResponse,
 )
+from causaltwin.api.sessions import Session, requested_session_id, session_of
 from causaltwin.api.state import AppState
 from causaltwin.config import (
     ALLOW_BENCHMARK_RUN_ENV,
@@ -53,7 +59,7 @@ from causaltwin.engine.twin import CausalTwinEngine, EngineSettings
 from causaltwin.ingestion import data_quality_report, load_csv
 from causaltwin.intelligence.benchmark import run_benchmark
 from causaltwin.simulator import SCENARIOS
-from causaltwin.utils.activity_log import get_activity_logger
+from causaltwin.utils.activity_log import get_activity_logger, set_log_session
 
 router = APIRouter()
 ResultType = TypeVar("ResultType")
@@ -72,13 +78,23 @@ DISCOVERY_METHOD = (
 def _state(request: Request) -> AppState:
     """The application state."""
     state: AppState = request.app.state.causaltwin
-    state.requests_served += 1
     return state
 
 
-def _status(state: AppState) -> SimStatus:
-    """Typed live status."""
-    return SimStatus(**state.status())
+def _session(request: Request) -> Session:
+    """The viewer's session (its own live simulation, demo and message stream)."""
+    return session_of(request)
+
+
+def _live(request: Request) -> LiveLoop:
+    """The viewer's live loop."""
+    return session_of(request).live
+
+
+def _status(request: Request) -> SimStatus:
+    """Typed live status of the viewer's session."""
+    requested = getattr(request.state, "requested_session", None)
+    return SimStatus(**_state(request).status(_session(request), requested))
 
 
 def _provenance(method: str, window: str, milliseconds: float | None = None, **parameters: Any) -> Provenance:
@@ -86,9 +102,9 @@ def _provenance(method: str, window: str, milliseconds: float | None = None, **p
     return Provenance(method=method, data_window=window, parameters=parameters, computation_ms=milliseconds)
 
 
-def _require_simulator(state: AppState) -> None:
+def _require_simulator(live: LiveLoop) -> None:
     """Fault injection, scenarios and the guided demo exist only with the built-in simulator."""
-    source = state.live.source_info
+    source = live.source_info
     if not source.has_simulator:
         raise HTTPException(
             status_code=409,
@@ -97,9 +113,9 @@ def _require_simulator(state: AppState) -> None:
         )
 
 
-def _require_running(state: AppState) -> None:
+def _require_running(live: LiveLoop) -> None:
     """Risk-based results need recent normal running data."""
-    if not state.live.history_is_usable():
+    if not live.history_is_usable():
         raise HTTPException(status_code=409, detail="The machine is stopped or just restarted; no risk estimate now.")
 
 
@@ -152,22 +168,22 @@ def _check_intervention_limits(interventions: list[Intervention]) -> None:
 @router.get("/health", response_model=HealthResponse)
 def health(request: Request) -> HealthResponse:
     """Service status."""
-    state = _state(request)
+    live = _live(request)
     return HealthResponse(
         status="ok",
-        engine_fitted=state.live.engine.model is not None,
-        live_running=state.live.running,
-        step=state.live.step_count,
-        scenario=state.live.scenario,
-        data_source=state.live.source_info.kind,
-        simulated=state.live.source_info.simulated_data,
+        engine_fitted=live.engine.model is not None,
+        live_running=live.running,
+        step=live.step_count,
+        scenario=live.scenario,
+        data_source=live.source_info.kind,
+        simulated=live.source_info.simulated_data,
     )
 
 
 @router.get("/graph", response_model=GraphResponse)
 def graph(request: Request) -> GraphResponse:
     """Causal graph with bootstrap confidence."""
-    engine = _state(request).live.engine
+    engine = _live(request).engine
     current = engine.get_graph()
     return GraphResponse(
         graph=current,
@@ -187,7 +203,7 @@ def graph(request: Request) -> GraphResponse:
 @router.get("/graph/correlation", response_model=GraphResponse)
 def correlation_graph(request: Request) -> GraphResponse:
     """Plain lagged-correlation graph (for the Correlation vs Causation toggle)."""
-    engine = _state(request).live.engine
+    engine = _live(request).engine
     current = engine.get_correlation_graph()
     return GraphResponse(
         graph=current,
@@ -203,7 +219,7 @@ def correlation_graph(request: Request) -> GraphResponse:
 @router.get("/graph/edge/{cause}/{effect}", response_model=EdgeEvidenceResponse)
 def edge_evidence(request: Request, cause: str, effect: str) -> EdgeEvidenceResponse:
     """Evidence for one causal edge: statistics and paired data points."""
-    engine = _state(request).live.engine
+    engine = _live(request).engine
     edge = next((e for e in engine.get_graph().edges if e.cause == cause and e.effect == effect), None)
     if edge is None:
         raise HTTPException(status_code=404, detail=f"No causal edge {cause} -> {effect} in the current graph")
@@ -233,11 +249,11 @@ async def what_if(request: Request, body: WhatIfRequest) -> WhatIfResponse:
     """Simulate interventions from the live machine's current state."""
     state = _state(request)
     _check_intervention_limits(body.interventions)
-    live = state.live
+    live = _live(request)
 
     def compute() -> tuple[Any, Any]:
         with live.lock:
-            _require_running(state)
+            _require_running(live)
         engine, history = live.snapshot()
         result = engine.what_if(body.interventions, history, body.horizon, body.n_rollouts, None, body.noise_scale)
         return history, result
@@ -262,11 +278,11 @@ async def what_if(request: Request, body: WhatIfRequest) -> WhatIfResponse:
 async def root_cause(request: Request) -> RootCauseResponse:
     """Ranked causal paths for the current risk, plus symptoms."""
     state = _state(request)
-    live = state.live
+    live = _live(request)
 
     def compute() -> Any:
         with live.lock:
-            _require_running(state)
+            _require_running(live)
         engine, history = live.snapshot()
         return engine.root_cause(history)
 
@@ -291,11 +307,11 @@ async def recommendation(
 ) -> RecommendResponse:
     """The cheapest intervention that brings predicted risk below the target, with the full search table."""
     state = _state(request)
-    live = state.live
+    live = _live(request)
 
     def compute() -> tuple[Any, Any]:
         with live.lock:
-            _require_running(state)
+            _require_running(live)
         return live.recommend_now(target)
 
     result, baseline_action = await _run_heavy(state, compute, "recommendation search")
@@ -320,25 +336,25 @@ async def recommendation(
 @router.post("/apply", response_model=ActionResponse)
 def apply(request: Request) -> ActionResponse:
     """Apply the latest recommendation to the live simulator."""
-    state = _state(request)
-    _require_simulator(state)
+    live = _live(request)
+    _require_simulator(live)
     try:
-        applied = state.live.apply_recommendation()
+        applied = live.apply_recommendation()
     except ValueError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
-    return ActionResponse(ok=True, message="Recommendation applied", details=applied, status=_status(state))
+    return ActionResponse(ok=True, message="Recommendation applied", details=applied, status=_status(request))
 
 
 def _fault_action(request: Request, body: FaultRequest, inject: bool) -> ActionResponse:
     """Inject or clear a fault."""
-    state = _state(request)
-    _require_simulator(state)
+    live = _live(request)
+    _require_simulator(live)
     if body.fault not in FAULT_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown fault. Known: {list(FAULT_NAMES)}")
-    state.live.set_fault(body.fault, inject)
+    live.set_fault(body.fault, inject)
     verb = "Injected" if inject else "Cleared"
     get_activity_logger().log("fault", f"{verb} fault {body.fault}")
-    return ActionResponse(ok=True, message=f"{verb} {body.fault}", status=_status(state))
+    return ActionResponse(ok=True, message=f"{verb} {body.fault}", status=_status(request))
 
 
 @router.post("/inject-fault", response_model=ActionResponse)
@@ -356,19 +372,19 @@ def clear_fault(request: Request, body: FaultRequest) -> ActionResponse:
 @router.post("/scenario", response_model=ActionResponse)
 def scenario(request: Request, body: ScenarioRequest) -> ActionResponse:
     """Switch the live scenario."""
-    state = _state(request)
-    _require_simulator(state)
+    live = _live(request)
+    _require_simulator(live)
     if body.scenario not in SCENARIOS:
         raise HTTPException(status_code=400, detail=f"Unknown scenario. Known: {list(SCENARIOS)}")
-    state.live.switch_scenario(body.scenario)
-    return ActionResponse(ok=True, message=f"Switched to {body.scenario}", status=_status(state))
+    live.switch_scenario(body.scenario)
+    return ActionResponse(ok=True, message=f"Switched to {body.scenario}", status=_status(request))
 
 
 @router.post("/sim/control", response_model=ActionResponse)
 async def sim_control(request: Request, body: SimControlRequest) -> ActionResponse:
-    """Pause, resume, set speed, step, reset, or release all interventions."""
+    """Pause, resume, set speed, step, reset, or release all interventions (on the viewer's simulation)."""
     state = _state(request)
-    live = state.live
+    live = _live(request)
     if body.action == "pause":
         live.running = False
     elif body.action == "resume":
@@ -386,34 +402,34 @@ async def sim_control(request: Request, body: SimControlRequest) -> ActionRespon
         live.running = False
         await asyncio.to_thread(live.reset, LIVE_SEED, "normal")
     elif body.action == "release":
-        _require_simulator(state)
+        _require_simulator(live)
         live.release_all()
-    return ActionResponse(ok=True, message=f"{body.action} done", status=_status(state))
+    return ActionResponse(ok=True, message=f"{body.action} done", status=_status(request))
 
 
 @router.post("/demo/start")
 async def demo_start(request: Request) -> dict[str, Any]:
-    """Start the guided demo (fixed seed) and play the first beat."""
-    state = _state(request)
-    _require_simulator(state)
-    if state.demo_lock.locked():
+    """Start the guided demo (fixed seed) on the viewer's simulation and play the first beat."""
+    session = _session(request)
+    _require_simulator(session.live)
+    if session.demo_lock.locked():
         raise HTTPException(status_code=409, detail="A demo beat is still running; wait for it to finish.")
-    async with state.demo_lock:
-        state.live.running = False
-        return await asyncio.to_thread(state.demo.start)
+    async with session.demo_lock:
+        session.live.running = False
+        return await asyncio.to_thread(session.demo.start)
 
 
 @router.post("/demo/next")
 async def demo_next(request: Request) -> dict[str, Any]:
     """Play the next demo beat."""
-    state = _state(request)
-    _require_simulator(state)
-    if state.demo.position < 0:
+    session = _session(request)
+    _require_simulator(session.live)
+    if session.demo.position < 0:
         raise HTTPException(status_code=409, detail="Start the demo first with /demo/start")
-    if state.demo_lock.locked():
+    if session.demo_lock.locked():
         raise HTTPException(status_code=409, detail="A demo beat is still running; wait for it to finish.")
-    async with state.demo_lock:
-        return await asyncio.to_thread(state.demo.next)
+    async with session.demo_lock:
+        return await asyncio.to_thread(session.demo.next)
 
 
 @router.get("/benchmark")
@@ -457,16 +473,17 @@ async def benchmark_run(
 
     def progress(done: int, total: int, message: str) -> None:
         state.benchmark_progress = {"done": done, "total": total, "message": message}
-        state.hub.broadcast("benchmark_progress", state.benchmark_progress)
+        state.sessions.broadcast_all("benchmark_progress", state.benchmark_progress)
 
     async def job() -> None:
+        set_log_session(None)  # the benchmark is global: its log entries go to every viewer
         try:
             kwargs: dict[str, Any] = {"progress": progress}
             if quick:
                 kwargs.update(per_scenario=situations_per_scenario, seeds_per_situation=2, output_path=None)
             results = await asyncio.to_thread(run_benchmark, state.models, **kwargs)
             state.last_benchmark_run = results
-            state.hub.broadcast(
+            state.sessions.broadcast_all(
                 "benchmark_done", {"n_cases": results["n_cases"], "summary": results["summary"], "cached": not quick}
             )
         finally:
@@ -488,7 +505,7 @@ def validation(request: Request) -> dict[str, Any]:
 @router.get("/model-cards", response_model=ModelCardsResponse)
 def model_cards(request: Request) -> ModelCardsResponse:
     """Fitted equations with held-out accuracy."""
-    engine = _state(request).live.engine
+    engine = _live(request).engine
     return ModelCardsResponse(
         cards=engine.get_model_cards(),
         provenance=Provenance(
@@ -502,13 +519,14 @@ def model_cards(request: Request) -> ModelCardsResponse:
 
 @router.get("/metrics")
 def metrics(request: Request) -> dict[str, Any]:
-    """Pipeline timings, counts, and system status."""
+    """Pipeline timings, counts, and the status of the viewer's session."""
     state = _state(request)
+    session = _session(request)
     timings: dict[str, float] = {}
-    for entry in get_activity_logger().entries():
+    for entry in get_activity_logger().entries(session=session.session_id):
         if entry.duration_ms is not None:
             timings[entry.step_name] = entry.duration_ms
-    live = state.live
+    live = session.live
     return {
         "latest_step_durations_ms": timings,
         "counts": {
@@ -518,10 +536,12 @@ def metrics(request: Request) -> dict[str, Any]:
             "drift_alerts": sum(1 for a in live.alerts if a.get("kind") == "drift"),
             "recommendations_applied": len(live.applied),
             "requests_served": state.requests_served,
-            "websocket_clients": len(state.hub.clients),
-            "messages_sent": state.hub.sent_counts,
+            "websocket_clients": len(session.hub.clients),
+            "websocket_clients_all_simulations": sum(item.viewers for item in state.sessions.all_sessions()),
+            "private_simulations": state.sessions.private_count,
+            "messages_sent": session.hub.sent_counts,
         },
-        "status": state.status(),
+        "status": _status(request).model_dump(),
         "benchmark": {"running": state.benchmark_running, "progress": state.benchmark_progress},
         "training": {"seconds": state.models.training_seconds, **state.models.details},
     }
@@ -533,26 +553,26 @@ def logs(
     limit: int = Query(100, ge=1, le=5000),
     routine: Literal["include", "exclude", "only"] = "include",
 ) -> list[dict[str, Any]]:
-    """Most recent activity log entries.
+    """Most recent activity log entries of the viewer's session, plus the global ones.
 
     `routine` controls the live loop's per-step risk estimates: "include" (default),
     "exclude" them, or return "only" them.
     """
-    _state(request)
-    return [entry.model_dump() for entry in get_activity_logger().entries(routine)[-limit:]]
+    entries = get_activity_logger().entries(routine, session=_session(request).session_id)
+    return [entry.model_dump() for entry in entries[-limit:]]
 
 
 @router.get("/data/recent")
 def data_recent(request: Request, n: int = Query(200, ge=1, le=5000)) -> dict[str, Any]:
     """The most recent live rows (simulated)."""
-    rows = _state(request).live.buffer.dataframe(n)
+    rows = _live(request).buffer.dataframe(n)
     return {"simulated": True, "rows": json.loads(rows.to_json(orient="records"))}
 
 
 @router.get("/data/export")
 def data_export(request: Request) -> Response:
     """CSV download of the live buffer (simulated data)."""
-    frame = _state(request).live.buffer.dataframe()
+    frame = _live(request).buffer.dataframe()
     return Response(
         content=frame.to_csv(index=False),
         media_type="text/csv",
@@ -563,7 +583,7 @@ def data_export(request: Request) -> Response:
 @router.get("/data/quality")
 def data_quality(request: Request) -> dict[str, Any]:
     """Data quality report of the live buffer."""
-    frame = _state(request).live.buffer.dataframe()
+    frame = _live(request).buffer.dataframe()
     report = data_quality_report(frame, list(MEASURED_VARIABLES))
     return {"simulated": True, "rows": len(frame), "columns": [item.model_dump() for item in report]}
 
@@ -640,16 +660,25 @@ async def byod_upload(
 
 @router.websocket("/ws/stream")
 async def stream(websocket: WebSocket) -> None:
-    """Live message stream: sensor_frame, risk_update, event, alert, log, graph_update (and demo/benchmark)."""
+    """Live message stream of one session: sensor_frame, risk_update, event, alert, log, graph_update, demo.
+
+    The session comes from the `session` query parameter (browsers cannot set WebSocket headers);
+    benchmark messages go to every session.
+    """
     state: AppState = websocket.app.state.causaltwin
+    requested = requested_session_id(websocket)
+    session = await state.sessions.resolve(requested)
     await websocket.accept()
-    queue = state.hub.register()
+    queue = session.hub.register()
+    state.sessions.viewer_connected(requested, session)
     try:
-        await websocket.send_json({"type": "hello", "time": time.time(), "data": state.status()})
+        hello = state.status(session, requested)
+        await websocket.send_json({"type": "hello", "time": time.time(), "data": hello})
         while True:
             message = await queue.get()
             await websocket.send_json(message)
     except (WebSocketDisconnect, RuntimeError):
         pass
     finally:
-        state.hub.unregister(queue)
+        session.hub.unregister(queue)
+        state.sessions.viewer_disconnected(requested, session)

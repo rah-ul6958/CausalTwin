@@ -46,7 +46,10 @@ npm run test:e2e                  # smoke test per page, then the full guided de
 ```
 
 The end-to-end tests start the backend and frontend if they are not already running, and
-save screenshots to `../docs/screenshots/`. The guided-demo test resets the live simulation.
+save screenshots to `../docs/screenshots/`. Every test opens a new browser context, which gets its own
+private live simulation on the backend (the tab's session id, `src/lib/session.ts`), so the guided-demo
+test and the random-clicking test cannot disturb the other tests. When the tests start the backend
+themselves they allow 16 private simulations; a backend you started yourself keeps its own limit.
 
 ## Code layout
 

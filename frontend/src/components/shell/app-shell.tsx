@@ -14,6 +14,8 @@ import {
   Play,
   Terminal,
   Trophy,
+  User,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -73,6 +75,35 @@ function Sidebar() {
   );
 }
 
+/** Whether this tab has its own live simulation on the server or shares one (the reason is in the tooltip). */
+function SessionBadge() {
+  const session = useLiveStore((state) => state.status?.session);
+  if (!session) return null;
+  const Icon = session.private ? User : Users;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          tabIndex={0}
+          data-testid="session-badge"
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+            session.private ? "border-line text-slate-300" : "border-warn/40 bg-warn/10 text-amber-200",
+          )}
+        >
+          <Icon className="size-3" aria-hidden /> {session.private ? "Private" : "Shared"}
+          <span className="sr-only"> simulation</span>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-xs leading-relaxed">
+        {session.note}
+        {session.max_sessions > 0 &&
+          ` (${session.private_sessions} of ${session.max_sessions} private simulations in use on this server.)`}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 const CONNECTION_STYLE: Record<ConnectionState, { color: string; text: string }> = {
   open: { color: "bg-good", text: "Live" },
   connecting: { color: "bg-warn animate-pulse", text: "Connecting" },
@@ -97,6 +128,7 @@ function TopBar({ onDemo }: { onDemo: () => void }) {
       <div className="flex items-center gap-3">
         <span className="font-heading text-base font-semibold tracking-tight text-slate-100">CausalTwin</span>
         <DataSourceBadge />
+        <SessionBadge />
       </div>
       <div className="flex items-center gap-3 text-xs">
         {status && (

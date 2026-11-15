@@ -31,6 +31,17 @@ development laptop; Render's real behaviour may differ):
 - **Requests:** recommendation search 1.1-1.2 s; one what-if 40 ms.
 - **Live loop:** about 3 steps per second instead of 5.
 
+The same stand-in with two judges at once (`CAUSALTWIN_MAX_SESSIONS=2`, each with a private simulation;
+measured after per-viewer simulations were added):
+
+- **Both watching:** each simulation ran at about 1.9 steps per second; a recommendation took about 8 s
+  (median) instead of 1.1 s, and a what-if about 1.2 s.
+- **One judge plays the guided demo while the other watches:** the demo took 75 s in total instead of
+  31 s (the drift beat 56 s), and the watching judge's simulation ran at about 1.2 steps per second.
+- **Memory:** at most 266 MB of the 512 MB limit.
+
+So the free plan works for two judges at a time, slowly; a paid plan is recommended for judging.
+
 The image sets the numeric libraries to one thread each. Without this, idle math threads ate the
 small CPU quota and the drift beat took more than 6 minutes.
 
@@ -57,7 +68,15 @@ Already set by `render.yaml`:
 
 - **`CAUSALTWIN_DISCOVERY_JOBS=1`:** saves memory.
 - **`CAUSALTWIN_ALLOW_BENCHMARK_RUN=0`:** visitors cannot start the one-minute benchmark. Cached results still show.
-- **`CAUSALTWIN_AUTOSTART=1`:** the live simulation runs from start-up.
+- **`CAUSALTWIN_MAX_SESSIONS=2`:** each browser tab gets its own private live simulation, so one judge's
+  Reset, fault or guided demo does not change what another judge sees. At most two exist at once on the
+  free plan, because every watched simulation needs CPU; use 3 or 4 on a paid plan. Later viewers share
+  one simulation, and the top bar says **Shared** instead of **Private**. A private simulation steps only
+  while its tab is open; when all slots are taken, a new viewer takes over one nobody has watched for
+  30 seconds, and the server deletes unwatched ones after 10 minutes.
+- **`CAUSALTWIN_AUTOSTART=1`:** the shared simulation (health checks, scripts, viewers beyond the limit)
+  is running from start-up. Like the private ones, it only steps while someone watches it, so an unused
+  simulation costs no CPU.
 - **`PORT`:** Render sets it itself; the container listens on it.
 
 All backend variables are documented in `backend/.env.example`, including `CAUSALTWIN_DATA_SOURCE`
@@ -100,7 +119,9 @@ Open `FRONTEND_URL` in a fresh browser window and tick each item:
 - [ ] `BACKEND_URL/health` answers `"status":"ok"` and `"engine_fitted":true`.
 - [ ] The top bar shows the green **Live** indicator, and the step counter increases. This means the
       WebSocket connected over `wss://`. In the browser's developer tools (Network, filter "WS"),
-      `/ws/stream` shows status 101.
+      `/ws/stream?session=...` shows status 101.
+- [ ] The top bar shows **Private**. Open the app in a second, private browser window: it also says
+      **Private**, and a fault injected in one window does not appear in the other.
 - [ ] The **Simulated** badge is visible on every page.
 - [ ] The Control Room charts move, and the risk gauge shows the twin estimate and the ground truth.
 - [ ] **Guided demo** runs end to end: open it, Start, then Next through all 8 beats. Each beat opens
@@ -126,8 +147,8 @@ then waits about a minute while it starts.
 4. If the free hours for the month are used up, the service is suspended until the next month.
    Use the local backup (section 8) or a paid plan.
 
-A restart also resets the live simulation and the demo, because the filesystem and memory are not
-kept between restarts.
+A restart also resets every live simulation and demo, because the filesystem and memory are not
+kept between restarts. Each open tab then gets a fresh simulation and redraws its charts.
 
 ## 7. Troubleshooting
 
@@ -139,6 +160,8 @@ kept between restarts.
 | "The server is busy with other computations" (503) | More than two heavy requests at once. Retry after a few seconds. |
 | A request answers 504 after 30 s | The server is too slow for the plan. A demo beat may be holding the simulation; wait for it, or use a larger plan. |
 | The service restarts repeatedly with out-of-memory errors | Keep `CAUSALTWIN_DISCOVERY_JOBS=1`, or use a plan with more memory. |
+| The top bar says **Shared** | All private simulations are in use by open tabs. Close unused tabs (a slot frees 30 s after a tab closes), reload, or raise `CAUSALTWIN_MAX_SESSIONS` on a larger plan. The tooltip explains the reason. |
+| Every viewer's simulation is slow | Several tabs are open, and each watched simulation needs CPU. Close unused tabs, lower `CAUSALTWIN_MAX_SESSIONS`, or use a larger plan. |
 | The build fails on Render | Check the build log. The image needs no secrets; a clean `docker build backend` locally must succeed first. |
 
 ## 8. Backup: run everything locally

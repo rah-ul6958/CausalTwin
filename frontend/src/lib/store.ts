@@ -139,7 +139,15 @@ export const useLiveStore = create<LiveStore>((set) => ({
   benchmarkProgress: null,
   benchmarkDoneAt: null,
   setConnection: (connection) => set({ connection }),
-  setStatus: (status) => set({ status }),
+  // The status counts the steps taken; a live frame carries the index of its row, one less. When a
+  // status is exactly one step ahead of the latest frame of the same run, both describe the same
+  // moment, so the frame's number is kept (otherwise a paused counter would jump by one at the next poll).
+  setStatus: (status) =>
+    set((state) => {
+      const frame = state.latest;
+      const sameMoment = frame !== null && frame.run_id === status.run_id && status.step - frame.step === 1;
+      return { status: sameMoment ? { ...status, step: frame.step } : status };
+    }),
   setDemo: (demo) => set({ demo }),
   seed: ({ rows, riskHistory, events, alerts, logs, routineLogs }) =>
     set((state) => ({

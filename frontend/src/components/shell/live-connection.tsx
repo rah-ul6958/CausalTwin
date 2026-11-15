@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 import { api } from "@/lib/api";
 import { LIVE_BUFFER_POINTS, MAX_ALERTS, MAX_EVENTS, MAX_ROUTINE_LOGS, SEED_LOGS, STATUS_POLL_MS, WS_URL } from "@/lib/config";
+import { withSession } from "@/lib/session";
 import { useLiveStore } from "@/lib/store";
 import { LiveSocket } from "@/lib/ws";
 
@@ -33,7 +34,8 @@ async function seedStore() {
 export function LiveConnection() {
   useEffect(() => {
     const socket = new LiveSocket({
-      url: WS_URL,
+      // Browsers cannot set WebSocket headers, so the tab's session id goes in the query string.
+      url: withSession(WS_URL),
       onBatch: (messages) => useLiveStore.getState().applyMessages(messages),
       onStatus: (status) => useLiveStore.getState().setConnection(status),
       onOpen: () => void seedStore(),

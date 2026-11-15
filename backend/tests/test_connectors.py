@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from causaltwin.api.app import create_app
 from causaltwin.api.runtime import RuntimeSettings
-from causaltwin.config import DATA_DIR, MEASURED_VARIABLES
+from causaltwin.config import DATA_DIR, MEASURED_VARIABLES, SESSION_HEADER
 from causaltwin.connectors import MTConnectSource, ReplaySource, parse_mtconnect_current
 from causaltwin.intelligence.drift import SimulatorStepper
 from causaltwin.intelligence.training import train_models
@@ -125,6 +125,10 @@ def test_api_on_a_real_machine_source(fake_agent: str) -> None:
         status = client.get("/metrics").json()["status"]
         assert status["data_source"]["kind"] == "mtconnect" and status["active_faults"] == []
         assert status["simulated"] is False
+        # One machine, one live view: a browser tab with a session id still shares it.
+        tab_status = client.get("/metrics", headers={SESSION_HEADER: "browser-tab-0001"}).json()["status"]
+        assert tab_status["session"]["private"] is False and "one machine" in tab_status["session"]["note"]
+        assert tab_status["run_id"] == status["run_id"]
         points = client.get("/risk/history").json()["points"]
         assert points and points[-1]["twin_risk"] is not None and points[-1]["true_risk_within_horizon"] is None
         what_if = client.post("/whatif", json={"interventions": [{"variable": "coolant_flow", "value": 25.0}]})

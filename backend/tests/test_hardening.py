@@ -148,19 +148,32 @@ def test_live_loop_pauses_and_reports_instead_of_dying(client: TestClient, monke
 
     monkeypatch.setattr(live.stepper, "step", failing_step)
     errors_before = live.loop_errors
-    client.post("/sim/control", json={"action": "resume"})
-    deadline = time.time() + 5
-    while live.running and time.time() < deadline:
-        time.sleep(0.05)
-    assert not live.running and live.loop_errors == errors_before + 1
-    assert live.alerts[-1]["kind"] == "error" and "sensor bus timeout" in live.alerts[-1]["message"]
-    monkeypatch.setattr(live.stepper, "step", original_step)
-    step_before = client.get("/health").json()["step"]
+    # A simulation steps only while someone watches its live stream.
+    with client.websocket_connect("/ws/stream"):
+        client.post("/sim/control", json={"action": "resume"})
+        deadline = time.time() + 5
+        while live.running and time.time() < deadline:
+            time.sleep(0.05)
+        assert not live.running and live.loop_errors == errors_before + 1
+        assert live.alerts[-1]["kind"] == "error" and "sensor bus timeout" in live.alerts[-1]["message"]
+        monkeypatch.setattr(live.stepper, "step", original_step)
+        step_before = client.get("/health").json()["step"]
+        client.post("/sim/control", json={"action": "speed", "value": 50})
+        client.post("/sim/control", json={"action": "resume"})
+        time.sleep(0.6)
+        client.post("/sim/control", json={"action": "pause"})
+    assert client.get("/health").json()["step"] > step_before
+
+
+def test_unwatched_shared_simulation_does_not_step(client: TestClient) -> None:
+    """With private simulations on, the shared one is "running" but idle until someone watches it."""
     client.post("/sim/control", json={"action": "speed", "value": 50})
     client.post("/sim/control", json={"action": "resume"})
-    time.sleep(0.6)
+    step_before = client.get("/health").json()["step"]
+    time.sleep(0.5)
+    assert client.get("/health").json()["step"] == step_before
+    assert client.get("/health").json()["live_running"] is True
     client.post("/sim/control", json={"action": "pause"})
-    assert client.get("/health").json()["step"] > step_before
 
 
 def test_random_api_calls_while_the_loop_runs(client: TestClient) -> None:
@@ -186,18 +199,19 @@ def test_random_api_calls_while_the_loop_runs(client: TestClient) -> None:
         lambda: client.get("/risk/history"),
     ]
     statuses = []
-    for index in range(45):
-        if index in (15, 30):
-            response = client.post("/sim/control", json={"action": "reset"})
-            client.post("/sim/control", json={"action": "resume"})
-        else:
-            response = rng.choice(actions)()
-        statuses.append(response.status_code)
-        time.sleep(0.02)
-    assert all(status < 500 for status in statuses), statuses
-    assert live.loop_errors == errors_before
-    client.post("/sim/control", json={"action": "resume"})
-    step_before = client.get("/health").json()["step"]
-    time.sleep(0.5)
-    client.post("/sim/control", json={"action": "pause"})
+    with client.websocket_connect("/ws/stream"):  # watched, so the loop really runs meanwhile
+        for index in range(45):
+            if index in (15, 30):
+                response = client.post("/sim/control", json={"action": "reset"})
+                client.post("/sim/control", json={"action": "resume"})
+            else:
+                response = rng.choice(actions)()
+            statuses.append(response.status_code)
+            time.sleep(0.02)
+        assert all(status < 500 for status in statuses), statuses
+        assert live.loop_errors == errors_before
+        client.post("/sim/control", json={"action": "resume"})
+        step_before = client.get("/health").json()["step"]
+        time.sleep(0.5)
+        client.post("/sim/control", json={"action": "pause"})
     assert client.get("/health").json()["step"] > step_before

@@ -2,8 +2,9 @@
 
 Run:  uvicorn causaltwin.api.app:app --port 8000   (from the backend folder)
 Docs: http://localhost:8000/docs
-Deployment settings (CORS origins, autostart, discovery workers, benchmark runs) come from
-environment variables; see backend/.env.example and causaltwin/api/runtime.py.
+Deployment settings (CORS origins, autostart, discovery workers, benchmark runs, private
+simulations) come from environment variables; see backend/.env.example and causaltwin/api/runtime.py.
+Each browser tab gets its own live simulation; see causaltwin/api/sessions.py.
 """
 
 import asyncio
@@ -18,14 +19,14 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from causaltwin import __version__
-from causaltwin.api.hub import StreamHub
 from causaltwin.api.info_routes import router as info_router
 from causaltwin.api.routes import router
 from causaltwin.api.runtime import RuntimeSettings
+from causaltwin.api.sessions import requested_session_id
 from causaltwin.api.state import AppState
 from causaltwin.config import BYOD_MAX_UPLOAD_BYTES
 from causaltwin.intelligence.training import TrainedModels, train_models
-from causaltwin.utils.activity_log import ActivityLogEntry, get_activity_logger
+from causaltwin.utils.activity_log import get_activity_logger, set_log_session
 
 
 def _readable_validation_message(error: RequestValidationError) -> str:
@@ -89,6 +90,22 @@ async def _reject_oversized_uploads(request: Request, call_next: Callable[[Reque
     return await call_next(request)
 
 
+async def _attach_session(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    """Find (or create) the viewer's live simulation and attach it to the request.
+
+    The routes read it with `sessions.session_of(request)`. Activity log entries written while
+    handling the request are tagged with the session, so each viewer's console shows its own.
+    """
+    state: AppState = request.app.state.causaltwin
+    state.requests_served += 1
+    requested = requested_session_id(request)
+    session = await state.sessions.resolve(requested)
+    request.state.session = session
+    request.state.requested_session = requested
+    set_log_session(session.session_id)
+    return await call_next(request)
+
+
 def create_app(
     models: TrainedModels | None = None, autostart: bool | None = None, runtime: RuntimeSettings | None = None
 ) -> FastAPI:
@@ -97,27 +114,24 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        hub = StreamHub()
-        hub.bind(asyncio.get_running_loop())
         trained = models if models is not None else await asyncio.to_thread(train_models)
         # The worker count is a deployment choice (memory), not part of the cached model.
         trained.engine.settings.discovery_n_jobs = settings.discovery_jobs
-        state = AppState(trained, hub, settings)
+        state = AppState(trained, settings)
+        state.sessions.bind(asyncio.get_running_loop())
+        # Autostart applies to the shared simulation; a private one runs while its viewer is connected.
         state.live.running = autostart if autostart is not None else settings.autostart
         await asyncio.to_thread(state.live.engine.warm_up)  # start discovery workers before the first drift
         app.state.causaltwin = state
 
-        def forward(entry: ActivityLogEntry) -> None:
-            hub.queue_log(entry.model_dump())
-
         logger = get_activity_logger()
-        logger.subscribe(forward)
-        task = asyncio.create_task(state.live.run_forever())
+        logger.subscribe(state.sessions.route_log)  # each entry goes to its session's viewers
+        state.sessions.start()
         try:
             yield
         finally:
-            task.cancel()
-            logger.unsubscribe(forward)
+            state.sessions.stop()
+            logger.unsubscribe(state.sessions.route_log)
 
     app = FastAPI(
         title="CausalTwin API",
@@ -127,7 +141,9 @@ def create_app(
         lifespan=lifespan,
     )
     app.add_exception_handler(RequestValidationError, _validation_error_handler)
-    # Added first, so it sits inside CORS: error responses still carry the CORS headers.
+    # Innermost: the session is attached last, right before the route runs.
+    app.add_middleware(BaseHTTPMiddleware, dispatch=_attach_session)
+    # Added early, so it sits inside CORS: error responses still carry the CORS headers.
     app.add_middleware(BaseHTTPMiddleware, dispatch=_catch_unexpected_errors)
     app.add_middleware(BaseHTTPMiddleware, dispatch=_reject_oversized_uploads)
     app.add_middleware(

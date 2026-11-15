@@ -352,9 +352,17 @@ def ai4i_block(results: dict[str, dict[str, Any]]) -> str:
 def load_block(results: dict[str, dict[str, Any]]) -> str:
     """Many simultaneous viewers against one backend process."""
     load = results["load"]
+    tabs = load.get("session_ids", False)
+    who = (
+        "each like a browser tab with its own session id"
+        if tabs
+        else "without session ids, so all sharing one simulation"
+    )
+    limit = f", allowing {load['max_sessions']} private simulations" if tabs else ""
     lines = [
-        f"{load['viewers']} simulated viewers for {load['seconds']:.0f} s (live stream open, status polled every 3 s, "
-        "occasional what-ifs and recommendations), against one backend process on the development laptop:",
+        f"{load['viewers']} simulated viewers for {load['seconds']:.0f} s, {who} (live stream open, status polled "
+        "every 3 s, occasional what-ifs and recommendations), against one backend process on the development "
+        f"laptop{limit}:",
         "",
         "| Request | Count | Median | 95th percentile | Outcomes |",
         "|---|---|---|---|---|",
@@ -366,12 +374,27 @@ def load_block(results: dict[str, dict[str, Any]]) -> str:
             f"{outcomes} |"
         )
     stream, loop = load["websocket"], load["live_loop"]
+    target = f"{loop['target_steps_per_second']:g}"
+    if tabs:
+        pace = load["simulations"]
+        private = pace["private_steps_per_second"]
+        private_range = f"{min(private):g} to {max(private):g}" if private else "an unmeasured rate"
+        simulations = (
+            f"{pace['private_viewers']} viewers got a private simulation, which ran at {private_range} steps per "
+            f"second; the other {pace['shared_viewers']} shared one simulation, which ran at "
+            f"{pace['shared_steps_per_second']} steps per second (target {target} each): the simulations share the "
+            "CPU with each other and with the heavy requests."
+        )
+    else:
+        simulations = (
+            f"The live simulation ran at {loop['steps_per_second']} steps per second against a target of {target}: "
+            "under this load the CPU is shared with the heavy requests."
+        )
     lines += [
         "",
         f"503 means \"busy, retry\": at most two heavy computations run at once by design. Live stream: "
         f"{stream['messages_per_viewer_per_second']} messages per viewer per second, {stream['failed_connections']} "
-        f"failed connections. The live simulation ran at {loop['steps_per_second']} steps per second against a "
-        f"target of {loop['target_steps_per_second']:g}: under this load the CPU is shared with the heavy requests.",
+        f"failed connections. {simulations}",
     ]
     return "\n".join(lines) + "\n"
 

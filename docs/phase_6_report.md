@@ -273,7 +273,148 @@ budget; this laptop's timings vary by up to 3x (Phase 2 report).
 - **Linear failure model:** threshold-type failures are advised poorly (AI4I).
 - **Risk estimates:** the twin can under-predict at the edge of its training data, and intervals after an
   action are too narrow (calibration table).
-- **Load:** heavy load slows the live simulation; there is one shared simulation per server, and
-  many-machine operation is a design only.
+- **Load:** heavy load slows the live simulations; private simulations per viewer are limited by CPU
+  (see the addendum below), and many-machine operation is a design only.
 - **Accessibility:** automated checks only, no screen-reader user testing; phone widths not tested.
 - **Not done by request or needing a person:** deployment, video, slides and sourced statistics.
+
+## Addendum: one live simulation per viewer
+
+Added after the Phase 6 commit, on request ("do the per-viewer simulation fix").
+
+**Problem.** The server ran one live simulation for everybody. On a public deployment, one judge's Reset,
+fault injection or guided demo changed what every other judge saw.
+
+**What was built.**
+
+- **Frontend** (`src/lib/session.ts`): each browser tab makes up a random session id and keeps it in
+  `sessionStorage`, so it survives a reload but a new tab gets a new one. The id is sent as the
+  `X-CausalTwin-Session` header on every request, and as `?session=` on the WebSocket and the CSV
+  download link, which cannot send headers.
+- **Backend** (`causaltwin/api/sessions.py`): each id gets its own session.
+  - A session holds its own live loop (simulator and a copy of the engine), guided demo and message hub.
+  - The trained models are shared and only read. The baseline's SHAP explainer is used one call at a
+    time across all sessions, and the limit of two heavy computations at once is global.
+- **Old behaviour kept:** requests without a valid id (curl, health checks, scripts) use the shared
+  session, which behaves like the single simulation before.
+- **Per-viewer console:** activity log entries carry their session (a context variable set per request
+  and per background task, which follows the work into worker threads). Each console shows its own
+  simulation's entries plus the global ones (training, benchmark).
+- **Unique run ids:** run ids are unique in the process, so a tab whose simulation was replaced redraws
+  its charts.
+- **Top bar:** a "Private" or "Shared" chip, with the reason in its tooltip.
+
+**Rules and limits.**
+
+- **Each simulation is costly.** Measured on the development laptop:
+  - creation: about 75 ms;
+  - memory: about 7 MB at the start;
+  - CPU: about 36 ms per live step when running alone.
+
+  All simulations share one Python process, so their number is limited. `CAUSALTWIN_MAX_SESSIONS` is 4 by
+  default and 2 in `render.yaml`.
+- **Stepping:** a simulation steps only while someone watches its live stream.
+  - The shared one first kept stepping unwatched. Measured, that took a fifth of the CPU from four
+    watched private ones (1.6 to 1.7 steps per second each instead of 2.0), so it was changed.
+  - With a real machine, or with private simulations turned off, the shared simulation still always
+    runs, so monitoring never stops.
+- **When all slots are taken:** a new viewer takes over a private simulation nobody has watched for
+  30 s. If every slot is being watched, the new viewer joins the shared simulation, and the top bar
+  says so.
+  - Such a viewer stays on the shared simulation while its live stream is open, so its stream and its
+    requests never go to different simulations.
+  - It gets a private simulation again after a reload, once a slot is free.
+- **Clean-up:** private simulations unwatched for 10 minutes are deleted (checked every 30 s).
+- **Real machine data:** there is one machine, so everybody shares one session.
+
+**Measured pace** (development laptop, all simulations watched, target 5 steps per second):
+
+| Watched simulations | Steps per second each |
+|---|---|
+| 1 | 3.75 |
+| 2 | 2.8 to 2.9 |
+| 4 | about 2.0 |
+| 4 private + 21 shared viewers, heavy requests (25-viewer load test) | 1.44 to 1.48 (shared: 1.4) |
+| 4 private + 46 shared viewers (50-viewer load test) | 1.29 to 1.33 (shared: 1.3) |
+
+The cost is real:
+- **Slower simulations under load.** With one shared simulation, the same 25-viewer load ran at 3.1 steps
+  per second. Now five simulations share the CPU.
+- **Slower recommendations:** the median rose from 1.27 s to 2.81 s.
+- **What still held:** every status request was answered and no live connection failed, at 25 and at 50
+  viewers.
+
+A single simulation stays below 5 steps per second even when alone, because the loop pauses for a full
+step interval after each step; this was not changed.
+
+**Render free-plan stand-in** (`docker run --cpus 0.1 --memory 512m`, two private simulations):
+- **Both watching:** about 1.9 steps per second each, and a recommendation took about 8 s.
+- **One judge plays the guided demo while the other watches:** the demo took 75 s instead of 31 s.
+- **Memory:** at most 266 MB of 512 MB.
+
+docs/DEPLOYMENT.md has the details.
+
+**Bugs found while testing.**
+
+- **CSV export went to the wrong simulation.** The Data page is prerendered, so the Export CSV link was
+  fixed without the session id and would have downloaded the shared simulation's data. The link is now
+  set after hydration (`src/lib/use-session.ts`) and checked in a browser test.
+- **The paused step counter jumped by one.** Three seconds after Pause, the top bar's counter moved by
+  one, because live frames carry the row index and the status carries the number of steps taken. The
+  glitch is older, but it was invisible while the simulation always ran. The store now keeps the frame's
+  number when both describe the same moment.
+- **Wrong "simulated" flag.** Live frames always said `simulated: true`, even with a real machine. The
+  flag now comes from the data source.
+- **Order-dependent test.** An API test assumed no log entry has the level "error", and failed when the
+  hardening tests ran first. It now allows "error", which the logger has had since Phase 5.
+
+**Tests added or changed.**
+
+- **Backend `test_sessions.py`:**
+  - ids are validated;
+  - two viewers are isolated (fault, steps, reset, demo, run ids);
+  - each console shows only its own actions;
+  - a WebSocket gets only its own session, and only a watched simulation steps;
+  - the limit: a new viewer shares when slots are taken, takes over an unwatched slot, and gets a slot
+    after clean-up;
+  - private simulations can be turned off.
+- **Backend `test_connectors.py` and `test_hardening.py`:**
+  - one machine means one shared view;
+  - an unwatched shared simulation does not step;
+  - the hardening tests watch the stream while they wait for background steps.
+- **Playwright `sessions.spec.ts`:** two browser contexts side by side. A fault and a pause in one do not
+  reach the other, and the CSV link carries the tab's session id.
+- **Playwright `resilience.spec.ts` and `story.spec.ts`:** they act on the page's own session through
+  `tests/session-helpers.ts`, and no longer reset a server-wide simulation.
+
+**Test results after this change.**
+
+| Check | Result |
+|---|---|
+| Backend `pytest -q` | **96 passed** (88 before; 7 new session tests and 1 new hardening test) |
+| `ruff check`, `ruff format --check`, `mypy causaltwin tests` | Clean |
+| Frontend `npm run lint`, `npx tsc --noEmit`, `npm run build` | Pass |
+| Playwright on the Docker stack (`CAUSALTWIN_MAX_SESSIONS=16 docker compose up`) | **42 passed**: the 41 runs before plus the two-viewer test |
+| `update_readme_results.py --check` | All generated blocks up to date (the load block re-measured) |
+
+In an earlier full run on locally started servers, three tests failed once:
+- **The new two-viewer test:** it raced the last frame after Pause; fixed in the test, and the counter
+  glitch it exposed was fixed in the store.
+- **The Firefox Graph Explorer test:** the edges did not render within 90 s.
+- **The axe-core check of /advisor.**
+
+The last two passed on every re-run (alone and in the full Docker-stack run), so they are recorded here
+as intermittent.
+
+**Known limitations.**
+
+- **Limited private simulations.** Private simulations are limited by CPU. Beyond the limit, viewers
+  share one, and all watched simulations slow down under load.
+- **Duplicated tabs share.** A duplicated browser tab copies the session id, so it shares the original
+  tab's simulation.
+- **Ids are not secrets.** A session id is a random value, not a login: anyone who knew a tab's id could
+  act on its simulation. Ids are never shown to other viewers, and the data is simulated.
+- **One log buffer.** All sessions share one in-memory log buffer (5,000 entries plus 500 routine ones),
+  so with many busy sessions each console keeps less history.
+- **One process.** Everything runs in one process. More simultaneous private simulations need a larger
+  plan, or worker processes per session (the many-machine design in the README).

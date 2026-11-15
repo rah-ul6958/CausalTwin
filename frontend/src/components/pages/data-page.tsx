@@ -18,6 +18,7 @@ import { formatNumber, humanize } from "@/lib/format";
 import type { ByodResponse, ColumnQuality, SensorRow } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 import { useDataSource } from "@/lib/data-source";
+import { useSessionId } from "@/lib/use-session";
 import { cn } from "@/lib/utils";
 
 const ROLES = ["control", "environment", "sensor", "outcome", "ignore"] as const;
@@ -262,12 +263,14 @@ export function DataPage() {
   const events = useApi(() => api.events(1000), "events");
   const quality = useApi(() => api.dataQuality(), "quality");
   const source = useDataSource();
+  // The download must carry this tab's session id, which is known only in the browser.
+  const exportHref = useSessionId() ? api.exportUrl() : undefined;
   return (
     <div>
       <PageHeader title="Data" description="The raw live data behind every number, its quality, and your own data.">
         <DataSourceBadge />
         <Button size="sm" variant="outline" asChild>
-          <a href={api.exportUrl()} download>
+          <a href={exportHref} download>
             <Download aria-hidden /> Export CSV
           </a>
         </Button>

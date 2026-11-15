@@ -116,9 +116,11 @@ Real data adds requirements:
 ## How does it scale?
 
 Measured today, with one backend process on a laptop: 25 and 50 simulated viewers at once (live stream
-plus requests) got every status answer and no failed live connection; heavy requests beyond two at a
-time got a clear "busy, retry"; the live simulation slowed from 5 to about 3 steps per second under that
-load (README, "Many simultaneous viewers"). The container runs within 512 MB.
+plus requests, each with its own session id) got every status answer and no failed live connection;
+heavy requests beyond two at a time got a clear "busy, retry". The first four viewers got private
+simulations and the rest shared one; under that load the five simulations shared the CPU and each ran
+at about 1.4 steps per second instead of 5 (README, "Many simultaneous viewers"). The container runs
+within 512 MB.
 
 Many machines is a design, not something built yet:
 
@@ -128,7 +130,10 @@ Many machines is a design, not something built yet:
 - **Incremental refits.** Only the changed equations are refitted; rewiring already works this way.
 - **Horizontal scaling.** Twins live in worker processes keyed by machine, with a message bus in front.
 
-Today the server runs one live simulation for everyone, with limits that keep it responsive: two heavy
+Each browser tab gets its own private live simulation, so one judge's Reset, fault or guided demo does
+not change what another judge sees. The number of private simulations is limited (4 by default, 2 on
+Render's free plan), because each watched simulation needs CPU; later viewers share one simulation, and
+the top bar says "Shared" instead of "Private". Other limits keep the server responsive: two heavy
 computations at a time, 30-second timeouts, and upload size limits.
 
 ## What happens when the machine changes?

@@ -431,3 +431,21 @@ AI4I_TARGET_PROBABILITY = 0.05
 AI4I_CHANGE_STEPS_PCT = (-50, -40, -30, -20, -15, -10, -5, 5, 10, 15, 20, 30, 40, 50)
 AI4I_COST_PER_PCT = 0.1
 AI4I_TOOL_CHANGE_COST = 3.0
+
+# ---------------------------------------------------------------------------
+# Per-viewer live simulations (sessions)
+# ---------------------------------------------------------------------------
+# Each browser tab sends a random id; each id gets its own live simulation, demo and message
+# stream, so one viewer's Reset, fault or demo does not change what another viewer sees.
+SESSION_HEADER = "X-CausalTwin-Session"
+SESSION_QUERY_PARAMETER = "session"  # used where a header cannot be sent (WebSocket, download links)
+SESSION_ID_PATTERN = r"^[A-Za-z0-9_-]{8,64}$"
+SHARED_SESSION_ID = "shared"  # requests without a valid id (curl, health checks) use this simulation
+MAX_SESSIONS_ENV = "CAUSALTWIN_MAX_SESSIONS"  # private simulations at once; "0" makes every viewer share one
+# Measured on the development laptop: one live simulation needs about 36 ms of CPU per step and about
+# 10 MB, and all of them share one Python process. Watched at the same time, each ran at about 3.8 steps
+# per second alone, 2.9 with two and 2.0 with four (target 5); unwatched ones do not step.
+DEFAULT_MAX_SESSIONS = 4
+SESSION_IDLE_SECONDS = 600.0  # a private simulation without a viewer for this long is deleted
+SESSION_EVICT_AFTER_SECONDS = 30.0  # when all slots are taken, one unwatched this long may be replaced
+SESSION_JANITOR_SECONDS = 30.0  # how often idle simulations are looked for

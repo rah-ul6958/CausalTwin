@@ -251,15 +251,15 @@ failures, where the tree-based baseline does better. A non-linear failure model 
 ### Many simultaneous viewers
 
 <!-- results:load:start -->
-25 simulated viewers for 63 s (live stream open, status polled every 3 s, occasional what-ifs and recommendations), against one backend process on the development laptop:
+25 simulated viewers for 65 s, each like a browser tab with its own session id (live stream open, status polled every 3 s, occasional what-ifs and recommendations), against one backend process on the development laptop, allowing 4 private simulations:
 
 | Request | Count | Median | 95th percentile | Outcomes |
 |---|---|---|---|---|
-| GET /metrics | 476 | 31 ms | 271 ms | 200: 476 |
-| GET /recommend | 34 | 1.27 s | 1.59 s | 200: 30, 503: 4 |
-| POST /whatif | 36 | 75 ms | 284 ms | 200: 29, 503: 7 |
+| GET /metrics | 460 | 61 ms | 274 ms | 200: 460 |
+| GET /recommend | 32 | 2.81 s | 4.66 s | 200: 20, 503: 12 |
+| POST /whatif | 33 | 149 ms | 549 ms | 200: 17, 503: 16 |
 
-503 means "busy, retry": at most two heavy computations run at once by design. Live stream: 8.4 messages per viewer per second, 0 failed connections. The live simulation ran at 3.11 steps per second against a target of 5: under this load the CPU is shared with the heavy requests.
+503 means "busy, retry": at most two heavy computations run at once by design. Live stream: 3.9 messages per viewer per second, 0 failed connections. 4 viewers got a private simulation, which ran at 1.44 to 1.48 steps per second; the other 21 shared one simulation, which ran at 1.4 steps per second (target 5 each): the simulations share the CPU with each other and with the heavy requests.
 <!-- results:load:end -->
 
 Refresh these tables after re-running the experiments:
@@ -334,8 +334,23 @@ spindle or a scrapped batch `[source needed]`.
 ## Scalability
 
 Measured today: one backend process serves many viewers (see "Many simultaneous viewers" above) and
-the container runs within 512 MB (docs/DEPLOYMENT.md). The demo still runs one twin of one machine;
-scaling to a factory would follow this design (not built yet):
+the container runs within 512 MB (docs/DEPLOYMENT.md).
+
+**One simulation per viewer (built).** Each browser tab sends a random session id
+(`frontend/src/lib/session.ts`), and the backend gives each id its own live simulation, guided demo,
+live stream and console log (`backend/causaltwin/api/sessions.py`). One judge's Reset, fault injection or
+demo therefore never changes what another judge sees. Watched simulations share the CPU of one
+process: on the development laptop each ran at about 3.8 steps per second alone, 2.9 with two and 2.0
+with four watched at once (target 5), and about 1.4 under the heavy 25-viewer load above. Their number is
+therefore limited: `CAUSALTWIN_MAX_SESSIONS`, 4 by default and 2 on Render's free plan. A simulation
+steps only while someone watches it; a private one is replaced when all slots are taken and nobody has
+watched it for 30 seconds, and is deleted after 10 unwatched minutes. Viewers beyond the limit share one simulation, and the top bar
+says "Shared" instead of "Private", with the reason. Scripts and health checks without a session id use
+that shared simulation too. With a real machine (MTConnect) there is one machine, so all viewers share
+its live view.
+
+The demo still runs one twin of one machine; scaling to a factory would follow this design (not built
+yet):
 
 - **One twin per machine.** Each twin is small: its fitted model is a handful of linear equations plus a
   logistic model, and a risk estimate takes milliseconds. Many twins fit on one server.

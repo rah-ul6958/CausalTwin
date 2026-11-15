@@ -4,7 +4,9 @@
  * scenarios, steps, resets) leaves the app live and error-free.
  */
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+
+import { controlPageSimulation } from "./session-helpers";
 
 const PAGES = ["/", "/control", "/graph", "/whatif", "/advisor", "/benchmark", "/console", "/data"];
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -66,8 +68,7 @@ test("the live stream reconnects after the WebSocket drops", async ({ page }) =>
 test("random clicking in the Control Room keeps the app live", async ({ page, request }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await request.post(`${API}/sim/control`, { data: { action: "reset" } });
-  await request.post(`${API}/sim/control`, { data: { action: "resume" } });
+  // A new browser context is a new tab, so this page starts with its own fresh, running simulation.
   await page.goto("/control");
   await expect(connectionStatus(page)).toHaveText("Live");
   await expect(page.getByRole("button", { name: "Step 50" })).toBeVisible();
@@ -106,12 +107,16 @@ test("random clicking in the Control Room keeps the app live", async ({ page, re
   }
 
   // Back to a known state: the machine must still be steppable and no error alert raised.
-  await request.post(`${API}/sim/control`, { data: { action: "resume" } });
+  await resume(page, request);
   await expect(connectionStatus(page)).toHaveText("Live");
   const before = await currentStep(page);
   await expect.poll(() => currentStep(page), { timeout: 15_000 }).toBeGreaterThan(before);
   await expect(page.getByText("System error", { exact: true })).toHaveCount(0);
   expect(errors).toEqual([]);
-  await request.post(`${API}/sim/control`, { data: { action: "reset" } });
-  await request.post(`${API}/sim/control`, { data: { action: "resume" } });
 });
+
+/** Resume the page's own live simulation (the random clicks may have paused it). */
+async function resume(page: Page, request: APIRequestContext): Promise<void> {
+  const response = await controlPageSimulation(page, request, "resume");
+  expect(response.ok()).toBeTruthy();
+}

@@ -120,7 +120,8 @@ Trap check: discovered failure causes bearing_temp, tool_wear; vibration is not 
   clear "no ground truth" warning), and a live MTConnect connector exists (tested against a stand-in
   agent, not yet a real machine). On third-party data (AI4I 2020) it found the documented failure
   mechanism, but its linear failure model advised poorly on threshold-type failures: say so. Many-machine
-  scaling is designed, not built; one server handled 50 simultaneous viewers.
+  scaling is designed, not built; one server handled 50 simultaneous viewers, and every browser tab gets
+  its own live simulation (up to a CPU-bound limit; later viewers share one).
 - **Visual:** `08-data.png` (upload panel); a simple diagram: machine -> MTConnect/OPC UA/MQTT ->
   connector -> one twin per machine -> alerts and advice.
 - **Numbers:** the AI4I comparison and the load test from the README ("Third-party data", "Many

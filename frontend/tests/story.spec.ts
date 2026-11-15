@@ -7,9 +7,8 @@
  * button): every run must tell exactly the same story, beat by beat, because the demo uses a
  * fixed seed. Per-beat durations of every run are saved as demo-runs.json in the test output.
  *
- * The demo resets and pauses the live loop. With one worker Playwright runs files in
- * alphabetical order, so this file ("story") runs after "smoke"; it also resets and
- * resumes the live loop at the end, leaving the server as it found it.
+ * The demo resets and pauses the live loop of this page's own simulation (every browser tab
+ * has its own), so it does not disturb other tests or other viewers.
  */
 
 import { writeFileSync } from "node:fs";
@@ -17,7 +16,6 @@ import { writeFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 
 const SCREENSHOTS = "../docs/screenshots";
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const RUNS = Math.max(1, Number(process.env.DEMO_RUNS ?? "1"));
 
 interface RunRecord {
@@ -42,7 +40,7 @@ function demoPanel(page: Page) {
   return page.getByRole("complementary", { name: "Guided demo" });
 }
 
-test(`the full demo story plays from the UI alone (${RUNS} run${RUNS > 1 ? "s" : ""})`, async ({ page, request }, testInfo) => {
+test(`the full demo story plays from the UI alone (${RUNS} run${RUNS > 1 ? "s" : ""})`, async ({ page }, testInfo) => {
   test.setTimeout(60_000 + RUNS * 300_000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -88,8 +86,5 @@ test(`the full demo story plays from the UI alone (${RUNS} run${RUNS > 1 ? "s" :
     expect(errors).toEqual([]);
   } finally {
     writeFileSync(testInfo.outputPath("demo-runs.json"), JSON.stringify(runs, null, 2));
-    // Leave the server as the other tests expect it: a fresh, running live loop.
-    await request.post(`${API}/sim/control`, { data: { action: "reset" } });
-    await request.post(`${API}/sim/control`, { data: { action: "resume" } });
   }
 });

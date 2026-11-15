@@ -1,7 +1,8 @@
 """Read-only information routes used by the frontend: configuration, histories, ground truth.
 
 Ground-truth routes (`/validation/true-graph`, `/drift-results`) serve validation views only
-and label their content as simulator ground truth.
+and label their content as simulator ground truth. Live histories come from the viewer's own
+simulation (its session).
 """
 
 import json
@@ -9,7 +10,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from causaltwin.api.live import GROUND_TRUTH_LABEL
+from causaltwin.api.live import GROUND_TRUTH_LABEL, LiveLoop
+from causaltwin.api.sessions import session_of
 from causaltwin.api.state import AppState
 from causaltwin.config import (
     DEFAULT_CONFIG,
@@ -50,11 +52,17 @@ def _state(request: Request) -> AppState:
     return state
 
 
+def _live(request: Request) -> LiveLoop:
+    """The viewer's live loop."""
+    return session_of(request).live
+
+
 @router.get("/config")
 def configuration(request: Request) -> dict[str, Any]:
     """Current settings, lever ranges and costs, variable metadata, budgets, and the baseline model card."""
     state = _state(request)
-    engine = state.live.engine
+    live = _live(request)
+    engine = live.engine
     levers = {
         name: {
             "minimum": DEFAULT_CONFIG.levers[name].minimum,
@@ -73,7 +81,7 @@ def configuration(request: Request) -> dict[str, Any]:
     }
     return {
         "illustrative_note": ILLUSTRATIVE_NOTE,
-        "data_source": state.live.source_info.as_dict(),
+        "data_source": live.source_info.as_dict(),
         "seconds_per_step": SECONDS_PER_STEP,
         "engine": engine.settings.model_dump(),
         "levers": levers,
@@ -131,20 +139,20 @@ def _demo_beats() -> list[Any]:
 @router.get("/events")
 def events(request: Request, limit: int = Query(200, ge=1, le=5000)) -> dict[str, Any]:
     """Recent live event log entries (simulated)."""
-    live = _state(request).live
+    live = _live(request)
     return {"simulated": True, "events": live.events[-limit:]}
 
 
 @router.get("/alerts")
 def alerts(request: Request, limit: int = Query(100, ge=1, le=2000)) -> dict[str, Any]:
     """Recent alerts (risk threshold crossings and drift)."""
-    return {"alerts": _state(request).live.alerts[-limit:]}
+    return {"alerts": _live(request).alerts[-limit:]}
 
 
 @router.get("/risk/history")
 def risk_history(request: Request, limit: int = Query(300, ge=1, le=2000)) -> dict[str, Any]:
     """Recent risk estimates of the live loop: the twin's estimate and the ground-truth check."""
-    live = _state(request).live
+    live = _live(request)
     points = list(live.risk_history)[-limit:]
     return {"simulated": True, "run_id": live.run_id, "validation_label": GROUND_TRUTH_LABEL, "points": points}
 
@@ -152,7 +160,7 @@ def risk_history(request: Request, limit: int = Query(300, ge=1, le=2000)) -> di
 @router.get("/graph/history")
 def graph_history(request: Request) -> dict[str, Any]:
     """Versions of the causal graph over time (a new version after every confirmed drift)."""
-    return {"versions": _state(request).live.graph_versions}
+    return {"versions": _live(request).graph_versions}
 
 
 @router.get("/drift-results")
