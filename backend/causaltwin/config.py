@@ -368,3 +368,31 @@ DRIFT_RESULTS_PATH = DATA_DIR / "drift_results.json"
 # estimates; they get their own buffer so they cannot push other entries out.
 ACTIVITY_LOG_MAX_ENTRIES = 5000
 ACTIVITY_LOG_MAX_ROUTINE_ENTRIES = 500
+
+# ---------------------------------------------------------------------------
+# Deployment and API safety (Phase 5)
+# ---------------------------------------------------------------------------
+# Environment variables read at start-up (documented in backend/.env.example).
+CORS_ORIGIN_REGEX_ENV = "CAUSALTWIN_CORS_ORIGIN_REGEX"  # for example https://.*\.vercel\.app
+DISCOVERY_JOBS_ENV = "CAUSALTWIN_DISCOVERY_JOBS"  # discovery worker processes; 1 saves memory on small servers
+ALLOW_BENCHMARK_RUN_ENV = "CAUSALTWIN_ALLOW_BENCHMARK_RUN"  # "0" disables POST /benchmark/run (public demos)
+DEFAULT_CORS_ORIGINS = "http://localhost:3000"
+
+# Heavy requests (what-if, root cause, recommendation, BYOD, multi-step) run in worker threads.
+MAX_CONCURRENT_HEAVY_REQUESTS = 2  # more at once get "busy, retry" (503) instead of queueing up
+HEAVY_REQUEST_TIMEOUT_SECONDS = 30.0  # then 504; the computation itself cannot be interrupted
+BYOD_REQUEST_TIMEOUT_SECONDS = 120.0
+SIM_STEP_MAX = 5000  # largest "step N" request
+
+# Input limits for POST /whatif.
+WHATIF_MAX_HORIZON = 120  # steps (20 minutes)
+WHATIF_MIN_ROLLOUTS = 10
+WHATIF_MAX_ROLLOUTS = 1000
+WHATIF_MAX_INTERVENTIONS = 8
+WHATIF_PERCENT_LIMITS = (-90.0, 300.0)  # allowed "percent" change of a variable
+WHATIF_MAX_NOISE_SCALE = 10.0
+
+# Bring Your Own Data upload limits.
+BYOD_MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+BYOD_MAX_ROWS = 50_000
+BYOD_MAX_COLUMNS = 40

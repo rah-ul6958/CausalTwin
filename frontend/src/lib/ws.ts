@@ -14,6 +14,8 @@ interface LiveSocketOptions {
 
 const MIN_RETRY_MS = 1000;
 const MAX_RETRY_MS = 10000;
+/** Up to this share of the delay is added at random, so many tabs do not reconnect in lockstep. */
+const RETRY_JITTER = 0.3;
 
 /** Keeps one connection alive; queues messages and hands them over in batches. */
 export class LiveSocket {
@@ -26,12 +28,14 @@ export class LiveSocket {
 
   constructor(private readonly options: LiveSocketOptions) {}
 
+  /** Connect and start delivering batches. */
   start(): void {
     this.stopped = false;
     this.flushTimer = setInterval(() => this.flush(), STORE_FLUSH_MS);
     this.connect();
   }
 
+  /** Disconnect for good (no more retries). */
   stop(): void {
     this.stopped = true;
     if (this.flushTimer) clearInterval(this.flushTimer);
@@ -40,6 +44,7 @@ export class LiveSocket {
     this.socket = null;
   }
 
+  /** Open the socket; on close, retry after an exponentially growing, jittered delay (1 s to 10 s). */
   private connect(): void {
     this.options.onStatus("connecting");
     const socket = new WebSocket(this.options.url);
@@ -59,13 +64,15 @@ export class LiveSocket {
     socket.onclose = () => {
       this.options.onStatus("closed");
       if (!this.stopped) {
-        this.retryTimer = setTimeout(() => this.connect(), this.retryDelay);
+        const delay = this.retryDelay * (1 + Math.random() * RETRY_JITTER);
+        this.retryTimer = setTimeout(() => this.connect(), delay);
         this.retryDelay = Math.min(this.retryDelay * 2, MAX_RETRY_MS);
       }
     };
     socket.onerror = () => socket.close();
   }
 
+  /** Hand all queued messages to the store in one batch. */
   private flush(): void {
     if (this.queue.length === 0) return;
     const batch = this.queue;

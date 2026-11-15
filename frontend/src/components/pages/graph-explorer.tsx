@@ -8,7 +8,7 @@ import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAx
 
 import { PageHeader } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
-import { EmptyState, ErrorState, PanelSkeleton } from "@/components/common/states";
+import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView, edgeKey, type EdgeState, type GraphMode } from "@/components/graph/causal-graph";
 import { ConfidenceBar, HowComputed, SimulatedBadge } from "@/components/transparency/transparency";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -338,7 +338,7 @@ export function GraphExplorer() {
           </Panel>
           <Panel index={2} title="Graph version history" subtitle="A new version after every confirmed drift" icon={<History className="size-4" />}>
             {!history.data ? (
-              <PanelSkeleton rows={2} />
+              <LoadingOrError state={history} rows={2} />
             ) : (
               <ol className="space-y-3">
                 {[...history.data.versions].reverse().map((version) => (

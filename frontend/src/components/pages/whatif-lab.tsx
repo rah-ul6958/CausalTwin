@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ForecastChart } from "@/components/charts/forecast-chart";
 import { PageHeader } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
-import { EmptyState, ErrorState, PanelSkeleton } from "@/components/common/states";
+import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView } from "@/components/graph/causal-graph";
 import { HowComputed, SimulatedBadge, TimingChip } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
@@ -236,7 +236,13 @@ export function WhatIfLab() {
           </div>
           <Panel index={4} title="Ripple through the causal graph" subtitle="Affected nodes pulse in order of their causal lag" bodyClassName="p-0">
             <div className="h-[340px]">
-              {graph.data ? <CausalGraphView graph={graph.data.graph} pulse={pulse} compact /> : <div className="p-4"><PanelSkeleton rows={5} /></div>}
+              {graph.data ? (
+                <CausalGraphView graph={graph.data.graph} pulse={pulse} compact />
+              ) : (
+                <div className="p-4">
+                  <LoadingOrError state={graph} rows={5} />
+                </div>
+              )}
             </div>
           </Panel>
           <Panel index={5} title="Before and after" subtitle="Median with change (violet), without change (grey dashed), 90% band">

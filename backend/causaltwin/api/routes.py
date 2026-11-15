@@ -4,8 +4,9 @@ import asyncio
 import json
 import tempfile
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect
@@ -30,22 +31,32 @@ from causaltwin.api.schemas import (
 )
 from causaltwin.api.state import AppState
 from causaltwin.config import (
+    ALLOW_BENCHMARK_RUN_ENV,
     BENCHMARK_RESULTS_PATH,
     BOOTSTRAP_RESAMPLES,
+    BYOD_MAX_COLUMNS,
+    BYOD_MAX_ROWS,
+    BYOD_MAX_UPLOAD_BYTES,
+    BYOD_REQUEST_TIMEOUT_SECONDS,
+    DEFAULT_CONFIG,
     FAULT_NAMES,
+    HEAVY_REQUEST_TIMEOUT_SECONDS,
     LIVE_SEED,
     MEASURED_VARIABLES,
     OPTIMIZER_TARGET_RISK,
+    SIM_STEP_MAX,
     VALIDATION_RESULTS_PATH,
+    WHATIF_PERCENT_LIMITS,
 )
+from causaltwin.engine.schemas import Intervention
 from causaltwin.engine.twin import CausalTwinEngine, EngineSettings
 from causaltwin.ingestion import data_quality_report, load_csv
 from causaltwin.intelligence.benchmark import run_benchmark
-from causaltwin.intelligence.optimizer import recommend
 from causaltwin.simulator import SCENARIOS
 from causaltwin.utils.activity_log import get_activity_logger
 
 router = APIRouter()
+ResultType = TypeVar("ResultType")
 SCATTER_POINTS = 400
 UPLOADED_NOTE = (
     "Uploaded data: no simulator ground truth is available, so these results cannot be validated "
@@ -79,6 +90,52 @@ def _require_running(state: AppState) -> None:
     """Risk-based results need recent normal running data."""
     if not state.live.history_is_usable():
         raise HTTPException(status_code=409, detail="The machine is stopped or just restarted; no risk estimate now.")
+
+
+async def _run_heavy(
+    state: AppState,
+    function: Callable[[], ResultType],
+    label: str,
+    timeout_seconds: float = HEAVY_REQUEST_TIMEOUT_SECONDS,
+) -> ResultType:
+    """Run a heavy computation in a worker thread, with a concurrency limit and a timeout.
+
+    Too many at once: 503 "busy". Too slow: 504. Python cannot stop a running thread, so a
+    timed-out computation still finishes in the background; the client is told so.
+    """
+    if state.heavy_slots.locked():
+        raise HTTPException(
+            status_code=503, detail=f"The server is busy with other computations; retry the {label} in a few seconds."
+        )
+    async with state.heavy_slots:
+        try:
+            return await asyncio.wait_for(asyncio.to_thread(function), timeout=timeout_seconds)
+        except TimeoutError as error:
+            raise HTTPException(
+                status_code=504,
+                detail=f"The {label} took longer than {timeout_seconds:.0f} s, so the server stopped waiting "
+                "(it may finish in the background). The server may be overloaded; retry shortly.",
+            ) from error
+
+
+def _check_intervention_limits(interventions: list[Intervention]) -> None:
+    """Lever settings must stay inside the lever's allowed range; percent changes inside fixed limits."""
+    low_percent, high_percent = WHATIF_PERCENT_LIMITS
+    for intervention in interventions:
+        lever = DEFAULT_CONFIG.levers.get(intervention.variable)
+        if intervention.change_type == "set" and lever is not None:
+            if not lever.minimum <= intervention.value <= lever.maximum:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{intervention.variable} must be between {lever.minimum:g} and {lever.maximum:g}, "
+                    f"got {intervention.value:g}",
+                )
+        if intervention.change_type == "percent" and not low_percent <= intervention.value <= high_percent:
+            raise HTTPException(
+                status_code=400,
+                detail=f"A percent change must be between {low_percent:g}% and {high_percent:g}%, "
+                f"got {intervention.value:g}%",
+            )
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -162,18 +219,19 @@ def edge_evidence(request: Request, cause: str, effect: str) -> EdgeEvidenceResp
 async def what_if(request: Request, body: WhatIfRequest) -> WhatIfResponse:
     """Simulate interventions from the live machine's current state."""
     state = _state(request)
-    _require_running(state)
-    history = state.live.history()
+    _check_intervention_limits(body.interventions)
+    live = state.live
+
+    def compute() -> tuple[Any, Any]:
+        with live.lock:
+            _require_running(state)
+            history = live.history()
+            return history, live.engine.what_if(
+                body.interventions, history, body.horizon, body.n_rollouts, None, body.noise_scale
+            )
+
     try:
-        result = await asyncio.to_thread(
-            state.live.engine.what_if,
-            body.interventions,
-            history,
-            body.horizon,
-            body.n_rollouts,
-            None,
-            body.noise_scale,
-        )
+        history, result = await _run_heavy(state, compute, "what-if simulation")
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return WhatIfResponse(
@@ -192,9 +250,14 @@ async def what_if(request: Request, body: WhatIfRequest) -> WhatIfResponse:
 async def root_cause(request: Request) -> RootCauseResponse:
     """Ranked causal paths for the current risk, plus symptoms."""
     state = _state(request)
-    _require_running(state)
-    history = state.live.history()
-    result = await asyncio.to_thread(state.live.engine.root_cause, history)
+    live = state.live
+
+    def compute() -> Any:
+        with live.lock:
+            _require_running(state)
+            return live.engine.root_cause(live.history())
+
+    result = await _run_heavy(state, compute, "root-cause analysis")
     return RootCauseResponse(
         result=result,
         provenance=Provenance(
@@ -215,17 +278,15 @@ async def recommendation(
 ) -> RecommendResponse:
     """The cheapest intervention that brings predicted risk below the target, with the full search table."""
     state = _state(request)
-    _require_running(state)
     live = state.live
-    model = live.engine._require_fitted()
-    history = live.history(max(model.max_lag, 1) + 1).to_numpy(dtype=float)
-    latest = live.buffer.dataframe(1).iloc[-1]
-    result = await asyncio.to_thread(recommend, live.engine, history, target)
-    live.latest_recommendation = result
-    live.drift.current_recommendation = result
-    magnitude = max((abs(c.change_pct) for c in result.changes), default=20.0)
-    baseline_action = await asyncio.to_thread(state.models.baseline.recommend, latest, magnitude)
-    live.latest_baseline_action = baseline_action
+
+    def compute() -> tuple[Any, Any]:
+        with live.lock:
+            _require_running(state)
+            result = live.compute_recommendation(target)
+            return result, live.latest_baseline_action
+
+    result, baseline_action = await _run_heavy(state, compute, "recommendation search")
     return RecommendResponse(
         recommendation=result,
         baseline_action=baseline_action,
@@ -260,8 +321,7 @@ def _fault_action(request: Request, body: FaultRequest, inject: bool) -> ActionR
     state = _state(request)
     if body.fault not in FAULT_NAMES:
         raise HTTPException(status_code=400, detail=f"Unknown fault. Known: {list(FAULT_NAMES)}")
-    simulator = state.live.simulator
-    (simulator.inject_fault if inject else simulator.clear_fault)(body.fault)
+    state.live.set_fault(body.fault, inject)
     verb = "Injected" if inject else "Cleared"
     get_activity_logger().log("fault", f"{verb} fault {body.fault}")
     return ActionResponse(ok=True, message=f"{verb} {body.fault}", status=_status(state))
@@ -290,7 +350,7 @@ def scenario(request: Request, body: ScenarioRequest) -> ActionResponse:
 
 
 @router.post("/sim/control", response_model=ActionResponse)
-def sim_control(request: Request, body: SimControlRequest) -> ActionResponse:
+async def sim_control(request: Request, body: SimControlRequest) -> ActionResponse:
     """Pause, resume, set speed, step, reset, or release all interventions."""
     state = _state(request)
     live = state.live
@@ -304,15 +364,14 @@ def sim_control(request: Request, body: SimControlRequest) -> ActionResponse:
         live.steps_per_second = body.value
     elif body.action == "step":
         n_steps = int(body.value or 1)
-        if not 1 <= n_steps <= 5000:
-            raise HTTPException(status_code=400, detail="step needs 1 to 5000 steps")
-        live.advance(n_steps, fast=n_steps > 10)
+        if not 1 <= n_steps <= SIM_STEP_MAX:
+            raise HTTPException(status_code=400, detail=f"step needs 1 to {SIM_STEP_MAX} steps")
+        await _run_heavy(state, lambda: live.advance(n_steps, fast=n_steps > 10), f"{n_steps}-step run")
     elif body.action == "reset":
         live.running = False
-        live.reset(LIVE_SEED, "normal")
+        await asyncio.to_thread(live.reset, LIVE_SEED, "normal")
     elif body.action == "release":
-        for variable in list(live.simulator.interventions):
-            live.simulator.release(variable)
+        live.release_all()
     return ActionResponse(ok=True, message=f"{body.action} done", status=_status(state))
 
 
@@ -320,8 +379,11 @@ def sim_control(request: Request, body: SimControlRequest) -> ActionResponse:
 async def demo_start(request: Request) -> dict[str, Any]:
     """Start the guided demo (fixed seed) and play the first beat."""
     state = _state(request)
-    state.live.running = False
-    return await asyncio.to_thread(state.demo.start)
+    if state.demo_lock.locked():
+        raise HTTPException(status_code=409, detail="A demo beat is still running; wait for it to finish.")
+    async with state.demo_lock:
+        state.live.running = False
+        return await asyncio.to_thread(state.demo.start)
 
 
 @router.post("/demo/next")
@@ -330,7 +392,10 @@ async def demo_next(request: Request) -> dict[str, Any]:
     state = _state(request)
     if state.demo.position < 0:
         raise HTTPException(status_code=409, detail="Start the demo first with /demo/start")
-    return await asyncio.to_thread(state.demo.next)
+    if state.demo_lock.locked():
+        raise HTTPException(status_code=409, detail="A demo beat is still running; wait for it to finish.")
+    async with state.demo_lock:
+        return await asyncio.to_thread(state.demo.next)
 
 
 @router.get("/benchmark")
@@ -361,6 +426,12 @@ async def benchmark_run(
     A smaller `situations_per_scenario` gives a quick run that is not written to the cache.
     """
     state = _state(request)
+    if not state.runtime.allow_benchmark_run:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Re-running the benchmark is disabled on this server ({ALLOW_BENCHMARK_RUN_ENV}=0) to keep the "
+            "public demo responsive. The cached results are shown; run it locally to reproduce them.",
+        )
     if state.benchmark_running:
         raise HTTPException(status_code=409, detail="A benchmark is already running")
     state.benchmark_running = True
@@ -490,9 +561,21 @@ async def byod_upload(
         assert isinstance(column_roles, dict)
     except (json.JSONDecodeError, AssertionError) as error:
         raise HTTPException(status_code=400, detail='roles must be a JSON object such as {"temp": "sensor"}') from error
+    if len(column_roles) > BYOD_MAX_COLUMNS:
+        raise HTTPException(status_code=400, detail=f"At most {BYOD_MAX_COLUMNS} columns can be analysed at once.")
+    content = await file.read(BYOD_MAX_UPLOAD_BYTES + 1)
+    if len(content) > BYOD_MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413, detail=f"The file is larger than {BYOD_MAX_UPLOAD_BYTES // (1024 * 1024)} MB."
+        )
+    if content.count(b"\n") > BYOD_MAX_ROWS + 1:
+        raise HTTPException(
+            status_code=413,
+            detail=f"The file has more than {BYOD_MAX_ROWS:,} rows; upload a shorter or down-sampled extract.",
+        )
     with tempfile.TemporaryDirectory() as folder:
         path = Path(folder) / "upload.csv"
-        path.write_bytes(await file.read())
+        path.write_bytes(content)
         try:
             data, report = load_csv(path, column_roles, time_column)
         except ValueError as error:
@@ -507,7 +590,12 @@ async def byod_upload(
     notes = [UPLOADED_NOTE]
     graph, cards = None, []
     try:
-        await asyncio.to_thread(engine.fit, data, used_roles, time_series)
+        await _run_heavy(
+            state,
+            lambda: engine.fit(data, used_roles, time_series),
+            "analysis of the uploaded data",
+            BYOD_REQUEST_TIMEOUT_SECONDS,
+        )
         graph, cards = engine.get_graph(), engine.get_model_cards()
         state.byod_engine = engine
         notes += graph.notes

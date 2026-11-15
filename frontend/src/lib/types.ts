@@ -288,7 +288,7 @@ export interface EdgeChange {
 }
 
 export interface LiveAlert {
-  kind: "risk" | "drift" | string;
+  kind: "risk" | "drift" | "error" | string;
   step?: number;
   message?: string;
   risk?: RiskEstimate | null;

@@ -100,8 +100,8 @@ class Intervention(BaseModel):
     # "set": hold at value; "percent": hold at last value * (1 + value/100);
     # "reset": set once at start_step, then let the dynamics continue (for example a tool change)
     change_type: Literal["set", "percent", "reset"] = "set"
-    value: float
-    start_step: int = 0  # steps into the horizon when the intervention starts
+    value: float = Field(allow_inf_nan=False)
+    start_step: int = Field(default=0, ge=0)  # steps into the horizon when the intervention starts
 
 
 class VariableForecast(BaseModel):

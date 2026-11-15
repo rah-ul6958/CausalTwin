@@ -14,9 +14,10 @@ node_modules/
 out/
 frontend/.vercel/
 
-# Environment
+# Environment (the documented examples are committed)
 .env
 .env.*
+!.env.example
 
 # Data cache (generated data is ignored, except the committed samples and true graph)
 backend/data/*
@@ -25,6 +26,7 @@ backend/data/*
 !backend/data/validation_results.json
 !backend/data/benchmark_results.json
 !backend/data/drift_results.json
+!backend/data/timings.json
 
 # Editors / OS
 .vscode/

@@ -12,7 +12,7 @@ import { SensorChart, type SeriesPoint } from "@/components/charts/sensor-chart"
 import { CountUp } from "@/components/common/count-up";
 import { PageHeader, variableColor } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
-import { EmptyState, ErrorState, PanelSkeleton } from "@/components/common/states";
+import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { GroundTruthBadge, InfoTip, SimulatedBadge } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
 import {
@@ -292,7 +292,9 @@ function SensorGrid() {
       icon={<Activity className="size-4" />}
       className="col-span-full"
     >
-      {variables.length === 0 || points.length === 0 ? (
+      {config.error ? (
+        <ErrorState message={config.error} onRetry={config.reload} />
+      ) : variables.length === 0 || points.length === 0 ? (
         <PanelSkeleton rows={3} />
       ) : (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
@@ -379,7 +381,7 @@ function AlertFeed() {
   const threshold = config.data?.live.alert_risk_threshold;
   const shown = useMemo(() => alerts.slice(-30).reverse(), [alerts]);
   return (
-    <Panel index={5} demo="alert-feed" title="Alerts" subtitle="Risk threshold crossings and causal drift" icon={<Bell className="size-4" />}>
+    <Panel index={5} demo="alert-feed" title="Alerts" subtitle="Risk threshold crossings, causal drift and system errors" icon={<Bell className="size-4" />}>
       {shown.length === 0 ? (
         <EmptyState
           title="No alerts"
@@ -390,6 +392,7 @@ function AlertFeed() {
           <AnimatePresence initial={false}>
             {shown.map((alert, index) => {
               const drift = alert.kind === "drift";
+              const failure = alert.kind === "error";
               const step = alert.step ?? alert.rediscovery_step ?? alert.detected_step;
               return (
                 <motion.li
@@ -405,7 +408,7 @@ function AlertFeed() {
                 >
                   <div className="mb-1 flex items-center justify-between">
                     <span className={cn("font-semibold uppercase tracking-wide", drift ? "text-warn" : "text-risk")}>
-                      {drift ? `Drift ${alert.status ?? ""}` : "Risk"}
+                      {drift ? `Drift ${alert.status ?? ""}` : failure ? "System error" : "Risk"}
                     </span>
                     <span className="tabular text-muted-foreground">step {step}</span>
                   </div>
@@ -447,7 +450,7 @@ export function ControlRoom() {
         ) : (
           <>
             <Panel index={0} title="Failure risk">{config.error ? <ErrorState message={config.error} onRetry={config.reload} /> : <PanelSkeleton rows={3} />}</Panel>
-            <Panel index={1} title="Risk over time"><PanelSkeleton rows={4} /></Panel>
+            <Panel index={1} title="Risk over time"><LoadingOrError state={config} rows={4} /></Panel>
           </>
         )}
         <Controls />

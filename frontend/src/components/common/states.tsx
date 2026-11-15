@@ -7,6 +7,7 @@ import { RefreshCw, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
+/** Grey placeholder bars shown while a panel's data loads. */
 export function PanelSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div className="space-y-3" aria-busy="true" aria-label="Loading">
@@ -17,6 +18,7 @@ export function PanelSkeleton({ rows = 4 }: { rows?: number }) {
   );
 }
 
+/** A clear error message with an optional Retry button (never a blank panel). */
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div role="alert" className="flex flex-col items-start gap-3 rounded-lg border border-risk/30 bg-risk/5 p-4 text-sm">
@@ -33,6 +35,12 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   );
 }
 
+/** The loading or failed side of an API call: an error with Retry if it failed, otherwise a skeleton. */
+export function LoadingOrError({ state, rows = 4 }: { state: { error?: string; reload: () => void }; rows?: number }) {
+  return state.error ? <ErrorState message={state.error} onRetry={state.reload} /> : <PanelSkeleton rows={rows} />;
+}
+
+/** A short "nothing here yet" message with an optional hint. */
 export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1 py-8 text-center">

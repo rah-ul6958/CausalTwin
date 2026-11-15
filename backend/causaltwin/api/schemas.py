@@ -5,10 +5,17 @@ window, parameters, computation time, assumptions), which the UI shows in its
 "How was this computed?" drawers.
 """
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
+from causaltwin.config import (
+    WHATIF_MAX_HORIZON,
+    WHATIF_MAX_INTERVENTIONS,
+    WHATIF_MAX_NOISE_SCALE,
+    WHATIF_MAX_ROLLOUTS,
+    WHATIF_MIN_ROLLOUTS,
+)
 from causaltwin.engine.schemas import (
     CausalEdge,
     CausalGraph,
@@ -64,12 +71,14 @@ class EdgeEvidenceResponse(BaseModel):
 
 
 class WhatIfRequest(BaseModel):
-    """Body of POST /whatif."""
+    """Body of POST /whatif (limits keep one request from exhausting the server)."""
 
-    interventions: list[Intervention]
-    horizon: int | None = None
-    n_rollouts: int | None = None
-    noise_scale: dict[str, float] | None = None
+    interventions: list[Intervention] = Field(max_length=WHATIF_MAX_INTERVENTIONS)
+    horizon: int | None = Field(default=None, ge=1, le=WHATIF_MAX_HORIZON)
+    n_rollouts: int | None = Field(default=None, ge=WHATIF_MIN_ROLLOUTS, le=WHATIF_MAX_ROLLOUTS)
+    noise_scale: dict[str, Annotated[float, Field(ge=0, le=WHATIF_MAX_NOISE_SCALE, allow_inf_nan=False)]] | None = (
+        Field(default=None, max_length=20)
+    )
 
 
 class WhatIfResponse(BaseModel):
@@ -97,20 +106,20 @@ class RecommendResponse(BaseModel):
 class FaultRequest(BaseModel):
     """Body of POST /inject-fault and /clear-fault."""
 
-    fault: str
+    fault: str = Field(max_length=64)
 
 
 class ScenarioRequest(BaseModel):
     """Body of POST /scenario."""
 
-    scenario: str
+    scenario: str = Field(max_length=64)
 
 
 class SimControlRequest(BaseModel):
     """Body of POST /sim/control."""
 
     action: Literal["pause", "resume", "speed", "step", "reset", "release"]
-    value: float | None = None
+    value: float | None = Field(default=None, allow_inf_nan=False)
 
 
 class SimStatus(BaseModel):

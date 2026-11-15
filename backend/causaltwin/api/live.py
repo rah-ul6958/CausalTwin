@@ -5,10 +5,16 @@ step it appends the data, estimates the twin's failure risk, and runs the drift 
 every LIVE_ROOT_CAUSE_EVERY steps it refreshes the root-cause analysis. Everything is
 pushed to WebSocket clients through the hub. The simulator's true hazard is sent on a
 separate "validation" field, clearly labelled as ground truth: the twin never uses it.
+
+Thread safety: the background loop, the demo and API requests run in different threads,
+so every change to the simulator, buffer or engine happens while holding `LiveLoop.lock`
+(a re-entrant lock). Long computations that read the engine hold it too, so a drift
+rewiring can never happen half way through a recommendation.
 """
 
 import asyncio
 import copy
+import threading
 import time
 from collections import deque
 from dataclasses import dataclass
@@ -33,6 +39,7 @@ from causaltwin.config import (
     ROOT_CAUSE_RISK_THRESHOLD,
     SECONDS_PER_STEP,
     SIMULATION_START_TIME,
+    VARIABLE_INFO,
     WHATIF_HORIZON,
 )
 from causaltwin.engine.schemas import RiskEstimate, RootCauseResult
@@ -42,6 +49,7 @@ from causaltwin.intelligence.schemas import BaselineAction, DriftAlert, Recommen
 from causaltwin.intelligence.training import TrainedModels
 from causaltwin.simulator import MachineSimulator, build_simulator, failure_probability, switch_scenario
 from causaltwin.utils.activity_log import get_activity_logger
+from causaltwin.utils.formatting import format_value
 from causaltwin.utils.timing import timed_step
 
 GROUND_TRUTH_LABEL = "Simulator ground truth (validation only; not used by the twin)"
@@ -78,6 +86,8 @@ class LiveLoop:
         self.steps_per_second = LIVE_STEPS_PER_SECOND
         self.task: asyncio.Task[None] | None = None
         self.run_id = 0  # increases on every reset, so clients can tell runs apart
+        self.lock = threading.RLock()  # guards the simulator, buffer and engine (see module docstring)
+        self.loop_errors = 0  # steps of the background loop that failed (it pauses and reports each one)
         self.reset(LIVE_SEED, "normal")
 
     # ------------------------------------------------------------------
@@ -85,6 +95,11 @@ class LiveLoop:
     # ------------------------------------------------------------------
     def reset(self, seed: int, scenario: str) -> None:
         """Start a fresh simulator and a fresh copy of the trained engine."""
+        with self.lock:
+            self._reset(seed, scenario)
+
+    def _reset(self, seed: int, scenario: str) -> None:
+        """Body of reset (the caller holds the lock)."""
         self.run_id += 1
         self.seed = seed
         self.scenario = scenario
@@ -143,10 +158,11 @@ class LiveLoop:
     # ------------------------------------------------------------------
     def advance(self, n_steps: int = 1, fast: bool = False) -> None:
         """Run n steps. In fast mode the risk is estimated only every FAST_RISK_EVERY steps."""
-        for index in range(n_steps):
-            last = index == n_steps - 1
-            estimate = (not fast) or last or (self.step_count % FAST_RISK_EVERY == 0)
-            self._step(publish=True, estimate_risk=estimate, force_frame=last, estimate_truth=(not fast) or last)
+        with self.lock:
+            for index in range(n_steps):
+                last = index == n_steps - 1
+                estimate = (not fast) or last or (self.step_count % FAST_RISK_EVERY == 0)
+                self._step(publish=True, estimate_risk=estimate, force_frame=last, estimate_truth=(not fast) or last)
         self.flush_logs(force=True)
 
     def _step(self, publish: bool, estimate_risk: bool, force_frame: bool = False, estimate_truth: bool = True) -> None:
@@ -294,20 +310,45 @@ class LiveLoop:
             self.hub.flush_logs()
 
     async def run_forever(self) -> None:
-        """Background task: step while running, otherwise idle."""
+        """Background task: step while running, otherwise idle.
+
+        Steps run in a worker thread so the event loop (WebSockets, health checks) stays
+        responsive. If a step fails, the loop pauses and reports the error instead of dying.
+        """
         while True:
             if self.running:
-                self.advance(1)
+                try:
+                    await asyncio.to_thread(self.advance, 1)
+                except Exception as error:  # noqa: BLE001 - any failure must pause the loop, not kill it
+                    self._pause_after_error(error)
                 await asyncio.sleep(1.0 / self.steps_per_second)
             else:
                 self.flush_logs()
                 await asyncio.sleep(0.1)
+
+    def _pause_after_error(self, error: Exception) -> None:
+        """Pause the loop and tell the user (activity log and an alert) that a step failed."""
+        self.running = False
+        self.loop_errors += 1
+        message = (
+            f"The live simulation paused after an internal error at step {self.step_count} "
+            f"({type(error).__name__}: {error}). Press Resume to continue or Reset to start again."
+        )
+        get_activity_logger().log("live_loop_error", message, level="error")
+        self.alerts.append({"kind": "error", "step": self.step_count, "message": message})
+        self.hub.broadcast("alert", self.alerts[-1])
+        self.flush_logs(force=True)
 
     # ------------------------------------------------------------------
     # Actions
     # ------------------------------------------------------------------
     def compute_recommendation(self, target_risk: float = OPTIMIZER_TARGET_RISK) -> Recommendation:
         """Run the optimizer on the current state and remember the result."""
+        with self.lock:
+            return self._compute_recommendation(target_risk)
+
+    def _compute_recommendation(self, target_risk: float) -> Recommendation:
+        """Body of compute_recommendation (the caller holds the lock)."""
         model = self.engine._require_fitted()
         history = self.history(max(model.max_lag, 1) + 1).to_numpy(dtype=float)
         recommendation = recommend(self.engine, history, target_risk=target_risk)
@@ -320,6 +361,11 @@ class LiveLoop:
 
     def apply_recommendation(self) -> dict[str, Any]:
         """Apply the latest recommendation to the live simulator."""
+        with self.lock:
+            return self._apply_recommendation()
+
+    def _apply_recommendation(self) -> dict[str, Any]:
+        """Body of apply_recommendation (the caller holds the lock)."""
         recommendation = self.latest_recommendation
         if recommendation is None:
             raise ValueError("No recommendation to apply; call /recommend first")
@@ -342,8 +388,23 @@ class LiveLoop:
 
     def switch_scenario(self, scenario: str) -> None:
         """Switch the live simulator's scenario without resetting the machine."""
-        switch_scenario(self.simulator, scenario, n_steps=LIVE_PROFILE_STEPS)
-        self.scenario = scenario
+        with self.lock:
+            switch_scenario(self.simulator, scenario, n_steps=LIVE_PROFILE_STEPS)
+            self.scenario = scenario
+
+    def set_fault(self, fault: str, active: bool) -> None:
+        """Inject (active=True) or clear a structural fault."""
+        with self.lock:
+            if active:
+                self.simulator.inject_fault(fault)
+            else:
+                self.simulator.clear_fault(fault)
+
+    def release_all(self) -> None:
+        """Hand every lever back to the simulated operator."""
+        with self.lock:
+            for variable in list(self.simulator.interventions):
+                self.simulator.release(variable)
 
 
 @dataclass
@@ -382,20 +443,33 @@ class DemoScript:
 
     def start(self) -> dict[str, Any]:
         """Reset to the demo seed and play the first beat."""
-        self.loop.running = False
-        self.loop.reset(DEMO_SEED, "normal")
-        self.position = -1
-        self.results = []
-        return self.next()
+        with self.loop.lock:
+            self.loop.running = False
+            self.loop.reset(DEMO_SEED, "normal")
+            self.position = -1
+            self.results = []
+            return self.next()
 
     def next(self) -> dict[str, Any]:
-        """Play the next beat and return what happened."""
-        if self.finished:
-            return {"finished": True, "beat": None, "position": self.position, "total": len(DEMO_BEATS)}
-        self.position += 1
-        beat = DEMO_BEATS[self.position]
-        get_activity_logger().log("demo", f"Demo beat {self.position + 1}: {beat.title}")
-        details = getattr(self, f"_{beat.name}")()
+        """Play the next beat and return what happened.
+
+        The whole beat holds the live loop's lock and pauses the loop, so a Resume click or
+        another request cannot interleave with the scripted steps. If a beat fails, the
+        position is not advanced, so pressing Next again retries that beat.
+        """
+        with self.loop.lock:
+            self.loop.running = False
+            if self.finished:
+                return {"finished": True, "beat": None, "position": self.position, "total": len(DEMO_BEATS)}
+            position = self.position + 1
+            beat = DEMO_BEATS[position]
+            get_activity_logger().log("demo", f"Demo beat {position + 1}: {beat.title}")
+            details = getattr(self, f"_{beat.name}")()
+            self.position = position
+            return self._publish(beat, details)
+
+    def _publish(self, beat: DemoBeat, details: dict[str, Any]) -> dict[str, Any]:
+        """Record and broadcast the result of the beat that just ran."""
         result = {
             "finished": self.finished,
             "position": self.position,
@@ -435,10 +509,13 @@ class DemoScript:
         """A new aggressive job starts with a fresh tool; the heat builds up."""
         self.loop.simulator.replace_tool()
         self._push()
+        settings = ", ".join(
+            f"{name.replace('_', ' ')} {format_value(value)} {VARIABLE_INFO[name]['unit']}"
+            for name, value in DEMO_PUSH_SETTINGS.items()
+        )
         return {
-            "narration": f"A hot afternoon (40 deg C) and a new aggressive job with a fresh tool "
-            f"({DEMO_PUSH_SETTINGS}). Bearing temperature climbs; predicted failure risk is now "
-            f"{self._risk_text()}."
+            "narration": f"A hot afternoon and a new aggressive job with a fresh tool ({settings}). "
+            f"Bearing temperature climbs; predicted failure risk is now {self._risk_text()}."
         }
 
     def _recommendation(self) -> dict[str, Any]:

@@ -1,6 +1,6 @@
 /** The one typed client for the CausalTwin backend API. */
 
-import { API_URL } from "@/lib/config";
+import { API_URL, DEMO_TIMEOUT_MS, REQUEST_TIMEOUT_MS, UPLOAD_TIMEOUT_MS } from "@/lib/config";
 import type {
   ActionResponse,
   AppConfig,
@@ -38,12 +38,23 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Fetch JSON from the backend. Network failures and requests slower than `timeoutMs` become
+ * an ApiError with a plain-English message, so every panel can show it with a Retry button.
+ */
+async function request<T>(path: string, init?: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { cache: "no-store", ...init });
+    response = await fetch(`${API_URL}${path}`, { cache: "no-store", ...init, signal: controller.signal });
   } catch {
+    if (controller.signal.aborted) {
+      throw new ApiError(0, `The backend did not answer within ${Math.round(timeoutMs / 1000)} s. It may be waking up or busy; retry.`);
+    }
     throw new ApiError(0, `Cannot reach the CausalTwin backend at ${API_URL}. Is it running?`);
+  } finally {
+    clearTimeout(timer);
   }
   if (!response.ok) {
     let detail = response.statusText;
@@ -58,12 +69,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-function post<T>(path: string, body?: unknown): Promise<T> {
-  return request<T>(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+/** POST a JSON body (or nothing) and parse the JSON answer. */
+function post<T>(path: string, body?: unknown, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
+  return request<T>(
+    path,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    },
+    timeoutMs,
+  );
 }
 
 export type SimAction = "pause" | "resume" | "speed" | "step" | "reset" | "release";
@@ -84,8 +100,8 @@ export const api = {
   clearFault: (fault: string) => post<ActionResponse>("/clear-fault", { fault }),
   scenario: (scenario: string) => post<ActionResponse>("/scenario", { scenario }),
   simControl: (action: SimAction, value?: number) => post<ActionResponse>("/sim/control", { action, value }),
-  demoStart: () => post<DemoBeatResult>("/demo/start"),
-  demoNext: () => post<DemoBeatResult>("/demo/next"),
+  demoStart: () => post<DemoBeatResult>("/demo/start", undefined, DEMO_TIMEOUT_MS),
+  demoNext: () => post<DemoBeatResult>("/demo/next", undefined, DEMO_TIMEOUT_MS),
   benchmark: () => request<BenchmarkResults>("/benchmark"),
   benchmarkRun: () => post<{ started: boolean; quick: boolean }>("/benchmark/run"),
   validation: () => request<ValidationResults>("/validation"),
@@ -107,6 +123,6 @@ export const api = {
     form.append("file", file);
     form.append("roles", JSON.stringify(roles));
     if (timeColumn) form.append("time_column", timeColumn);
-    return request<ByodResponse>("/byod/upload", { method: "POST", body: form });
+    return request<ByodResponse>("/byod/upload", { method: "POST", body: form }, UPLOAD_TIMEOUT_MS);
   },
 };

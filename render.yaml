@@ -1,0 +1,26 @@
+# Render Blueprint for the CausalTwin backend (the frontend is deployed on Vercel).
+# Step-by-step instructions, plan sizing and the post-deploy checklist: docs/DEPLOYMENT.md
+services:
+  - type: web
+    name: causaltwin-backend
+    runtime: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    # "free" is 0.1 CPU / 512 MB and sleeps after 15 idle minutes; the app runs on it but slowly.
+    # For judging, a paid plan such as 0.5c-512mb (legacy name "starter") or 1c-2g is recommended.
+    plan: free
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      # The Vercel URL of the frontend, for example https://causaltwin.vercel.app (asked on first deploy).
+      - key: CAUSALTWIN_CORS_ORIGINS
+        sync: false
+      # Optional: allow Vercel preview deployments, for example https://causaltwin-.*\.vercel\.app
+      - key: CAUSALTWIN_CORS_ORIGIN_REGEX
+        sync: false
+      - key: CAUSALTWIN_DISCOVERY_JOBS
+        value: "1"
+      - key: CAUSALTWIN_ALLOW_BENCHMARK_RUN
+        value: "0"
+      - key: CAUSALTWIN_AUTOSTART
+        value: "1"

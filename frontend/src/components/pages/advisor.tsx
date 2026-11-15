@@ -9,7 +9,7 @@ import { Bar, BarChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Too
 
 import { PageHeader } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
-import { EmptyState, ErrorState, PanelSkeleton } from "@/components/common/states";
+import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { ConfidenceBar, GroundTruthBadge, HowComputed, InfoTip, SimulatedBadge, TimingChip } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -366,7 +366,7 @@ export function Advisor() {
             applying={applying}
           />
         )}
-        {data ? <BaselineCard action={data.baseline_action} /> : <Panel title="Standard ML baseline"><PanelSkeleton rows={6} /></Panel>}
+        {data ? <BaselineCard action={data.baseline_action} /> : <Panel title="Standard ML baseline"><LoadingOrError state={recommendation} rows={6} /></Panel>}
         <Panel index={2} title="Root cause" subtitle="Ranked causal paths that explain the current risk" actions={<HowComputed provenance={rootCause.data?.provenance} />}>
           {rootCause.error ? (
             <ErrorState message={rootCause.error} onRetry={rootCause.reload} />

@@ -103,7 +103,7 @@ function TopBar({ onDemo }: { onDemo: () => void }) {
               Scenario <span className="text-slate-200">{humanize(status.scenario)}</span>
             </span>
             <span>
-              Step <span className="tabular text-slate-200">{status.step}</span>
+              Step <span className="tabular text-slate-200" data-testid="sim-step">{status.step}</span>
             </span>
             {status.active_faults.length > 0 && (
               <span className="text-warn">Fault: {status.active_faults.map(humanize).join(", ")}</span>

@@ -9,7 +9,7 @@ import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } fro
 import { CountUp } from "@/components/common/count-up";
 import { PageHeader } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
-import { EmptyState, ErrorState, PanelSkeleton } from "@/components/common/states";
+import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView, edgeKey } from "@/components/graph/causal-graph";
 import { GroundTruthBadge, HowComputed, SimulatedBadge } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
@@ -296,7 +296,11 @@ export function Benchmark() {
               <MetricsGrid metrics={data.graph_recovery.graph_recovery_without_failure} label="Between sensors and levers only" />
             </div>
             <div className="mt-4">
-              {truth.data && discovered.data ? <GraphComparison truth={truth.data} discovered={discovered.data.graph} /> : <PanelSkeleton rows={4} />}
+              {truth.data && discovered.data ? (
+                <GraphComparison truth={truth.data} discovered={discovered.data.graph} />
+              ) : (
+                <LoadingOrError state={truth.error ? truth : discovered} rows={4} />
+              )}
             </div>
           </Panel>
           <Panel index={6} title="Drift detection" subtitle={driftSubtitle}>
@@ -342,7 +346,7 @@ export function Benchmark() {
           </Panel>
           <Panel index={7} title="Is the baseline fair?" subtitle="Held-out accuracy of the XGBoost failure predictor">
             {!baseline ? (
-              <PanelSkeleton rows={3} />
+              <LoadingOrError state={config} rows={3} />
             ) : (
               <dl className="grid grid-cols-2 gap-2 text-xs">
                 {(["auc", "precision", "recall", "f1"] as const).map((name) => (

@@ -1,0 +1,11 @@
+# Rebuilt inside the image, or not needed there.
+node_modules/
+.next/
+out/
+test-results/
+playwright-report/
+tests/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example

@@ -1,0 +1,15 @@
+# Keep the image small and reproducible: no local environments, caches or tests.
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+tests/
+# The model cache is rebuilt inside the image (scripts/precompute.py).
+data/model_cache.pkl
+.env
+.env.*
+!.env.example

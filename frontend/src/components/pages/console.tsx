@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
-import { EmptyState, ErrorState, PanelSkeleton } from "@/components/common/states";
+import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { SimulatedBadge } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,6 +132,7 @@ function LogStream() {
             <SelectItem value="all">All levels</SelectItem>
             <SelectItem value="info">Info</SelectItem>
             <SelectItem value="warning">Warning</SelectItem>
+            <SelectItem value="error">Error</SelectItem>
           </SelectContent>
         </Select>
         <Input placeholder="Search messages" value={search} onChange={(event) => setSearch(event.target.value)} className="w-56" aria-label="Search log messages" />
@@ -147,7 +148,7 @@ function LogStream() {
           <EmptyState title="No log entries match" />
         ) : (
           shown.map((entry, index) => (
-            <div key={`${entry.timestamp}-${index}`} className={cn("flex gap-2", entry.level === "warning" && "text-amber-200")}>
+            <div key={`${entry.timestamp}-${index}`} className={cn("flex gap-2", entry.level === "warning" && "text-amber-200", entry.level === "error" && "text-rose-300")}>
               <span className="shrink-0 text-slate-500">{formatTime(entry.timestamp)}</span>
               <span className="w-36 shrink-0 truncate text-cyan-300">{entry.step_name}</span>
               <span className="w-16 shrink-0 text-right text-slate-400">{entry.duration_ms !== null ? formatMs(entry.duration_ms) : ""}</span>
@@ -160,14 +161,14 @@ function LogStream() {
   );
 }
 
-function SystemMetrics({ metrics }: { metrics: Metrics | undefined }) {
+function SystemMetrics({ metrics, request }: { metrics: Metrics | undefined; request: { error?: string; reload: () => void } }) {
   const counts = metrics?.counts ?? {};
   const numeric = Object.entries(counts).filter((entry): entry is [string, number] => typeof entry[1] === "number");
   const messages = counts.messages_sent;
   return (
     <Panel index={2} title="System metrics" subtitle="Refreshed every 2 s" icon={<Cpu className="size-4" />}>
       {!metrics ? (
-        <PanelSkeleton rows={5} />
+        <LoadingOrError state={request} rows={5} />
       ) : (
         <div className="space-y-3 text-xs">
           <dl className="grid grid-cols-2 gap-2">
@@ -239,7 +240,7 @@ function ModelCards({ config }: { config: AppConfig | undefined }) {
   );
 }
 
-function ConfigViewer({ config }: { config: AppConfig | undefined }) {
+function ConfigViewer({ config, request }: { config: AppConfig | undefined; request: { error?: string; reload: () => void } }) {
   const sections: [string, Record<string, unknown>][] = config
     ? [
         ["Engine", config.engine],
@@ -252,7 +253,7 @@ function ConfigViewer({ config }: { config: AppConfig | undefined }) {
   return (
     <Panel index={4} title="Configuration" subtitle="Current settings (single source of truth: backend config.py)" icon={<Settings className="size-4" />} className="col-span-full">
       {!config ? (
-        <PanelSkeleton rows={6} />
+        <LoadingOrError state={request} rows={6} />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
           {sections.map(([title, values]) => (
@@ -290,9 +291,9 @@ export function SystemConsole() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <PipelineTracker logs={logs} metrics={metrics.data} config={config.data} validationTimings={validation.data?.timings_ms} />
         <LogStream />
-        <SystemMetrics metrics={metrics.data} />
+        <SystemMetrics metrics={metrics.data} request={metrics} />
         <ModelCards config={config.data} />
-        <ConfigViewer config={config.data} />
+        <ConfigViewer config={config.data} request={config} />
       </div>
     </div>
   );
