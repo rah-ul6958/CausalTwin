@@ -9,6 +9,7 @@ import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } fro
 
 import { CountUp } from "@/components/common/count-up";
 import { PageHeader } from "@/components/common/page-header";
+import { Takeaway } from "@/components/common/takeaway";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView, edgeKey } from "@/components/graph/causal-graph";
@@ -307,7 +308,7 @@ export function Benchmark() {
     : "Faults injected into otherwise normal runs";
   return (
     <div>
-      <PageHeader eyebrow="Module 05 / Scientific benchmark" title="Benchmark: the Correlation Trap" description="Both methods act on the same high-risk moments; the real simulator judges the outcome. Every case is shown, including losses.">
+      <PageHeader eyebrow="Module 05 / Scientific benchmark" title="Benchmark: the Correlation Trap" description="Both methods act on the same risky moments, and the simulator judges which action really prevented failure. Every case is shown, losses included.">
         <SimulatedBadge />
         <GroundTruthBadge />
         <HowComputed provenance={data?.provenance} title="How the benchmark was run" />
@@ -329,6 +330,11 @@ export function Benchmark() {
         <PanelSkeleton rows={10} />
       ) : (
         <>
+        <Takeaway tone="good">
+          CausalTwin prevented failure in {Math.round(data.summary.causaltwin.success_rate * data.n_cases)} of {data.n_cases} risky
+          moments; the standard approach (XGBoost + SHAP) in {Math.round(data.summary.baseline.success_rate * data.n_cases)}. The
+          standard approach mostly blamed vibration ({data.summary.baseline.blamed.vibration ?? 0} cases), which does not cause failure.
+        </Takeaway>
         <VerdictStrip results={data} />
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <SummaryCard index={0} title={`CausalTwin (${data.n_cases} cases)`} summary={data.summary.causaltwin} tone="causal" horizonSteps={data.settings.horizon_steps} />
@@ -346,7 +352,7 @@ export function Benchmark() {
           <Panel index={4} title="Every case" subtitle="Amber: CausalTwin missed the target. Red row: the baseline did better." className="col-span-full">
             <CaseTable results={data} />
           </Panel>
-          <Panel index={5} title="Graph recovery (Phase 2 validation)" subtitle="Discovered graph versus the simulator's true graph" className="col-span-full">
+          <Panel index={5} expert title="Graph recovery (Phase 2 validation)" subtitle="Discovered graph versus the simulator's true graph" className="col-span-full">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <MetricsGrid metrics={data.graph_recovery.graph_recovery_with_failure} label="Including the two failure edges" />
               <MetricsGrid metrics={data.graph_recovery.graph_recovery_without_failure} label="Between sensors and levers only" />
@@ -420,7 +426,7 @@ export function Benchmark() {
               </div>
             )}
           </Panel>
-          <Panel index={8} title="Methodology" className="col-span-full">
+          <Panel index={8} expert title="Methodology" className="col-span-full">
             <div className="grid grid-cols-1 gap-4 text-xs leading-relaxed text-slate-300 lg:grid-cols-3">
               <p>
                 <span className="font-semibold text-slate-100">Situations.</span> High-risk moments are found in all{" "}

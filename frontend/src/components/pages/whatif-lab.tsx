@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ForecastChart } from "@/components/charts/forecast-chart";
 import { PageHeader } from "@/components/common/page-header";
+import { Takeaway } from "@/components/common/takeaway";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView } from "@/components/graph/causal-graph";
@@ -207,13 +208,17 @@ export function WhatIfLab() {
 
   return (
     <div>
-      <PageHeader eyebrow="Module 03 / Simulation environment" title="What-If Lab" description={`Move a lever and the twin simulates the next ${horizonText} with and without the change (${rollouts ?? "-"} Monte Carlo rollouts, same noise for both).`}>
+      <PageHeader eyebrow="Module 03 / Simulation environment" title="What-If Lab" description={`Move a lever and see how the failure risk over the next ${horizonText} would change. The twin simulates the future ${rollouts ?? "-"} times with and without your change.`}>
         <DataSourceBadge />
         <HowComputed provenance={result?.provenance} title="How this what-if was simulated" />
         <Button size="sm" variant="outline" onClick={() => { setOverrides({}); setResult(null); }}>
           <RotateCcw aria-hidden /> Reset levers
         </Button>
       </PageHeader>
+      <Takeaway>
+        Try a lever on the left, for example more coolant flow or less load. The bars show the predicted failure risk without and
+        with your change; nothing happens to the machine itself.
+      </Takeaway>
       <div className="mb-4 h-5" aria-live="polite">
         {pending ? (
           <div className="flex items-center gap-3">

@@ -6,6 +6,7 @@ import { Cpu, Pause, Play, Settings, Terminal, Workflow } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/common/page-header";
+import { Takeaway } from "@/components/common/takeaway";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { DataSourceBadge } from "@/components/transparency/transparency";
@@ -196,7 +197,7 @@ function SystemMetrics({ metrics, request }: { metrics: Metrics | undefined; req
 function ModelCards({ config }: { config: AppConfig | undefined }) {
   const cards = useApi(() => api.modelCards(), "cards");
   return (
-    <Panel index={3} title="Model cards" subtitle="Every fitted equation, plus the baseline model" className="col-span-full">
+    <Panel index={3} expert title="Model cards" subtitle="Every fitted equation, plus the baseline model" className="col-span-full">
       {cards.error ? (
         <ErrorState message={cards.error} onRetry={cards.reload} />
       ) : !cards.data ? (
@@ -251,7 +252,7 @@ function ConfigViewer({ config, request }: { config: AppConfig | undefined; requ
       ]
     : [];
   return (
-    <Panel index={4} title="Configuration" subtitle="Current settings (single source of truth: backend config.py)" icon={<Settings className="size-4" />} className="col-span-full">
+    <Panel index={4} expert title="Configuration" subtitle="Current settings (single source of truth: backend config.py)" icon={<Settings className="size-4" />} className="col-span-full">
       {!config ? (
         <LoadingOrError state={request} rows={6} />
       ) : (
@@ -285,9 +286,13 @@ export function SystemConsole() {
   const logs = useMemo(() => mergeLogs(mainLogs, routineLogs), [mainLogs, routineLogs]);
   return (
     <div>
-      <PageHeader eyebrow="Module 06 / Execution environment" title="System Console" description="Every process, its timing against the budget, and every model, in the open.">
+      <PageHeader eyebrow="Module 06 / Execution environment" title="System Console" description="What the system is computing right now, how long each step takes, and every fitted model.">
         <DataSourceBadge />
       </PageHeader>
+      <Takeaway>
+        You do not need this page to use CausalTwin. It opens the machinery for anyone who wants to check it: each processing step
+        with its timing, a live record of everything it does, and (under Show details) every fitted equation and setting.
+      </Takeaway>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <PipelineTracker logs={logs} metrics={metrics.data} config={config.data} validationTimings={validation.data?.timings_ms} />
         <LogStream />

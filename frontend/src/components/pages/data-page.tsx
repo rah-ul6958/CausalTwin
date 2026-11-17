@@ -7,6 +7,7 @@ import { Database, Download, RefreshCw, TriangleAlert, Upload } from "lucide-rea
 import { useMemo, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/common/page-header";
+import { Takeaway } from "@/components/common/takeaway";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView } from "@/components/graph/causal-graph";
@@ -267,7 +268,7 @@ export function DataPage() {
   const exportHref = useSessionId() ? api.exportUrl() : undefined;
   return (
     <div>
-      <PageHeader eyebrow="Module 07 / Data explorer" title="Data" description="The raw live data behind every number, its quality, and your own data.">
+      <PageHeader eyebrow="Module 07 / Data explorer" title="Data" description="The raw readings behind every number in the app, how clean they are, and a place to upload your own.">
         <DataSourceBadge />
         <Button size="sm" variant="outline" asChild>
           <a href={exportHref} download>
@@ -278,6 +279,10 @@ export function DataPage() {
           <RefreshCw aria-hidden /> Refresh
         </Button>
       </PageHeader>
+      <Takeaway>
+        Every chart in the app comes from these rows. To try CausalTwin on your own machine, upload a CSV in Bring Your Own Data
+        below: it finds the cause-and-effect links in your data.
+      </Takeaway>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_420px]">
         <Panel index={0} title={`Raw sensor rows (${recent.data?.rows.length ?? 0}, newest first)`} subtitle={`${source.simulated ? "Simulated" : source.description}. Red rows: failure. Grey rows: machine stopped.`} icon={<Database className="size-4" />}>
           {recent.error ? <ErrorState message={recent.error} onRetry={recent.reload} /> : !recent.data ? <PanelSkeleton rows={8} /> : <RawTable rows={recent.data.rows} label={`Recent ${source.simulated ? "simulated " : ""}sensor rows`} />}

@@ -50,6 +50,10 @@ The six outputs required by the brief, where to see them, and where the code liv
 | Confidence and explanation layer | Every page: "How was this computed?" drawers, confidence bars, root-cause paths, model cards | `engine/confidence.py`, `engine/root_cause.py`, `provenance` blocks in `api/schemas.py`, `frontend/src/components/transparency/` |
 | Demonstration on a simulated dataset | Guided demo (top bar), Benchmark page | `simulator/`, `api/live.py` (`DemoScript`), `intelligence/benchmark.py` |
 
+The app opens in **Simple view**: each page starts with one plain-language sentence about what it shows
+(on the Control Room, what the live data means right now), and technical panels are folded behind
+"Show details". **Expert view** (switch in the top bar or the sidebar) shows everything at once.
+
 ## Signature features
 
 **1. The Correlation Trap benchmark.** Thirty high-risk moments are found in five scenarios. At each

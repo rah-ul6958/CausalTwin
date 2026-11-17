@@ -14,8 +14,13 @@ export const DEMO_TIMEOUT_MS = 300_000;
 
 /** How many live points the charts keep (rolling buffer). */
 export const LIVE_BUFFER_POINTS = 300;
-/** WebSocket messages are applied to the store in batches at this interval (about 4 redraws per second). */
-export const STORE_FLUSH_MS = 250;
+/**
+ * WebSocket messages are applied to the store in batches at this interval (about 2.5 redraws per
+ * second; the live simulation makes at most 5 steps per second, so each redraw shows 1-2 new steps).
+ */
+export const STORE_FLUSH_MS = 400;
+/** Messages kept while the tab is hidden (older ones are dropped; the store keeps a rolling buffer anyway). */
+export const MAX_QUEUED_MESSAGES = 2000;
 /** Upper bounds for live lists kept in memory. */
 export const MAX_EVENTS = 500;
 export const MAX_ALERTS = 200;

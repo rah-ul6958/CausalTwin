@@ -32,6 +32,7 @@ import { Sparkline } from "@/components/charts/sparkline";
 import { formatNumber, formatPercent, humanize } from "@/lib/format";
 import { layoutGraph } from "@/lib/graph-layout";
 import { useLiveStore } from "@/lib/store";
+import { useThrottledLive } from "@/lib/use-throttled-live";
 import type { CausalEdge, CausalGraph } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -76,8 +77,12 @@ interface CausalEdgeData extends Record<string, unknown> {
 }
 type CausalEdgeType = Edge<CausalEdgeData, "causal">;
 
+/** Graph sparklines update at most once a second (eleven of them on the page). */
+const SPARKLINE_REFRESH_MS = 1000;
+const selectPoints = (state: ReturnType<typeof useLiveStore.getState>) => state.points;
+
 function LiveValue({ name, unit }: { name: string; unit: string | null }) {
-  const points = useLiveStore((state) => state.points);
+  const points = useThrottledLive(selectPoints, SPARKLINE_REFRESH_MS);
   const values = useMemo(
     () => points.slice(-60).map((point) => point.values[name]).filter((value): value is number => typeof value === "number"),
     [points, name],
@@ -122,7 +127,7 @@ function VariableNodeBase({ data }: NodeProps<VariableNodeType>) {
       <Handle type="target" position={Position.Left} className="!size-1.5 !border-0 !bg-slate-500" />
       <div className="flex items-center justify-between gap-1">
         <span className="flex min-w-0 items-center gap-1.5">
-          <span className={cn("size-1.5 shrink-0 rounded-full", style.dot, data.role === "outcome" && "status-light")} aria-hidden />
+          <span className={cn("size-1.5 shrink-0 rounded-full", style.dot)} aria-hidden />
           <span className="truncate text-xs font-medium text-slate-100">{humanize(data.name)}</span>
         </span>
         {data.symptom && (
@@ -159,13 +164,8 @@ function CausalEdgeBase(props: EdgeProps<CausalEdgeType>) {
   const dashed = data.edge.uncertain || data.kind === "correlation" || data.kind === "missing";
   const baseOpacity = data.visible ? (data.kind === "correlation" ? 0.7 : 0.95) : 0;
   const opacity = focus === "dim" ? baseOpacity * 0.15 : baseOpacity;
-  const glow = data.onPath
-    ? "drop-shadow(0 0 6px rgb(244 63 94 / 0.8))"
-    : focus === "highlight"
-      ? `drop-shadow(0 0 6px ${color})`
-      : data.kind === "causal"
-        ? "drop-shadow(0 0 2px rgb(34 211 238 / 0.45))"
-        : undefined;
+  // Glow only where it carries meaning (root-cause path, hovered links); filters on every edge are costly.
+  const glow = data.onPath ? "drop-shadow(0 0 5px rgb(244 63 94 / 0.8))" : focus === "highlight" ? `drop-shadow(0 0 5px ${color})` : undefined;
   const stateClass = data.state ? `edge-${data.state}` : "";
   return (
     <>
@@ -184,8 +184,8 @@ function CausalEdgeBase(props: EdgeProps<CausalEdgeType>) {
       />
       {data.visible && data.kind === "causal" && focus !== "dim" && (
         <>
-          {[0, 0.5].map((offset) => (
-            <circle key={offset} r={focus === "highlight" ? 3 : 2.2} fill={color} className="edge-particle" style={{ filter: `drop-shadow(0 0 3px ${color})` }}>
+          {[0].map((offset) => (
+            <circle key={offset} r={focus === "highlight" ? 3 : 2.2} fill={color} className="edge-particle">
               <animateMotion dur={`${1.4 + data.edge.lag * 0.5}s`} begin={`${offset * (1.4 + data.edge.lag * 0.5)}s`} repeatCount="indefinite" path={path} />
             </circle>
           ))}

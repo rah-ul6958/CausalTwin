@@ -45,7 +45,7 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1 py-8 text-center">
       <span className="mb-2 flex size-10 items-center justify-center rounded-full border border-dashed border-causal/30" aria-hidden>
-        <span className="status-light size-1.5 bg-causal/70" />
+        <span className="size-1.5 rounded-full bg-causal/70" />
       </span>
       <p className="text-sm text-slate-300">{title}</p>
       {hint && <p className="max-w-sm text-xs text-muted-foreground">{hint}</p>}

@@ -3,9 +3,11 @@
 /** Glass panel: the standard surface for every block of the UI. */
 
 import { motion, useReducedMotion } from "framer-motion";
-import type { ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
+import { useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { useViewMode } from "@/lib/view-mode";
 
 interface PanelProps {
   title?: ReactNode;
@@ -20,12 +22,8 @@ interface PanelProps {
   /** Target name for the guided demo spotlight. */
   demo?: string;
   testId?: string;
-}
-
-function trackPointer(event: React.MouseEvent<HTMLElement>) {
-  const rect = event.currentTarget.getBoundingClientRect();
-  event.currentTarget.style.setProperty("--mx", `${event.clientX - rect.left}px`);
-  event.currentTarget.style.setProperty("--my", `${event.clientY - rect.top}px`);
+  /** Technical detail: folded away behind "Show details" in Simple view. */
+  expert?: boolean;
 }
 
 export function Panel({
@@ -39,14 +37,17 @@ export function Panel({
   index = 0,
   demo,
   testId,
+  expert = false,
 }: PanelProps) {
   const reduceMotion = useReducedMotion();
+  const mode = useViewMode();
+  const [opened, setOpened] = useState(false);
+  const folded = expert && mode === "simple" && !opened;
   return (
     <motion.section
       initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: reduceMotion ? 0 : index * 0.05, ease: "easeOut" }}
-      onMouseMove={trackPointer}
       data-demo={demo}
       data-testid={testId}
       className={cn("glass flex min-w-0 flex-col", className)}
@@ -68,7 +69,19 @@ export function Panel({
           {actions && <div className="flex shrink-0 items-center gap-1.5">{actions}</div>}
         </header>
       )}
-      <div className={cn("min-h-0 flex-1 p-4", bodyClassName)}>{children}</div>
+      {folded ? (
+        <div className="px-4 py-2.5">
+          <button
+            type="button"
+            onClick={() => setOpened(true)}
+            className="flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-cyan-200"
+          >
+            <ChevronDown className="size-3.5" aria-hidden /> Show details
+          </button>
+        </div>
+      ) : (
+        <div className={cn("min-h-0 flex-1 p-4", bodyClassName)}>{children}</div>
+      )}
     </motion.section>
   );
 }

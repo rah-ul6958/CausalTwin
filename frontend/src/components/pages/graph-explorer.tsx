@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from "recharts";
 
 import { PageHeader } from "@/components/common/page-header";
+import { Takeaway } from "@/components/common/takeaway";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView, edgeKey, type EdgeState, type GraphMode } from "@/components/graph/causal-graph";
@@ -256,10 +257,15 @@ export function GraphExplorer() {
 
   return (
     <div>
-      <PageHeader eyebrow="Module 02 / Causal intelligence network" title="Causal Graph Explorer" description="Click an edge for its evidence, or a node for its fitted equation. Toggle correlation and causation to see the trap.">
+      <PageHeader eyebrow="Module 02 / Causal intelligence network" title="Causal Graph Explorer" description="What causes what inside the machine. Click an arrow for its evidence, or a box for its equation.">
         <DataSourceBadge />
         <HowComputed provenance={causal.data?.provenance} title="Discovery of this causal graph" />
       </PageHeader>
+      <Takeaway>
+        Read it from left to right: control levers on the left, failure on the right. Cyan arrows are causes; a red glow marks what
+        drives the risk right now; an amber &quot;symptom&quot; tag marks something that moves with failure but does not cause it.
+        Point at a box to highlight its links.
+      </Takeaway>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_340px]">
         <Panel
           index={0}
@@ -358,7 +364,7 @@ export function GraphExplorer() {
             )}
           </Panel>
           {graph && graph.notes.length > 0 && (
-            <Panel index={3} title="Notes from discovery">
+            <Panel index={3} title="Notes from discovery" expert>
               <ul className="list-disc space-y-1 pl-4 text-xs text-slate-400">
                 {graph.notes.map((note) => (
                   <li key={note}>{note}</li>

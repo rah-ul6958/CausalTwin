@@ -1,6 +1,6 @@
 /** WebSocket client for /ws/stream with automatic reconnect and batched delivery. */
 
-import { STORE_FLUSH_MS } from "@/lib/config";
+import { MAX_QUEUED_MESSAGES, STORE_FLUSH_MS } from "@/lib/config";
 import type { StreamMessage } from "@/lib/types";
 
 export type SocketStatus = "connecting" | "open" | "closed";
@@ -57,6 +57,7 @@ export class LiveSocket {
     socket.onmessage = (event: MessageEvent<string>) => {
       try {
         this.queue.push(JSON.parse(event.data) as StreamMessage);
+        if (this.queue.length > MAX_QUEUED_MESSAGES) this.queue.splice(0, this.queue.length - MAX_QUEUED_MESSAGES);
       } catch {
         /* ignore malformed messages */
       }
@@ -72,9 +73,10 @@ export class LiveSocket {
     socket.onerror = () => socket.close();
   }
 
-  /** Hand all queued messages to the store in one batch. */
+  /** Hand all queued messages to the store in one batch (not while the tab is hidden: nobody sees it). */
   private flush(): void {
     if (this.queue.length === 0) return;
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
     const batch = this.queue;
     this.queue = [];
     this.options.onBatch(batch);

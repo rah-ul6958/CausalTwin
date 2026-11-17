@@ -30,6 +30,7 @@ import { riskLevel, SpindleTwin, type RiskLevel } from "@/components/charts/spin
 import { CountUp } from "@/components/common/count-up";
 import { PageHeader, variableColor } from "@/components/common/page-header";
 import { Panel } from "@/components/common/panel";
+import { Takeaway } from "@/components/common/takeaway";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { DataSourceBadge, GroundTruthBadge, InfoTip } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ import { useDataSource } from "@/lib/data-source";
 import { useLiveStore, type RiskPoint } from "@/lib/store";
 import type { LiveAlert, LiveEvent, RiskEstimate } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
+import { useThrottledLive } from "@/lib/use-throttled-live";
 import { cn } from "@/lib/utils";
 
 /** Settings the risk panels describe, all read from GET /config. */
@@ -164,6 +166,51 @@ function MachineStatusStrip({ target }: { target: number | undefined }) {
         pulse={faults.length ? "bg-warn" : undefined}
       />
     </section>
+  );
+}
+
+/** One sentence on what the live data means right now (from the live stream and the status). */
+/** The summary keeps one height as its wording changes, so the panels below it do not jump. */
+const STABLE = "min-h-[4.75rem] items-center";
+
+function ControlTakeaway({ target }: { target: number | undefined }) {
+  const status = useLiveStore((state) => state.status);
+  const latestRisk = useLiveStore((state) => state.latestRisk);
+  const { known, risk } = useCurrentRisk();
+  const faults = status?.active_faults ?? [];
+  const mainCause = latestRisk?.root_cause?.paths[0]?.nodes[0]?.variable;
+  const causeText = mainCause ? ` Main driver: ${humanize(mainCause).toLowerCase()}.` : "";
+  if (!known || target === undefined) return <Takeaway className={STABLE}>Waiting for live data from the machine...</Takeaway>;
+  if (faults.length > 0) {
+    return (
+      <Takeaway tone="warn" className={STABLE}>
+        A physical fault is active ({faults.map(humanize).join(", ").toLowerCase()}). Watch the Alerts panel: the twin checks
+        whether the machine&apos;s cause-and-effect structure has changed, and rewires its graph if it has.
+      </Takeaway>
+    );
+  }
+  if (!risk) return <Takeaway tone="warn" className={STABLE}>The machine is stopped or restarting, so there is no risk estimate right now.</Takeaway>;
+  const level = riskLevel(risk.probability, target);
+  if (level === "critical") {
+    return (
+      <Takeaway tone="risk" className={STABLE}>
+        Failure risk is {formatPercent(risk.probability)}, above the {formatPercent(target, 0)} target.{causeText} Open the Advisor
+        for the cheapest change that brings it back down.
+      </Takeaway>
+    );
+  }
+  if (level === "elevated") {
+    return (
+      <Takeaway tone="warn" className={STABLE}>
+        Failure risk is rising ({formatPercent(risk.probability)}) but still below the {formatPercent(target, 0)} target.{causeText}
+      </Takeaway>
+    );
+  }
+  return (
+    <Takeaway tone="good" className={STABLE}>
+      Failure risk is low ({formatPercent(risk.probability)}): the machine is running normally and no action is needed. New here?
+      Press <span className="font-medium text-violet-200">Guided demo</span> at the top to watch a failure being prevented.
+    </Takeaway>
   );
 }
 
@@ -336,7 +383,7 @@ function RiskHistory({ target }: { target: number }) {
                 label={{ value: "target", position: "insideTopRight", fill: "#fda4af", fontSize: 10 }}
               />
               <Area dataKey="band" stroke="none" fill="url(#risk-band)" isAnimationActive={false} />
-              <Line dataKey="twin" stroke="#22d3ee" dot={false} strokeWidth={2.2} isAnimationActive={false} connectNulls={false} style={{ filter: "drop-shadow(0 0 4px rgb(34 211 238 / 0.6))" }} />
+              <Line dataKey="twin" stroke="#22d3ee" dot={false} strokeWidth={2.2} isAnimationActive={false} connectNulls={false} />
               <Line dataKey="truth" stroke="#34d399" strokeDasharray="4 3" dot={false} strokeWidth={1.4} isAnimationActive={false} connectNulls />
             </ComposedChart>
           </ResponsiveContainer>
@@ -468,8 +515,12 @@ function Controls() {
   );
 }
 
+/** Sensor cards update at most this often (ten charts redrawn on every batch were the main cost). */
+const SENSOR_REFRESH_MS = 800;
+const selectPoints = (state: { points: ReturnType<typeof useLiveStore.getState>["points"] }) => state.points;
+
 function SensorGrid() {
-  const points = useLiveStore((state) => state.points);
+  const points = useThrottledLive(selectPoints, SENSOR_REFRESH_MS);
   const config = useApi(() => api.config(), "config");
   const variables = useMemo(
     () => Object.entries(config.data?.variables ?? {}).filter(([, info]) => info.type !== "outcome"),
@@ -477,7 +528,9 @@ function SensorGrid() {
   );
   const series = useMemo(() => {
     const result: Record<string, SeriesPoint[]> = {};
-    for (const [name] of variables) result[name] = points.map((point) => ({ step: point.step, value: point.values[name] ?? null }));
+    // Every second reading (plus the newest) is plenty for a mini chart and halves the drawing work.
+    const thinned = points.filter((_, index) => index % 2 === (points.length - 1) % 2);
+    for (const [name] of variables) result[name] = thinned.map((point) => ({ step: point.step, value: point.values[name] ?? null }));
     return result;
   }, [points, variables]);
   return (
@@ -538,6 +591,7 @@ function EventTimeline() {
       index={6}
       title="Event timeline"
       className="col-span-full"
+      expert
       subtitle="Failures, maintenance, faults, setpoint changes"
       icon={<History className="size-4" />}
       actions={
@@ -639,10 +693,11 @@ export function ControlRoom() {
       <PageHeader
         eyebrow="Module 01 / Live operations"
         title="Control Room"
-        description={`${source.has_simulator ? "The live simulated spindle" : source.description}: the twin's failure-risk estimate, events and alerts.`}
+        description={`${source.has_simulator ? "The live simulated spindle" : source.description}: how likely it is to fail in the next few minutes, and why.`}
       >
         <DataSourceBadge />
       </PageHeader>
+      <ControlTakeaway target={settings?.target} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <MachineStatusStrip target={settings?.target} />
         {settings && config.data ? (

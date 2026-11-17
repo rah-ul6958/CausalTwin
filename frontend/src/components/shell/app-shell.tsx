@@ -11,6 +11,7 @@ import {
   FlaskConical,
   Gauge,
   House,
+  Layers,
   Lightbulb,
   Network,
   Pause,
@@ -36,6 +37,7 @@ import { setSidebarExpanded, useSidebarExpanded } from "@/lib/sidebar";
 import { useLiveStore, type ConnectionState } from "@/lib/store";
 import { useApi } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
+import { setViewMode, useViewMode } from "@/lib/view-mode";
 
 const NAVIGATION = [
   { href: "/", label: "Overview", icon: House },
@@ -72,10 +74,34 @@ function BrandMark({ className }: { className?: string }) {
   );
 }
 
+/** Simple view folds technical panels away; Expert view shows everything. */
+function ViewModeToggle() {
+  const mode = useViewMode();
+  return (
+    <div className="hidden items-center rounded-full border border-line bg-white/[0.02] p-0.5 text-[11px] lg:flex" role="group" aria-label="View">
+      {(["simple", "expert"] as const).map((option) => (
+        <button
+          key={option}
+          type="button"
+          aria-pressed={mode === option}
+          onClick={() => setViewMode(option)}
+          className={cn(
+            "rounded-full px-2.5 py-0.5 transition-colors",
+            mode === option ? "bg-causal/15 text-cyan-100" : "text-slate-400 hover:text-slate-200",
+          )}
+        >
+          {option === "simple" ? "Simple" : "Expert"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function Sidebar() {
   const pathname = usePathname();
   const expanded = useSidebarExpanded();
   const reduceMotion = useReducedMotion();
+  const mode = useViewMode();
   return (
     <nav
       aria-label="Main"
@@ -142,10 +168,24 @@ function Sidebar() {
           );
         })}
       </ul>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={() => setViewMode(mode === "simple" ? "expert" : "simple")}
+            className="mt-auto flex h-10 items-center gap-3 rounded-xl px-3 text-xs text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-slate-100"
+            aria-label={mode === "simple" ? "Switch to Expert view (all technical details)" : "Switch to Simple view"}
+          >
+            <Layers className={cn("size-5 shrink-0", mode === "expert" && "text-causal")} aria-hidden />
+            <span className={cn("hidden", expanded && "lg:inline")}>{mode === "simple" ? "Simple view" : "Expert view"}</span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right">{mode === "simple" ? "Simple view: click for all technical details" : "Expert view: click for the simple view"}</TooltipContent>
+      </Tooltip>
       <button
         type="button"
         onClick={() => setSidebarExpanded(!expanded)}
-        className="mt-auto hidden h-10 items-center gap-3 rounded-xl px-3 text-xs text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-slate-100 lg:flex"
+        className="hidden h-10 items-center gap-3 rounded-xl px-3 text-xs text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-slate-100 lg:flex"
         aria-label={expanded ? "Collapse the sidebar" : "Expand the sidebar"}
         aria-expanded={expanded}
       >
@@ -238,6 +278,7 @@ function TopBar({ onDemo }: { onDemo: () => void }) {
         </span>
         <DataSourceBadge />
         <SessionBadge />
+        <ViewModeToggle />
       </div>
       <div className="flex items-center gap-3 text-xs">
         {status && (

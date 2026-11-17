@@ -12,9 +12,15 @@
  * - the wear arc fills with `tool_wear` against its normal range;
  * - a stopped machine stops the rotor; a failure or injected fault turns the core red or amber.
  * Normal ranges are the illustrative ones from GET /config.
+ *
+ * Performance: the rotor and the coolant flow move in one requestAnimationFrame loop that eases
+ * towards the latest speed. A CSS animation whose duration changes with every reading would
+ * restart from a new angle each time and visibly stutter. No SVG blur filters are used: glows are
+ * drawn as wide translucent strokes, which cost almost nothing to repaint.
  */
 
-import type { CSSProperties } from "react";
+import { useReducedMotion } from "framer-motion";
+import { memo, useEffect, useRef, type CSSProperties } from "react";
 
 import { formatNumber, humanize } from "@/lib/format";
 import { useLiveStore } from "@/lib/store";
@@ -68,6 +74,85 @@ function arc(radius: number, from: number, to: number): string {
   return `M ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2}`;
 }
 
+/** Housing ring and tick marks: never change, so drawn once. */
+const StaticHousing = memo(function StaticHousing() {
+  return (
+    <g>
+      <circle cx={CENTER} cy={CENTER} r={132} fill="none" stroke="rgb(125 211 252 / 0.12)" strokeWidth={1} />
+      {Array.from({ length: 72 }, (_, index) => {
+        const long = index % 6 === 0;
+        const [x1, y1] = polar(index * 5, long ? 122 : 126);
+        const [x2, y2] = polar(index * 5, 130);
+        return <line key={index} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgb(148 163 184 / 0.3)" strokeWidth={long ? 1.2 : 0.6} />;
+      })}
+    </g>
+  );
+});
+
+/** The rotor's blades: drawn once and turned by the motion loop. */
+const RotorBlades = memo(function RotorBlades() {
+  return (
+    <>
+      {Array.from({ length: 6 }, (_, index) => {
+        const [x1, y1] = polar(index * 60, 22);
+        const [x2, y2] = polar(index * 60 + 18, 64);
+        return (
+          <path
+            key={index}
+            d={`M ${x1} ${y1} Q ${polar(index * 60 + 2, 48).join(" ")} ${x2} ${y2}`}
+            stroke="rgb(125 211 252 / 0.6)"
+            strokeWidth={2.2}
+            fill="none"
+            strokeLinecap="round"
+          />
+        );
+      })}
+      <circle cx={CENTER} cy={CENTER} r={64} fill="none" stroke="rgb(34 211 238 / 0.4)" strokeWidth={1} strokeDasharray="2 6" />
+    </>
+  );
+});
+
+/**
+ * Turns the rotor and moves the coolant dashes in one animation-frame loop. Speeds ease towards
+ * their targets over about half a second, so a new reading changes the pace smoothly.
+ */
+function useSpindleMotion(rotorDegreesPerSecond: number, coolantUnitsPerSecond: number) {
+  const rotor = useRef<SVGGElement>(null);
+  const coolant = useRef<SVGCircleElement>(null);
+  const targets = useRef({ rotor: 0, coolant: 0 });
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    targets.current = { rotor: rotorDegreesPerSecond, coolant: coolantUnitsPerSecond };
+  }, [rotorDegreesPerSecond, coolantUnitsPerSecond]);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    let angle = 0;
+    let offset = 0;
+    let rotorSpeed = 0;
+    let coolantSpeed = 0;
+    let last = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const seconds = Math.min(0.1, (now - last) / 1000); // a hidden tab pauses the loop; do not jump
+      last = now;
+      const ease = Math.min(1, seconds * 2.5);
+      rotorSpeed += (targets.current.rotor - rotorSpeed) * ease;
+      coolantSpeed += (targets.current.coolant - coolantSpeed) * ease;
+      angle = (angle + rotorSpeed * seconds) % 360;
+      offset = (offset - coolantSpeed * seconds) % 1000;
+      rotor.current?.setAttribute("transform", `rotate(${angle.toFixed(2)} ${CENTER} ${CENTER})`);
+      coolant.current?.setAttribute("stroke-dashoffset", offset.toFixed(1));
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [reduceMotion]);
+
+  return { rotor, coolant };
+}
+
 export interface SpindleTwinProps {
   config: AppConfig | undefined;
   riskLevel: RiskLevel;
@@ -87,6 +172,7 @@ export function SpindleTwin({ config, riskLevel, labels = true, className }: Spi
   const speed = values.spindle_speed;
   // Real spindles turn thousands of times a minute; the drawing turns once every 0.7-3 s.
   const spinSeconds = speed ? Math.max(0.7, 3 - (speed / 5000) * 2.3) : 3;
+  const rotorDegreesPerSecond = running ? 360 / spinSeconds : 0;
   const bearing = fraction(values.bearing_temp, variables.bearing_temp?.normal_range);
   const vibration = fraction(values.vibration, variables.vibration?.normal_range);
   const coolant = fraction(values.coolant_flow, variables.coolant_flow?.normal_range);
@@ -94,10 +180,10 @@ export function SpindleTwin({ config, riskLevel, labels = true, className }: Spi
   const bearingColor = temperatureColor(bearing);
   const core = failed ? "#f43f5e" : faults.length ? "#fbbf24" : RISK_COLOR[riskLevel];
   const shaking = running && vibration !== null && vibration > 1;
-  const coolantSeconds = coolant === null ? 2 : Math.max(0.5, 2.2 - coolant * 1.4);
+  // Coolant dashes travel 8 to 30 units per second, faster with more flow.
+  const coolantUnitsPerSecond = !running ? 0 : coolant === null ? 12 : 8 + Math.min(1.2, Math.max(0, coolant)) * 18;
   const wearSweep = wear === null ? 0 : Math.min(1, Math.max(0, wear)) * 300;
-
-  const rotorStyle = { "--spin-duration": `${spinSeconds}s`, animationPlayState: running ? "running" : "paused" } as CSSProperties;
+  const { rotor: rotorRef, coolant: coolantRef } = useSpindleMotion(rotorDegreesPerSecond, coolantUnitsPerSecond);
   const label = `Live spindle visualization: ${running ? "running" : "stopped"}${failed ? ", failure" : ""}${
     faults.length ? `, fault ${faults.map(humanize).join(", ")}` : ""
   }`;
@@ -114,26 +200,13 @@ export function SpindleTwin({ config, riskLevel, labels = true, className }: Spi
           <stop offset="0%" stopColor="#1e293b" />
           <stop offset="100%" stopColor="#070b14" />
         </radialGradient>
-        <filter id="spindle-glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
 
-      {/* Outer housing with tick marks. */}
-      <circle cx={CENTER} cy={CENTER} r={132} fill="none" stroke="rgb(125 211 252 / 0.12)" strokeWidth={1} />
-      {Array.from({ length: 72 }, (_, index) => {
-        const long = index % 6 === 0;
-        const [x1, y1] = polar(index * 5, long ? 122 : 126);
-        const [x2, y2] = polar(index * 5, 130);
-        return <line key={index} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgb(148 163 184 / 0.3)" strokeWidth={long ? 1.2 : 0.6} />;
-      })}
+      <StaticHousing />
 
-      {/* Coolant channel: flowing dashes, faster with more flow. */}
+      {/* Coolant channel: flowing dashes, faster with more flow (moved by the motion loop). */}
       <circle
+        ref={coolantRef}
         cx={CENTER}
         cy={CENTER}
         r={110}
@@ -141,42 +214,32 @@ export function SpindleTwin({ config, riskLevel, labels = true, className }: Spi
         stroke="#2dd4bf"
         strokeOpacity={coolant === null ? 0.15 : 0.25 + Math.min(1, Math.max(0, coolant)) * 0.5}
         strokeWidth={3}
-        className="dash-flow"
-        style={{ animationDuration: `${coolantSeconds}s`, animationPlayState: running ? "running" : "paused" }}
+        strokeDasharray="4 10"
       />
 
-      {/* Bearing ring: colour from bearing temperature. */}
-      <circle cx={CENTER} cy={CENTER} r={96} fill="none" stroke={bearingColor} strokeOpacity={0.18} strokeWidth={12} />
-      <circle cx={CENTER} cy={CENTER} r={96} fill="none" stroke={bearingColor} strokeWidth={2.5} filter="url(#spindle-glow)" />
+      {/* Bearing ring: colour from bearing temperature (the wide translucent stroke is its glow). */}
+      <circle cx={CENTER} cy={CENTER} r={96} fill="none" stroke={bearingColor} strokeOpacity={0.16} strokeWidth={14} />
+      <circle cx={CENTER} cy={CENTER} r={96} fill="none" stroke={bearingColor} strokeOpacity={0.35} strokeWidth={5} />
+      <circle cx={CENTER} cy={CENTER} r={96} fill="none" stroke={bearingColor} strokeWidth={2} />
 
       {/* Tool-wear arc. */}
       <path d={arc(84, -240, 60)} fill="none" stroke="rgb(148 163 184 / 0.12)" strokeWidth={4} strokeLinecap="round" />
       {wearSweep > 0 && (
-        <path d={arc(84, -240, -240 + wearSweep)} fill="none" stroke="#f97316" strokeWidth={4} strokeLinecap="round" filter="url(#spindle-glow)" />
+        <>
+          <path d={arc(84, -240, -240 + wearSweep)} fill="none" stroke="#f97316" strokeOpacity={0.25} strokeWidth={8} strokeLinecap="round" />
+          <path d={arc(84, -240, -240 + wearSweep)} fill="none" stroke="#f97316" strokeWidth={3.5} strokeLinecap="round" />
+        </>
       )}
 
       {/* Rotor: shakes only while vibration is above its normal range. */}
       <g className={shaking ? "shake" : undefined} style={{ "--shake-amount": "1.6px" } as CSSProperties}>
         <circle cx={CENTER} cy={CENTER} r={70} fill="url(#spindle-disk)" stroke="rgb(125 211 252 / 0.35)" strokeWidth={1.2} />
-        <g className="spin" style={rotorStyle}>
-          {Array.from({ length: 6 }, (_, index) => {
-            const [x1, y1] = polar(index * 60, 22);
-            const [x2, y2] = polar(index * 60 + 18, 64);
-            return (
-              <path
-                key={index}
-                d={`M ${x1} ${y1} Q ${polar(index * 60 + 2, 48).join(" ")} ${x2} ${y2}`}
-                stroke="rgb(125 211 252 / 0.55)"
-                strokeWidth={2.2}
-                fill="none"
-                strokeLinecap="round"
-              />
-            );
-          })}
-          <circle cx={CENTER} cy={CENTER} r={64} fill="none" stroke="rgb(34 211 238 / 0.4)" strokeWidth={1} strokeDasharray="2 6" />
+        <g ref={rotorRef}>
+          <RotorBlades />
         </g>
         <circle cx={CENTER} cy={CENTER} r={34} fill="url(#spindle-core)" />
-        <circle cx={CENTER} cy={CENTER} r={14} fill="#05080f" stroke={core} strokeWidth={2} filter="url(#spindle-glow)" />
+        <circle cx={CENTER} cy={CENTER} r={18} fill="none" stroke={core} strokeOpacity={0.3} strokeWidth={6} />
+        <circle cx={CENTER} cy={CENTER} r={14} fill="#05080f" stroke={core} strokeWidth={2} />
       </g>
 
       {/* Sensors around the ring, with live values. */}
@@ -189,8 +252,9 @@ export function SpindleTwin({ config, riskLevel, labels = true, className }: Spi
           const right = Math.cos((satellite.angle * Math.PI) / 180) >= 0;
           return (
             <g key={satellite.name}>
-              <line x1={innerX} y1={innerY} x2={nodeX} y2={nodeY} stroke={color} strokeOpacity={0.5} strokeWidth={1} className="dash-flow" />
-              <circle cx={nodeX} cy={nodeY} r={3.5} fill={color} filter="url(#spindle-glow)" />
+              <line x1={innerX} y1={innerY} x2={nodeX} y2={nodeY} stroke={color} strokeOpacity={0.45} strokeWidth={1} strokeDasharray="2 4" />
+              <circle cx={nodeX} cy={nodeY} r={7} fill={color} fillOpacity={0.18} />
+              <circle cx={nodeX} cy={nodeY} r={3.5} fill={color} />
               <text
                 x={nodeX + (right ? 7 : -7)}
                 y={nodeY - 3}

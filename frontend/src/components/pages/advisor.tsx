@@ -9,6 +9,7 @@ import { useMemo, useRef, useState } from "react";
 import { Bar, BarChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { PageHeader } from "@/components/common/page-header";
+import { Takeaway } from "@/components/common/takeaway";
 import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { ConfidenceBar, DataSourceBadge, GroundTruthBadge, HowComputed, InfoTip, TimingChip } from "@/components/transparency/transparency";
@@ -280,7 +281,7 @@ function CandidateTable({ candidates }: { candidates: CandidateResult[] }) {
   );
   const columns = "grid grid-cols-[56px_1fr_120px_130px_90px_70px] items-center gap-2 px-3";
   return (
-    <Panel index={5} title={`Every evaluated option (${candidates.length})`} subtitle="The optimizer's full search, ranked: options that reach the target first, cheapest first" className="col-span-full">
+    <Panel index={5} expert title={`Every evaluated option (${candidates.length})`} subtitle="The optimizer's full search, ranked: options that reach the target first, cheapest first" className="col-span-full">
       <div role="table" aria-label="Evaluated candidate interventions" aria-rowcount={sorted.length + 1}>
         <div role="rowgroup">
           <div className={cn(columns, "border-b border-line pb-2 text-[11px] uppercase tracking-wider text-muted-foreground")} role="row" aria-rowindex={1}>
@@ -413,12 +414,16 @@ export function Advisor() {
   const data = recommendation.data;
   return (
     <div>
-      <PageHeader eyebrow="Module 04 / Recommendation engine" title="Intervention Advisor" description="Which lever actually prevents failure, how much to change it, what it costs, and how sure we are.">
+      <PageHeader eyebrow="Module 04 / Recommendation engine" title="Intervention Advisor" description="The cheapest change that keeps the machine below the target risk, why it works, and how sure the twin is.">
         <DataSourceBadge />
         <Button size="sm" variant="outline" onClick={() => { recommendation.reload(); rootCause.reload(); }}>
           <RefreshCw aria-hidden /> Recompute for the current state
         </Button>
       </PageHeader>
+      <Takeaway>
+        CausalTwin tries hundreds of possible changes on its model of the machine and recommends the cheapest one that brings the
+        failure risk under the target. The standard machine-learning advice for the same moment is shown next to it.
+      </Takeaway>
       {applyMessage && (
         <p className="mb-3 flex items-center gap-2 text-sm text-emerald-200" role="status">
           <CircleCheck className="size-4" aria-hidden /> {applyMessage}

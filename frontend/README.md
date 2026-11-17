@@ -49,7 +49,8 @@ The end-to-end tests start the backend and frontend if they are not already runn
 save screenshots to `../docs/screenshots/`. Every test opens a new browser context, which gets its own
 private live simulation on the backend (the tab's session id, `src/lib/session.ts`), so the guided-demo
 test and the random-clicking test cannot disturb the other tests. When the tests start the backend
-themselves they allow 16 private simulations; a backend you started yourself keeps its own limit.
+themselves they allow 60 private simulations (the suite opens about 45 browser contexts within a few
+minutes); a backend you started yourself keeps its own limit.
 
 ## Code layout
 

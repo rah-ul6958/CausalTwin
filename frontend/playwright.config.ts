@@ -38,9 +38,9 @@ export default defineConfig({
       url: "http://localhost:8000/health",
       reuseExistingServer: true,
       timeout: 180_000,
-      // Every test opens a new browser context, so a new private simulation; allow enough of them
-      // that a test never has to share (unwatched ones are replaced after 30 s anyway).
-      env: { CAUSALTWIN_MAX_SESSIONS: "16" },
+      // Every test opens a new browser context, so a new private simulation. The full suite opens about
+      // 45 within a few minutes; allow enough that no test is moved to the shared simulation.
+      env: { CAUSALTWIN_MAX_SESSIONS: "60" },
     },
     {
       command: "npx next start -p 3000",
