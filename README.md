@@ -255,15 +255,15 @@ failures, where the tree-based baseline does better. A non-linear failure model 
 ### Many simultaneous viewers
 
 <!-- results:load:start -->
-25 simulated viewers for 65 s, each like a browser tab with its own session id (live stream open, status polled every 3 s, occasional what-ifs and recommendations), against one backend process on the development laptop, allowing 4 private simulations:
+25 simulated viewers for 64 s, each like a browser tab with its own session id (live stream open, status polled every 3 s, occasional what-ifs and recommendations), against one backend process on the development laptop, allowing 4 private simulations:
 
 | Request | Count | Median | 95th percentile | Outcomes |
 |---|---|---|---|---|
-| GET /metrics | 460 | 61 ms | 274 ms | 200: 460 |
-| GET /recommend | 32 | 2.81 s | 4.66 s | 200: 20, 503: 12 |
-| POST /whatif | 33 | 149 ms | 549 ms | 200: 17, 503: 16 |
+| GET /metrics | 445 | 129 ms | 321 ms | 200: 445 |
+| GET /recommend | 33 | 69 ms | 8.26 s | 200: 12, 503: 21 |
+| POST /whatif | 33 | 93 ms | 631 ms | 200: 9, 503: 24 |
 
-503 means "busy, retry": at most two heavy computations run at once by design. Live stream: 3.9 messages per viewer per second, 0 failed connections. 4 viewers got a private simulation, which ran at 1.44 to 1.48 steps per second; the other 21 shared one simulation, which ran at 1.4 steps per second (target 5 each): the simulations share the CPU with each other and with the heavy requests.
+503 means "busy, retry": at most two heavy computations run at once by design. Live stream: 4.5 messages per viewer per second, 0 failed connections. 4 viewers got a private simulation, which ran at 1.79 to 1.95 steps per second; the other 21 shared one simulation, which ran at 1.6 steps per second (target 5 each): the simulations share the CPU with each other and with the heavy requests.
 <!-- results:load:end -->
 
 Refresh these tables after re-running the experiments:
@@ -344,8 +344,8 @@ the container runs within 512 MB (docs/DEPLOYMENT.md).
 (`frontend/src/lib/session.ts`), and the backend gives each id its own live simulation, guided demo,
 live stream and console log (`backend/causaltwin/api/sessions.py`). One judge's Reset, fault injection or
 demo therefore never changes what another judge sees. Watched simulations share the CPU of one
-process: on the development laptop each ran at about 3.8 steps per second alone, 2.9 with two and 2.0
-with four watched at once (target 5), and about 1.4 under the heavy 25-viewer load above. Their number is
+process: on the development laptop each ran at about 4.9 steps per second alone, 4.7 to 4.9 with two and
+2.9 with four watched at once (target 5), and about 1.8 under the heavy 25-viewer load above. Their number is
 therefore limited: `CAUSALTWIN_MAX_SESSIONS`, 4 by default and 2 on Render's free plan. A simulation
 steps only while someone watches it; a private one is replaced when all slots are taken and nobody has
 watched it for 30 seconds, and is deleted after 10 unwatched minutes. Viewers beyond the limit share one simulation, and the top bar

@@ -180,7 +180,7 @@ function SystemMetrics({ metrics, request }: { metrics: Metrics | undefined; req
               </div>
             ))}
           </dl>
-          {messages && typeof messages === "object" && (
+          {messages && typeof messages === "object" && Object.keys(messages).length > 0 && (
             <p className="text-muted-foreground">
               WebSocket messages: {Object.entries(messages).map(([type, count]) => `${type} ${count}`).join(", ")}
             </p>

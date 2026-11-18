@@ -32,7 +32,8 @@ development laptop; Render's real behaviour may differ):
 - **Live loop:** about 3 steps per second instead of 5.
 
 The same stand-in with two judges at once (`CAUSALTWIN_MAX_SESSIONS=2`, each with a private simulation;
-measured after per-viewer simulations were added):
+measured after per-viewer simulations were added, before the live-loop pacing fix, so the live pace
+may now be slightly higher):
 
 - **Both watching:** each simulation ran at about 1.9 steps per second; a recommendation took about 8 s
   (median) instead of 1.1 s, and a what-if about 1.2 s.

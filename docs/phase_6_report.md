@@ -344,8 +344,21 @@ The cost is real:
 - **What still held:** every status request was answered and no live connection failed, at 25 and at 50
   viewers.
 
-A single simulation stays below 5 steps per second even when alone, because the loop pauses for a full
-step interval after each step; this was not changed.
+A single simulation stayed below 5 steps per second even when alone, because the loop paused for a full
+step interval after each step. **Fixed later:** the loop now pauses only for what is left of the interval
+(at least 20 ms). Re-measured on the same laptop:
+
+| Watched simulations | Before the fix | After the fix |
+|---|---|---|
+| 1 | 3.75 | 4.86 |
+| 2 | 2.8 to 2.9 | 4.7 to 4.9 |
+| 4 | about 2.0 | 2.8 to 2.9 |
+| 25-viewer load test (4 private, 21 shared) | 1.44 to 1.48 (shared 1.4) | 1.79 to 1.95 (shared 1.6) |
+
+The trade-off: faster simulations use more CPU, so under the 25-viewer load more heavy requests got the
+designed "busy, retry" answer (21 of 33 recommendations, before 12 of 32). Every status request was
+still answered and no live connection failed. The README load table is the after-fix measurement; the
+50-viewer figures above and the free-plan stand-in below were measured before the fix.
 
 **Render free-plan stand-in** (`docker run --cpus 0.1 --memory 512m`, two private simulations):
 - **Both watching:** about 1.9 steps per second each, and a recommendation took about 8 s.

@@ -1,61 +1,61 @@
 {
   "source": "scripts/load_test.py",
-  "measured_at": "2026-11-15T13:46:50+00:00",
+  "measured_at": "2026-11-18T05:54:20+00:00",
   "base_url": "http://localhost:8000",
   "viewers": 25,
   "session_ids": true,
   "max_sessions": 4,
-  "seconds": 64.6,
+  "seconds": 64.2,
   "requests": {
     "GET /metrics": {
-      "count": 460,
-      "median_ms": 61.4,
-      "p95_ms": 274.4,
-      "max_ms": 477.1,
+      "count": 445,
+      "median_ms": 128.9,
+      "p95_ms": 321.2,
+      "max_ms": 784.9,
       "statuses": {
-        "200": 460
+        "200": 445
       }
     },
     "GET /recommend": {
-      "count": 32,
-      "median_ms": 2812.4,
-      "p95_ms": 4657.9,
-      "max_ms": 5336.6,
+      "count": 33,
+      "median_ms": 69.0,
+      "p95_ms": 8263.8,
+      "max_ms": 8407.2,
       "statuses": {
-        "200": 20,
-        "503": 12
+        "503": 21,
+        "200": 12
       }
     },
     "POST /whatif": {
       "count": 33,
-      "median_ms": 148.9,
-      "p95_ms": 549.4,
-      "max_ms": 553.1,
+      "median_ms": 93.2,
+      "p95_ms": 631.0,
+      "max_ms": 635.8,
       "statuses": {
-        "200": 17,
-        "503": 16
+        "200": 9,
+        "503": 24
       }
     }
   },
   "websocket": {
-    "messages": 6235,
-    "messages_per_viewer_per_second": 3.9,
+    "messages": 7186,
+    "messages_per_viewer_per_second": 4.5,
     "failed_connections": 0
   },
   "live_loop": {
-    "steps": 83,
-    "steps_per_second": 1.29,
+    "steps": 93,
+    "steps_per_second": 1.45,
     "target_steps_per_second": 5.0
   },
   "simulations": {
     "private_viewers": 4,
     "shared_viewers": 21,
     "private_steps_per_second": [
-      1.44,
-      1.45,
-      1.45,
-      1.48
+      1.79,
+      1.83,
+      1.86,
+      1.95
     ],
-    "shared_steps_per_second": 1.4
+    "shared_steps_per_second": 1.6
   }
 }

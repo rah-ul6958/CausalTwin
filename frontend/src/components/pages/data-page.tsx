@@ -59,7 +59,7 @@ function RawTable({ rows, label }: { rows: SensorRow[]; label: string }) {
               style={{ ...template, height: item.size, transform: `translateY(${item.start}px)`, alignItems: "center" }}>
               {columns.map((column) => (
                 <span key={column} role="cell" className="truncate">
-                  {formatNumber(row[column], 3)}
+                  {Number.isInteger(row[column]) ? Number(row[column]).toLocaleString("en-US") : formatNumber(row[column], 3)}
                 </span>
               ))}
             </div>

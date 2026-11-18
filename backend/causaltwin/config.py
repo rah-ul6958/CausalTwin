@@ -348,6 +348,8 @@ DRIFT_FAULT_STEP = 3000  # drift tests: fault injected after this many normal st
 # Live loop and API
 LIVE_SEED = 4242
 LIVE_STEPS_PER_SECOND = 5.0
+# Shortest pause between two live steps, so a slow step never starves WebSockets and requests.
+LIVE_MIN_PAUSE_SECONDS = 0.02
 LIVE_RISK_ROLLOUTS = 50  # rollouts for the per-step twin risk estimate
 LIVE_ROOT_CAUSE_EVERY = 50  # steps between root-cause refreshes
 LIVE_TRUTH_EVERY = 10  # steps between ground-truth risk computations (validation channel)
@@ -444,8 +446,8 @@ SESSION_ID_PATTERN = r"^[A-Za-z0-9_-]{8,64}$"
 SHARED_SESSION_ID = "shared"  # requests without a valid id (curl, health checks) use this simulation
 MAX_SESSIONS_ENV = "CAUSALTWIN_MAX_SESSIONS"  # private simulations at once; "0" makes every viewer share one
 # Measured on the development laptop: one live simulation needs about 36 ms of CPU per step and about
-# 10 MB, and all of them share one Python process. Watched at the same time, each ran at about 3.8 steps
-# per second alone, 2.9 with two and 2.0 with four (target 5); unwatched ones do not step.
+# 10 MB, and all of them share one Python process. Watched at the same time, each ran at about 4.9 steps
+# per second alone, 4.7 to 4.9 with two and 2.9 with four (target 5); unwatched ones do not step.
 DEFAULT_MAX_SESSIONS = 4
 SESSION_IDLE_SECONDS = 600.0  # a private simulation without a viewer for this long is deleted
 SESSION_EVICT_AFTER_SECONDS = 30.0  # when all slots are taken, one unwatched this long may be replaced

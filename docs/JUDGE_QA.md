@@ -119,8 +119,8 @@ Measured today, with one backend process on a laptop: 25 and 50 simulated viewer
 plus requests, each with its own session id) got every status answer and no failed live connection;
 heavy requests beyond two at a time got a clear "busy, retry". The first four viewers got private
 simulations and the rest shared one; under that load the five simulations shared the CPU and each ran
-at about 1.4 steps per second instead of 5 (README, "Many simultaneous viewers"). The container runs
-within 512 MB.
+at about 1.6 to 1.9 steps per second instead of 5 (README, "Many simultaneous viewers"). With one to two
+viewers each simulation runs at close to the full 5 steps per second. The container runs within 512 MB.
 
 Many machines is a design, not something built yet:
 

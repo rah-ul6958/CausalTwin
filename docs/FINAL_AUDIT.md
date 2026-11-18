@@ -43,7 +43,7 @@ Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test
   `scripts/measure_timings.py`).
 - **Load:** 25 and 50 simultaneous simulated viewers against one backend process, measured (README,
   "Many simultaneous viewers").
-- **Gaps:** watched simulations share the CPU, so heavy load slows them (about 1.4 steps per second
+- **Gaps:** watched simulations share the CPU, so heavy load slows them (about 1.8 steps per second
   instead of 5 with 25 busy viewers and five simulations on a laptop); Edge and mobile browsers are not
   tested.
 

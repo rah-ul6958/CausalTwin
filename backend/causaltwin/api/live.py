@@ -35,6 +35,7 @@ from causaltwin.config import (
     DEMO_SEED,
     LIVE_LOG_FLUSH_SECONDS,
     LIVE_MAX_FRAMES_PER_SECOND,
+    LIVE_MIN_PAUSE_SECONDS,
     LIVE_RISK_HISTORY_POINTS,
     LIVE_RISK_ROLLOUTS,
     LIVE_ROOT_CAUSE_EVERY,
@@ -375,15 +376,19 @@ class LiveLoop:
 
         Steps run in a worker thread so the event loop (WebSockets, health checks) stays
         responsive. If a step fails, the loop pauses and reports the error instead of dying.
+        The pause after a step is only what is left of the step interval, so the loop keeps the
+        target pace (a full interval after every step made 5 steps per second impossible).
         """
         set_log_session(self.session_id)  # this task's log entries belong to this loop's session
         while True:
             if self.should_step:
+                started = time.perf_counter()
                 try:
                     await asyncio.to_thread(self.advance, 1)
                 except Exception as error:  # noqa: BLE001 - any failure must pause the loop, not kill it
                     self._pause_after_error(error)
-                await asyncio.sleep(1.0 / self.steps_per_second)
+                remaining = 1.0 / self.steps_per_second - (time.perf_counter() - started)
+                await asyncio.sleep(max(LIVE_MIN_PAUSE_SECONDS, remaining))
             else:
                 self.flush_logs()
                 await asyncio.sleep(0.1)
