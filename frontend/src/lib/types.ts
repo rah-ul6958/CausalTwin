@@ -228,23 +228,36 @@ export interface Recommendation {
   search_ms: number;
 }
 
+/** The three predictive baselines: B1 naive SHAP, B2 actionable SHAP, B3 predict-then-optimize (the main one). */
+export type BaselineMethod = "naive_shap" | "actionable_shap" | "counterfactual";
+
 export interface BaselineAction {
+  method: BaselineMethod;
   blamed_feature: string;
-  blamed_shap: number;
+  /** null for B3, which searches actions instead of blaming a feature */
+  blamed_shap: number | null;
   kind: "lever" | "damp_vibration" | "tool_change" | "none";
   lever: string | null;
   from_value: number | null;
   to_value: number | null;
   change_pct: number | null;
+  /** every lever change of the action (one for B1 and B2, one or two for B3) */
+  changes: LeverChange[];
   cost: number;
   description: string;
   shap_values: Record<string, number>;
   predicted_risk: number;
+  /** the baseline model's own predicted risk after its action */
+  predicted_risk_after: number | null;
 }
 
 export interface RecommendResponse {
   recommendation: Recommendation;
+  /** the main baseline (B3) */
   baseline_action: BaselineAction | null;
+  baseline_actions: Partial<Record<BaselineMethod, BaselineAction>>;
+  main_baseline: BaselineMethod | null;
+  baseline_labels: Partial<Record<BaselineMethod, string>>;
   provenance: Provenance;
 }
 
@@ -420,6 +433,7 @@ export interface DemoBeatResult {
   validation?: { label: string; true_risk_within_horizon: number | null };
   recommendation?: Recommendation;
   baseline_action?: BaselineAction | null;
+  baseline_actions?: Partial<Record<BaselineMethod, BaselineAction>>;
   alert?: LiveAlert | null;
   invalidated_recommendations?: string[];
 }
@@ -458,6 +472,8 @@ export interface AppConfig {
     features: string[];
     action_mapping: { feature: string; action: string; lever: string | null; direction: number | string }[];
     damping_cost: number;
+    methods?: Partial<Record<BaselineMethod, string>>;
+    main_method?: BaselineMethod;
   };
   demo_beats: { name: string; title: string }[];
 }
@@ -470,7 +486,16 @@ export interface MethodResult {
   risk_reduction: number;
   failure_rate_after: number;
   success: boolean;
+  /** the method chose to do nothing */
+  no_action: boolean;
+  /** true risk after the action exceeds the no-action true risk by more than the margin */
+  worse_than_no_action: boolean;
+  /** the method chose to do nothing while the true risk was above the target */
+  false_reassurance: boolean;
+  predicted_risk_after?: number | null;
 }
+
+export type Winner = "causaltwin" | "baseline" | "tie";
 
 export interface BenchmarkCase {
   case_id: number;
@@ -480,17 +505,25 @@ export interface BenchmarkCase {
   true_risk_no_action: number;
   failure_rate_no_action: number;
   causaltwin: MethodResult;
-  baseline: MethodResult;
-  winner: "causaltwin" | "baseline" | "tie";
+  baselines: Record<BaselineMethod, MethodResult>;
+  /** head to head against the main baseline (B3) */
+  winner: Winner;
+  winner_by_baseline: Record<BaselineMethod, Winner>;
 }
 
 export interface MethodSummary {
   success_rate: number;
+  n_success: number;
   mean_risk_reduction: number;
   mean_true_risk_after: number;
   mean_failure_rate_after: number;
   mean_cost: number;
   blamed: Record<string, number>;
+  n_no_action: number;
+  n_worse_than_no_action: number;
+  cases_worse_than_no_action: number[];
+  n_false_reassurance: number;
+  cases_false_reassurance: number[];
 }
 
 export interface GraphRecoveryMetrics {
@@ -523,13 +556,21 @@ export interface BenchmarkResults {
   n_cases: number;
   summary: {
     causaltwin: MethodSummary;
-    baseline: MethodSummary;
+    baselines: Record<BaselineMethod, MethodSummary>;
+    main_baseline: BaselineMethod;
+    baseline_labels: Record<BaselineMethod, string>;
     mean_true_risk_no_action: number;
     mean_failure_rate_no_action: number;
+    /** head to head against the main baseline (B3) */
     wins: Record<string, number>;
     cases_where_causaltwin_is_worse: number[];
+    wins_by_baseline: Record<BaselineMethod, Record<string, number>>;
+    cases_where_causaltwin_is_worse_by_baseline: Record<BaselineMethod, number[]>;
   };
-  per_scenario: Record<string, { n: number; causaltwin_success: number | null; baseline_success: number | null }>;
+  per_scenario: Record<
+    string,
+    { n: number; causaltwin_success: number | null; baseline_success: Record<BaselineMethod, number | null> }
+  >;
   cases: BenchmarkCase[];
   baseline_accuracy: Record<string, number | string>;
   graph_recovery: {

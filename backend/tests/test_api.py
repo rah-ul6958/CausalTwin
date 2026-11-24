@@ -80,6 +80,11 @@ def test_recommend_and_apply(client: TestClient) -> None:
     assert recommendation["n_candidates"] == len(recommendation["candidates"]) > 100
     assert recommendation["search_ms"] < 2000 and body["baseline_action"]["blamed_feature"]
     assert all(change["lever"] != "vibration" for change in recommendation["changes"])
+    # All three baselines for the same moment; the single baseline_action is the main one (B3).
+    assert set(body["baseline_actions"]) == {"naive_shap", "actionable_shap", "counterfactual"}
+    assert body["main_baseline"] == "counterfactual"
+    assert body["baseline_action"] == body["baseline_actions"]["counterfactual"]
+    assert body["baseline_labels"]["counterfactual"].startswith("B3")
     applied = client.post("/apply").json()
     assert applied["ok"] and applied["details"]["action_type"] == recommendation["action_type"]
 

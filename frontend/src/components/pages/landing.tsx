@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { formatPercent, humanize } from "@/lib/format";
 import { useLiveStore } from "@/lib/store";
+import type { BaselineMethod } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
@@ -306,8 +307,14 @@ function KeyNumbers() {
   }
   const summary = benchmark.data.summary;
   const cases = benchmark.data.n_cases;
-  const successes = Math.round(summary.causaltwin.success_rate * cases);
-  const vibration = summary.baseline.blamed.vibration ?? 0;
+  const main = summary.main_baseline;
+  const strongest = summary.baselines[main];
+  const baselineMethods = (Object.keys(summary.baseline_labels) as BaselineMethod[]).reverse();
+  const madeWorse = baselineMethods.reduce((total, method) => total + summary.baselines[method].n_worse_than_no_action, 0);
+  const madeWorseByMethod = baselineMethods
+    .map((method) => `${summary.baseline_labels[method].split(":")[0]} ${summary.baselines[method].n_worse_than_no_action}`)
+    .join(", ");
+  const vibration = summary.baselines.naive_shap.blamed.vibration ?? 0;
   const runs = drift.data?.faults ?? [];
   const detected = runs.filter((run) => run.detected_step !== null).length;
   const delays = runs.map((run) => run.detection_delay_steps).filter((value): value is number => typeof value === "number");
@@ -320,19 +327,20 @@ function KeyNumbers() {
       <MetricCard
         index={0}
         accent="via-causal"
-        value={<CountUp value={summary.causaltwin.success_rate} format={(value) => formatPercent(value, 0)} durationMs={1400} />}
-        label={`of ${cases} simulated high-risk cases brought to ${targetRisk} true risk or less by CausalTwin, versus ${formatPercent(summary.baseline.success_rate, 0)} for XGBoost + SHAP`}
+        value={
+          <>
+            <CountUp value={summary.causaltwin.n_success} format={(value) => Math.round(value).toString()} durationMs={1400} />
+            <span className="text-slate-500"> vs </span>
+            <CountUp value={strongest.n_success} format={(value) => Math.round(value).toString()} durationMs={1400} />
+          </>
+        }
+        label={`of ${cases} simulated high-risk cases brought to ${targetRisk} true risk or less: CausalTwin versus the strongest predictive baseline (${summary.baseline_labels[main]}, XGBoost scoring the same candidate actions), judged by the simulator`}
       />
       <MetricCard
         index={1}
-        accent="via-good"
-        value={
-          <>
-            <CountUp value={successes} format={(value) => Math.round(value).toString()} durationMs={1400} />
-            <span className="text-slate-500"> / {cases}</span>
-          </>
-        }
-        label="successful interventions, judged by the simulator's ground truth (the losses are on the Benchmark page)"
+        accent="via-risk"
+        value={<CountUp value={madeWorse} format={(value) => Math.round(value).toString()} durationMs={1400} />}
+        label={`times a predictive baseline made things worse than doing nothing (${madeWorseByMethod}); CausalTwin: ${summary.causaltwin.n_worse_than_no_action}`}
       />
       <MetricCard
         index={2}
@@ -358,7 +366,7 @@ function KeyNumbers() {
             <span className="text-slate-500"> / {cases}</span>
           </>
         }
-        label="high-risk cases where standard ML blamed vibration, which has no causal effect on failure"
+        label={`high-risk cases where the naive SHAP rule (${summary.baseline_labels.naive_shap.split(":")[0]}) blamed vibration, which has no causal effect on failure`}
       />
     </div>
   );
@@ -443,6 +451,11 @@ function CorrelationTrap() {
           A standard model (XGBoost with SHAP explanations) sees vibration climb before every failure and blames it. Damping vibration
           leaves the risk unchanged, because heat and tool wear are the real causes. CausalTwin separates symptoms from causes, then
           proves its fix in the simulator.
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-300">
+          Skipping the symptom is not enough. Even a predictive model that tries every possible change asks &quot;how risky is a machine
+          that looks like this?&quot;, not &quot;what happens if I change this?&quot;, so it can say &quot;no action needed&quot; or make things
+          worse. The Benchmark page measures that too.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Button variant="outline" asChild className="hover:border-causal/40">

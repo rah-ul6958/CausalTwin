@@ -9,16 +9,23 @@ import pandas as pd
 import pytest
 
 from causaltwin.config import (
+    BASELINE_ACTIONABLE_FEATURES,
+    BASELINE_METHOD_LABELS,
+    BENCHMARK_WORSE_MARGIN,
     DEFAULT_CONFIG,
     LEVER_COSTS,
+    LEVER_NAMES,
+    MAIN_BASELINE,
+    OPTIMIZER_PLANNING_MARGIN,
     OPTIMIZER_TARGET_RISK,
+    TOOL_CHANGE_COST,
     WHATIF_INTERVAL_PERCENTILES,
 )
 from causaltwin.engine import Intervention
 from causaltwin.engine.whatif import batch_failure_risk, run_what_if
-from causaltwin.intelligence.benchmark import run_benchmark
+from causaltwin.intelligence.benchmark import outcome_flags, run_benchmark
 from causaltwin.intelligence.drift import count_false_alarms, evaluate_fault
-from causaltwin.intelligence.optimizer import recommend
+from causaltwin.intelligence.optimizer import build_candidates, recommend
 from causaltwin.intelligence.training import TrainedModels, train_models
 
 warnings.filterwarnings("ignore")
@@ -127,11 +134,129 @@ def test_benchmark_runs_end_to_end(models: TrainedModels, tmp_path: Path) -> Non
     )
     saved = json.loads(output.read_text())
     assert saved["n_cases"] == results["n_cases"] >= 4 and progress
+    methods = set(BASELINE_METHOD_LABELS)
     for case in saved["cases"]:
         assert 0.0 <= case["causaltwin"]["true_risk_after"] <= 1.0
-        assert case["baseline"]["blamed"] and case["causaltwin"]["blamed"]
-    assert set(saved["summary"]) >= {"causaltwin", "baseline", "wins", "cases_where_causaltwin_is_worse"}
+        assert set(case["baselines"]) == methods and case["causaltwin"]["blamed"]
+        assert case["winner"] == case["winner_by_baseline"][MAIN_BASELINE]
+        for result in [case["causaltwin"], *case["baselines"].values()]:
+            assert result["blamed"]
+            # The stored flags are exactly what outcome_flags gives for the stored risks.
+            expected = outcome_flags(result["true_risk_after"], case["true_risk_no_action"], result["no_action"])
+            assert {name: result[name] for name in expected} == expected
+    summary = saved["summary"]
+    assert set(summary) >= {"causaltwin", "baselines", "wins", "cases_where_causaltwin_is_worse", "main_baseline"}
+    assert set(summary["baselines"]) == methods and summary["main_baseline"] == MAIN_BASELINE
+    for method in ["causaltwin", *methods]:
+        method_summary = summary["causaltwin"] if method == "causaltwin" else summary["baselines"][method]
+        results_of_method = [
+            case["causaltwin"] if method == "causaltwin" else case["baselines"][method] for case in saved["cases"]
+        ]
+        assert method_summary["n_worse_than_no_action"] == sum(r["worse_than_no_action"] for r in results_of_method)
+        assert method_summary["n_false_reassurance"] == sum(r["false_reassurance"] for r in results_of_method)
     assert saved["baseline_accuracy"]["auc"] > 0.8
+
+
+def test_outcome_flags() -> None:
+    """Worse than doing nothing (beyond the margin) and false reassurance (no action above the target)."""
+    target, margin = OPTIMIZER_TARGET_RISK, BENCHMARK_WORSE_MARGIN
+    made_worse = outcome_flags(0.30, 0.25, chose_no_action=False)
+    assert made_worse == {"no_action": False, "worse_than_no_action": True, "false_reassurance": False}
+    within_margin = outcome_flags(0.25 + margin / 2, 0.25, chose_no_action=False)
+    assert not within_margin["worse_than_no_action"]
+    reassured = outcome_flags(0.25, 0.25, chose_no_action=True)
+    assert reassured == {"no_action": True, "worse_than_no_action": False, "false_reassurance": True}
+    rightly_idle = outcome_flags(target / 2, target / 2, chose_no_action=True)
+    assert not rightly_idle["false_reassurance"] and not rightly_idle["worse_than_no_action"]
+    helped = outcome_flags(0.02, 0.25, chose_no_action=False)
+    assert not any(helped.values())
+
+
+def _rows_before_failures(models: TrainedModels, count: int = 40) -> list[pd.Series]:
+    """Measured rows one step before the first training failures (high-risk states)."""
+    data = models.training_data
+    return [data.loc[row - 1] for row in data.index[data["failure"] == 1][:count]]
+
+
+def test_actionable_baseline_blames_only_what_an_engineer_can_change(models: TrainedModels) -> None:
+    """B2 never blames a symptom or the weather: only a lever (moved) or tool wear (tool change)."""
+    actions = [models.baseline.recommend_actionable(row, 20.0) for row in _rows_before_failures(models)]
+    for action in actions:
+        assert action.method == "actionable_shap"
+        assert action.blamed_feature in (*BASELINE_ACTIONABLE_FEATURES, "none")
+        assert action.kind != "damp_vibration"
+        if action.blamed_feature == "tool_wear":
+            assert action.kind == "tool_change" and action.cost == TOOL_CHANGE_COST
+        elif action.kind == "lever":
+            assert action.lever == action.blamed_feature and len(action.changes) == 1
+            assert action.changes[0].to_value == action.to_value
+    # Where B1 blames vibration, B2 picks something actionable instead.
+    naive = [models.baseline.recommend(row, 20.0) for row in _rows_before_failures(models)]
+    assert any(n.blamed_feature == "vibration" for n in naive)
+    assert not any(a.blamed_feature == "vibration" for a in actions)
+
+
+def test_counterfactual_baseline_searches_the_optimizers_candidates(models: TrainedModels) -> None:
+    """B3 picks the cheapest of CausalTwin's own candidates that XGBoost predicts below target * margin.
+
+    Each candidate changes only the lever values in the feature row (a tool change sets tool_wear to 0),
+    so the predicted risk after B3's action is the model's risk for that edited row.
+    """
+    baseline = models.baseline
+    planning_target = OPTIMIZER_TARGET_RISK * OPTIMIZER_PLANNING_MARGIN
+    acted = 0
+    for row in _rows_before_failures(models):
+        action = baseline.recommend_counterfactual(row)
+        assert action.method == "counterfactual" and action.blamed_shap is None
+        candidates = build_candidates({lever: float(row[lever]) for lever in LEVER_NAMES}, list(LEVER_NAMES))
+        predicted = []
+        for candidate in candidates:
+            edited = row.copy()
+            for change in candidate.changes:
+                edited[change.lever] = change.to_value
+            if candidate.tool_change:
+                edited["tool_wear"] = 0.0
+            predicted.append(baseline.predict_risk(edited))
+        assert action.predicted_risk == pytest.approx(predicted[0], abs=1e-6)
+        if action.kind == "none":
+            assert predicted[0] <= OPTIMIZER_TARGET_RISK or min(predicted[1:]) >= predicted[0]
+            continue
+        acted += 1
+        reaching = [i for i in range(1, len(candidates)) if predicted[i] <= planning_target]
+        if reaching:
+            assert action.cost == pytest.approx(min(candidates[i].cost for i in reaching))
+            assert action.predicted_risk_after is not None and action.predicted_risk_after <= planning_target
+        # The chosen action is one of the optimizer's candidates, with its cost.
+        matching = [
+            c
+            for c in candidates
+            if c.tool_change == (action.kind == "tool_change")
+            and [(x.lever, x.to_value) for x in c.changes] == [(x.lever, x.to_value) for x in action.changes]
+        ]
+        assert matching and action.cost == pytest.approx(matching[0].cost)
+        index = candidates.index(matching[0])
+        assert action.predicted_risk_after == pytest.approx(predicted[index], abs=1e-6)
+    assert acted >= 5
+
+
+def test_counterfactual_baseline_does_nothing_when_predicted_risk_is_low(models: TrainedModels) -> None:
+    """At a calm state the XGBoost risk is below the target, so B3 recommends no action."""
+    data = models.training_data
+    calm = data[(data["machine_running"] == 1) & (data["tool_wear"] < data["tool_wear"].quantile(0.2))]
+    row = calm.iloc[len(calm) // 2]
+    action = models.baseline.recommend_counterfactual(row)
+    assert action.predicted_risk <= OPTIMIZER_TARGET_RISK
+    assert action.kind == "none" and action.cost == 0.0 and action.description.startswith("No action")
+
+
+def test_recommend_all_returns_every_baseline(models: TrainedModels) -> None:
+    """recommend_all gives B1, B2 and B3 for one state, sharing one set of SHAP values."""
+    row = _rows_before_failures(models, 1)[0]
+    actions = models.baseline.recommend_all(row, 20.0)
+    assert set(actions) == set(BASELINE_METHOD_LABELS)
+    assert {action.method for action in actions.values()} == set(BASELINE_METHOD_LABELS)
+    assert actions["naive_shap"].shap_values == actions["actionable_shap"].shap_values
+    assert actions["naive_shap"] == models.baseline.recommend(row, 20.0)
 
 
 @pytest.mark.parametrize(

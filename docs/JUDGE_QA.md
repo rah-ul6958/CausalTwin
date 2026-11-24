@@ -182,9 +182,48 @@ Fault-free runs: 60,000 steps, 5 suspected alarms, 0 wrongly confirmed structura
 - **The benchmark has 30 cases on one simulator.** CausalTwin misses the target in 2 of them; the
   benchmark table lists them.
 
+## Is your baseline a straw man?
+
+The original baseline (B1, naive SHAP) was easy to call one: it maps XGBoost's top SHAP feature to an
+action, and at the benchmark's high-risk moments that feature is mostly vibration (a symptom) or ambient
+temperature (not controllable). So we built two stronger baselines from the same XGBoost model, and the
+strongest one is the main comparison everywhere a single baseline is named:
+
+- **B2, actionable SHAP:** the top SHAP feature among the four levers and tool wear (acted on with a
+  tool change), so it can never blame a symptom or the weather.
+- **B3, predict-then-optimize:** CausalTwin's own candidate search (the same grid of single levers, lever
+  pairs and a tool change, the same costs, the same 10% target and planning margin), with every
+  candidate scored by XGBoost instead of the causal model. It needs no SHAP and no hand-made mapping, and
+  it may move any lever in either direction, pair levers or change the tool.
+
+All four methods act on the same 30 moments, in forks of the real simulator with the same seeds:
+
+<!-- results:straw_man:start -->
+| Method | Reached the target | Mean true risk after | Worse than doing nothing | No action while risk was high |
+|---|---|---|---|---|
+| CausalTwin | 28 / 30 | 3.8% | 0 | 0 |
+| B3: predict-then-optimize | 15 / 30 | 10.2% | 3 | 8 |
+| B2: actionable SHAP | 17 / 30 | 14.4% | 6 | 0 |
+| B1: naive SHAP | 1 / 30 | 30.1% | 1 | 6 |
+
+No action at all leaves a mean true risk of 30.4%. Head to head with B3, CausalTwin left a lower true risk in 14 case(s), tied in 13 and was worse in 3.
+B2 reached the target more often than B3 (17 against 15), but B3 is the main comparison because it is the more capable method (it searches every action CausalTwin searches) and it left the lower mean true risk (10.2% against 14.4%) and failure rate (5.0% against 10.0%).
+B3 said no action was needed in 8 case(s) whose true risk was 16% to 25%, and its change made things worse than doing nothing in 3.
+In the 3 case(s) where B3 left a lower true risk, both methods reached the target in 3 and CausalTwin's action cost less in 3.
+In 12 of the 13 tie(s) both methods changed the tool: tool wear is one of the predictor's inputs, so for a tool change the edited input row matches what really happens.
+<!-- results:straw_man:end -->
+
+What B3 still cannot do is know what a change causes. It edits a lever's value in its input row while
+bearing temperature, coolant temperature and vibration keep their current readings, so it answers "how
+risky is a machine that looks like this?" rather than "what happens if I change this?". When the benefit
+of a change flows through a temperature it holds fixed, it sees little or none of it, so it either
+declares the risk acceptable or picks a change (for example less coolant) that makes things worse. That
+is the difference between correlation and intervention, measured on the simulator.
+
 ## Is the baseline a fair comparison?
 
-We made it as fair as we could:
+This section describes B1, the original baseline, which is still reported in every table. We made it
+as fair as we could:
 
 - **Accuracy:** XGBoost is a strong failure predictor (its held-out accuracy is on the Benchmark page,
   "Is the baseline fair?").

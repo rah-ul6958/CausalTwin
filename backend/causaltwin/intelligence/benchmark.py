@@ -9,6 +9,12 @@
    with the same seeds. Measured: true risk after the action (true hazard), failure rate
    within the horizon, and cost. Success = true risk after <= the 10% target.
 Every case is reported, including the ones where CausalTwin does worse.
+
+Three baselines are evaluated on every case (see baseline.py): B1 naive SHAP (the rule in step 2),
+B2 actionable SHAP, and B3 predict-then-optimize, the main comparison. All are applied to the same forks
+with the same seeds as CausalTwin. Two flags are stored for every method, CausalTwin included:
+worse_than_no_action (true risk after > no-action true risk + BENCHMARK_WORSE_MARGIN) and
+false_reassurance (the method chose to do nothing while the true no-action risk was above the target).
 """
 
 import json
@@ -17,13 +23,14 @@ from collections import Counter, deque
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 
 import numpy as np
 import pandas as pd
 
 from causaltwin.config import (
     BASELINE_DEFAULT_MAGNITUDE_PCT,
+    BASELINE_METHOD_LABELS,
     BENCHMARK_HAZARD_SCREEN,
     BENCHMARK_MAX_STEPS_PER_RUN,
     BENCHMARK_MIN_GAP_STEPS,
@@ -32,6 +39,8 @@ from causaltwin.config import (
     BENCHMARK_SEED_BASE,
     BENCHMARK_SEEDS_PER_SITUATION,
     BENCHMARK_SITUATIONS_PER_SCENARIO,
+    BENCHMARK_WORSE_MARGIN,
+    MAIN_BASELINE,
     OPTIMIZER_TARGET_RISK,
     TAU_MAX,
     VALIDATION_RESULTS_PATH,
@@ -137,12 +146,68 @@ def _apply_baseline(action: BaselineAction) -> Callable[[MachineSimulator], None
     """Apply the baseline's action to a simulator fork (damping is a config override)."""
 
     def apply(simulator: MachineSimulator) -> None:
-        if action.kind == "lever" and action.lever is not None and action.to_value is not None:
+        if action.kind == "lever" and action.changes:
+            for change in action.changes:
+                simulator.intervene(change.lever, change.to_value)
+        elif action.kind == "lever" and action.lever is not None and action.to_value is not None:
             simulator.intervene(action.lever, action.to_value)
         elif action.kind == "tool_change":
             simulator.replace_tool()
 
     return apply
+
+
+ActionKey = tuple[tuple[tuple[str, float], ...], bool, bool]
+
+
+def _action_key(lever_values: list[tuple[str, float]], tool_change: bool, damping: bool) -> ActionKey:
+    """What an action does to the machine, so identical actions are simulated only once per case."""
+    return tuple(sorted((lever, round(value, 9)) for lever, value in lever_values)), tool_change, damping
+
+
+def _baseline_key(action: BaselineAction) -> ActionKey:
+    """The action key of a baseline action."""
+    if action.kind == "lever" and action.changes:
+        levers = [(change.lever, change.to_value) for change in action.changes]
+    elif action.kind == "lever" and action.lever is not None and action.to_value is not None:
+        levers = [(action.lever, action.to_value)]
+    else:
+        levers = []
+    return _action_key(levers, action.kind == "tool_change", action.kind == "damp_vibration")
+
+
+class OutcomeFlags(TypedDict):
+    """Whether a method did nothing, made things worse, or gave false reassurance in one case."""
+
+    no_action: bool
+    worse_than_no_action: bool
+    false_reassurance: bool
+
+
+def outcome_flags(
+    true_risk_after: float,
+    true_risk_no_action: float,
+    chose_no_action: bool,
+    target_risk: float = OPTIMIZER_TARGET_RISK,
+    worse_margin: float = BENCHMARK_WORSE_MARGIN,
+) -> OutcomeFlags:
+    """The two warning flags of one method's action in one case.
+
+    worse_than_no_action: the action left the machine riskier than doing nothing (beyond the margin).
+    false_reassurance: the method chose to do nothing while the true risk was above the target.
+    """
+    return {
+        "no_action": chose_no_action,
+        "worse_than_no_action": true_risk_after > true_risk_no_action + worse_margin,
+        "false_reassurance": chose_no_action and true_risk_no_action > target_risk,
+    }
+
+
+def _winner(causaltwin_risk: float, baseline_risk: float) -> Literal["causaltwin", "baseline", "tie"]:
+    """Which method left the lower true risk (a difference below TIE_TOLERANCE is a tie)."""
+    if abs(causaltwin_risk - baseline_risk) < TIE_TOLERANCE:
+        return "tie"
+    return "causaltwin" if causaltwin_risk < baseline_risk else "baseline"
 
 
 def _describe(recommendation: Recommendation) -> str:
@@ -164,22 +229,43 @@ def evaluate_situation(
     root_cause = engine.root_cause(situation.history[engine.model.variables])
     blamed_ct = " -> ".join(node.variable for node in root_cause.paths[0].nodes) if root_cause.paths else "none"
     magnitude = max((abs(c.change_pct) for c in recommendation.changes), default=BASELINE_DEFAULT_MAGNITUDE_PCT)
-    action = baseline.recommend(situation.history.iloc[-1], magnitude)
+    actions = baseline.recommend_all(situation.history.iloc[-1], magnitude, OPTIMIZER_TARGET_RISK)
 
-    no_action_risk, no_action_failures = true_outcome(situation.simulator, lambda _: None, seeds, horizon)
-    ct_risk, ct_failures = true_outcome(situation.simulator, _apply_recommendation(recommendation), seeds, horizon)
-    baseline_risk, baseline_failures = true_outcome(
-        situation.simulator,
-        _apply_baseline(action),
-        seeds,
-        horizon,
-        DAMPING_OVERRIDES if action.kind == "damp_vibration" else None,
-    )
-    winner: Literal["causaltwin", "baseline", "tie"]
-    if abs(ct_risk - baseline_risk) < TIE_TOLERANCE:
-        winner = "tie"
-    else:
-        winner = "causaltwin" if ct_risk < baseline_risk else "baseline"
+    # True outcomes, simulated once per distinct action (forks with the same seeds are deterministic).
+    outcomes: dict[ActionKey, tuple[float, float]] = {}
+    no_action_key = _action_key([], False, False)
+    outcomes[no_action_key] = true_outcome(situation.simulator, lambda _: None, seeds, horizon)
+    no_action_risk, no_action_failures = outcomes[no_action_key]
+    ct_key = _action_key([(c.lever, c.to_value) for c in recommendation.changes], recommendation.tool_change, False)
+    if ct_key not in outcomes:
+        outcomes[ct_key] = true_outcome(situation.simulator, _apply_recommendation(recommendation), seeds, horizon)
+    ct_risk, ct_failures = outcomes[ct_key]
+    baseline_results: dict[str, BenchmarkMethodResult] = {}
+    for method, action in actions.items():
+        key = _baseline_key(action)
+        if key not in outcomes:
+            outcomes[key] = true_outcome(
+                situation.simulator,
+                _apply_baseline(action),
+                seeds,
+                horizon,
+                DAMPING_OVERRIDES if action.kind == "damp_vibration" else None,
+            )
+        risk, failures = outcomes[key]
+        baseline_results[method] = BenchmarkMethodResult(
+            action=action.description,
+            blamed=action.blamed_feature,
+            cost=action.cost,
+            true_risk_after=risk,
+            risk_reduction=no_action_risk - risk,
+            failure_rate_after=failures,
+            success=risk <= OPTIMIZER_TARGET_RISK,
+            predicted_risk_after=action.predicted_risk_after,
+            **outcome_flags(risk, no_action_risk, action.kind == "none"),
+        )
+    winner_by_baseline = {
+        method: _winner(ct_risk, result.true_risk_after) for method, result in baseline_results.items()
+    }
     return BenchmarkCase(
         case_id=case_id,
         scenario=situation.scenario,
@@ -199,17 +285,11 @@ def evaluate_situation(
             success=ct_risk <= OPTIMIZER_TARGET_RISK,
             predicted_risk_after=recommendation.risk_after.probability,
             predicted_risk_after_interval=(recommendation.risk_after.lower, recommendation.risk_after.upper),
+            **outcome_flags(ct_risk, no_action_risk, recommendation.action_type == "none"),
         ),
-        baseline=BenchmarkMethodResult(
-            action=action.description,
-            blamed=action.blamed_feature,
-            cost=action.cost,
-            true_risk_after=baseline_risk,
-            risk_reduction=no_action_risk - baseline_risk,
-            failure_rate_after=baseline_failures,
-            success=baseline_risk <= OPTIMIZER_TARGET_RISK,
-        ),
-        winner=winner,
+        baselines=baseline_results,
+        winner=winner_by_baseline[MAIN_BASELINE],
+        winner_by_baseline=winner_by_baseline,
     )
 
 
@@ -256,16 +336,42 @@ def calibration_summary(cases: list[BenchmarkCase]) -> dict[str, Any]:
     }
 
 
+def _method_result(case: BenchmarkCase, method: str) -> BenchmarkMethodResult:
+    """One method's result in one case ("causaltwin" or a baseline method name)."""
+    return case.causaltwin if method == "causaltwin" else case.baselines[method]
+
+
 def _summary(cases: list[BenchmarkCase], method: str) -> dict[str, Any]:
-    """Aggregate one method's results."""
-    results = [getattr(case, method) for case in cases]
+    """Aggregate one method's results ("causaltwin" or a baseline method name)."""
+    results = [_method_result(case, method) for case in cases]
+    worse = [case.case_id for case, r in zip(cases, results, strict=True) if r.worse_than_no_action]
+    reassured = [case.case_id for case, r in zip(cases, results, strict=True) if r.false_reassurance]
     return {
         "success_rate": float(np.mean([r.success for r in results])),
+        "n_success": int(sum(r.success for r in results)),
         "mean_risk_reduction": float(np.mean([r.risk_reduction for r in results])),
         "mean_true_risk_after": float(np.mean([r.true_risk_after for r in results])),
         "mean_failure_rate_after": float(np.mean([r.failure_rate_after for r in results])),
         "mean_cost": float(np.mean([r.cost for r in results])),
         "blamed": dict(Counter(r.blamed for r in results)),
+        "n_no_action": int(sum(r.no_action for r in results)),
+        "n_worse_than_no_action": len(worse),
+        "cases_worse_than_no_action": worse,
+        "n_false_reassurance": len(reassured),
+        "cases_false_reassurance": reassured,
+    }
+
+
+def _scenario_summary(cases: list[BenchmarkCase]) -> dict[str, Any]:
+    """Success rates of every method within one scenario (None when the scenario has no cases)."""
+    if not cases:
+        return {"n": 0, "causaltwin_success": None, "baseline_success": dict.fromkeys(BASELINE_METHOD_LABELS)}
+    return {
+        "n": len(cases),
+        "causaltwin_success": float(np.mean([c.causaltwin.success for c in cases])),
+        "baseline_success": {
+            method: float(np.mean([c.baselines[method].success for c in cases])) for method in BASELINE_METHOD_LABELS
+        },
     }
 
 
@@ -303,27 +409,27 @@ def run_benchmark(
             "n_cases": len(cases),
             "summary": {
                 "causaltwin": _summary(cases, "causaltwin") if cases else {},
-                "baseline": _summary(cases, "baseline") if cases else {},
+                "baselines": {method: _summary(cases, method) if cases else {} for method in BASELINE_METHOD_LABELS},
+                "main_baseline": MAIN_BASELINE,
+                "baseline_labels": dict(BASELINE_METHOD_LABELS),
                 "mean_true_risk_no_action": float(np.mean([c.true_risk_no_action for c in cases])) if cases else None,
                 "mean_failure_rate_no_action": float(np.mean([c.failure_rate_no_action for c in cases]))
                 if cases
                 else None,
+                # Head to head against the main baseline (B3), then against every baseline.
                 "wins": dict(Counter(case.winner for case in cases)),
                 "cases_where_causaltwin_is_worse": [c.case_id for c in cases if c.winner == "baseline"],
+                "wins_by_baseline": {
+                    method: dict(Counter(case.winner_by_baseline[method] for case in cases))
+                    for method in BASELINE_METHOD_LABELS
+                },
+                "cases_where_causaltwin_is_worse_by_baseline": {
+                    method: [c.case_id for c in cases if c.winner_by_baseline[method] == "baseline"]
+                    for method in BASELINE_METHOD_LABELS
+                },
             },
             "per_scenario": {
-                scenario: {
-                    "n": sum(c.scenario == scenario for c in cases),
-                    "causaltwin_success": float(
-                        np.mean([c.causaltwin.success for c in cases if c.scenario == scenario])
-                    )
-                    if any(c.scenario == scenario for c in cases)
-                    else None,
-                    "baseline_success": float(np.mean([c.baseline.success for c in cases if c.scenario == scenario]))
-                    if any(c.scenario == scenario for c in cases)
-                    else None,
-                }
-                for scenario in SCENARIOS
+                scenario: _scenario_summary([c for c in cases if c.scenario == scenario]) for scenario in SCENARIOS
             },
             "cases": [case.model_dump() for case in cases],
             "calibration": calibration_summary(cases),

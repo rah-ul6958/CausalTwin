@@ -16,10 +16,10 @@
           "effect": "coolant_temp",
           "change": "weakened",
           "old_coefficient": -0.1338693763761123,
-          "new_coefficient": -0.03304120838143265,
+          "new_coefficient": -0.03304120838143254,
           "new_interval": [
-            -0.04296213477876637,
-            -0.02053707629871974
+            -0.04296213477876633,
+            -0.020537076298719745
           ],
           "explanation": "coolant_flow no longer strongly controls coolant_temp: its effect fell from -0.134 to -0.033 (75% weaker)."
         }
@@ -47,10 +47,10 @@
           "effect": "coolant_temp",
           "change": "weakened",
           "old_coefficient": -0.1338693763761123,
-          "new_coefficient": -0.035406765557280784,
+          "new_coefficient": -0.035406765557281006,
           "new_interval": [
-            -0.03973458767392065,
-            -0.020021234688718515
+            -0.03973458767392123,
+            -0.020021234688718637
           ],
           "explanation": "coolant_flow no longer strongly controls coolant_temp: its effect fell from -0.134 to -0.0354 (74% weaker)."
         }
@@ -80,8 +80,8 @@
           "old_coefficient": -0.1338693763761123,
           "new_coefficient": -0.031584473887685705,
           "new_interval": [
-            -0.034677359507903203,
-            -0.022783011383022734
+            -0.034677359507902884,
+            -0.022783011383022744
           ],
           "explanation": "coolant_flow no longer strongly controls coolant_temp: its effect fell from -0.134 to -0.0316 (76% weaker)."
         }
@@ -108,11 +108,11 @@
           "cause": "lube_rate",
           "effect": "bearing_temp",
           "change": "removed",
-          "old_coefficient": -2.2751249242207248,
-          "new_coefficient": 0.2115576300360845,
+          "old_coefficient": -2.2751249242207408,
+          "new_coefficient": 0.2115576300360768,
           "new_interval": [
-            0.021488759503277374,
-            0.3431781936494224
+            0.02148875950328277,
+            0.3431781936494227
           ],
           "explanation": "lube_rate no longer affects bearing_temp (effect -2.28 -> +0.212)."
         }
@@ -139,11 +139,11 @@
           "cause": "lube_rate",
           "effect": "bearing_temp",
           "change": "removed",
-          "old_coefficient": -2.2751249242207248,
-          "new_coefficient": 0.026978720091742493,
+          "old_coefficient": -2.2751249242207408,
+          "new_coefficient": 0.026978720091741,
           "new_interval": [
-            -0.2994636058399542,
-            0.2625392449955779
+            -0.2994636058399533,
+            0.2625392449955769
           ],
           "explanation": "lube_rate no longer affects bearing_temp (effect -2.28 -> +0.027)."
         }
@@ -170,11 +170,11 @@
           "cause": "lube_rate",
           "effect": "bearing_temp",
           "change": "removed",
-          "old_coefficient": -2.2751249242207248,
-          "new_coefficient": 0.038639645714928124,
+          "old_coefficient": -2.2751249242207408,
+          "new_coefficient": 0.03863964571492748,
           "new_interval": [
-            -0.12499142480073797,
-            0.3443769053675322
+            -0.12499142480073812,
+            0.34437690536753013
           ],
           "explanation": "lube_rate no longer affects bearing_temp (effect -2.28 -> +0.0386)."
         }
@@ -201,11 +201,11 @@
           "cause": "motor_current",
           "effect": "bearing_temp",
           "change": "strengthened",
-          "old_coefficient": 0.14417042642317596,
-          "new_coefficient": 0.2445727320318386,
+          "old_coefficient": 0.14417042642317324,
+          "new_coefficient": 0.24457273203183874,
           "new_interval": [
-            0.22402184552476503,
-            0.26678545982763446
+            0.2240218455247649,
+            0.2667854598276351
           ],
           "explanation": "motor_current now drives bearing_temp more strongly: effect +0.144 -> +0.245 (70% stronger)."
         }
@@ -232,11 +232,11 @@
           "cause": "motor_current",
           "effect": "bearing_temp",
           "change": "strengthened",
-          "old_coefficient": 0.14417042642317596,
-          "new_coefficient": 0.24457713416106042,
+          "old_coefficient": 0.14417042642317324,
+          "new_coefficient": 0.24457713416106003,
           "new_interval": [
-            0.23745426072334386,
-            0.26195089509281977
+            0.23745426072334438,
+            0.2619508950928192
           ],
           "explanation": "motor_current now drives bearing_temp more strongly: effect +0.144 -> +0.245 (70% stronger)."
         }
@@ -263,11 +263,11 @@
           "cause": "motor_current",
           "effect": "bearing_temp",
           "change": "strengthened",
-          "old_coefficient": 0.14417042642317596,
-          "new_coefficient": 0.2228451970232956,
+          "old_coefficient": 0.14417042642317324,
+          "new_coefficient": 0.22284519702329558,
           "new_interval": [
-            0.21377996169530902,
-            0.23583127624487338
+            0.21377996169530863,
+            0.23583127624487327
           ],
           "explanation": "motor_current now drives bearing_temp more strongly: effect +0.144 -> +0.223 (55% stronger)."
         }

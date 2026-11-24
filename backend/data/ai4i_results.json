@@ -87,20 +87,20 @@
       {
         "variable": "temperature_difference_k",
         "lag": 0,
-        "coefficient": -0.6907711425938998
+        "coefficient": -0.6907711425939095
       },
       {
         "variable": "power_w",
         "lag": 0,
-        "coefficient": 0.0007106289135894788
+        "coefficient": 0.0007106289135894725
       },
       {
         "variable": "wear_torque",
         "lag": 0,
-        "coefficient": 0.0002343932196184697
+        "coefficient": 0.0002343932196184701
       }
     ],
-    "intercept": -2.770220010732585,
+    "intercept": -2.77022001073245,
     "equation": "logit P(failure(t)) = - 0.6908*temperature_difference_k(t) + 0.0007106*power_w(t) + 0.0002344*wear_torque(t) - 2.77",
     "r_squared_holdout": null,
     "residual_std": null,
@@ -170,7 +170,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.00016949274320397767,
+        "predicted_probability": 0.0001694927432039825,
         "failures_after": [
           "PWF"
         ],
@@ -195,7 +195,7 @@
       "causaltwin": {
         "action": "torque -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.039243342288344946,
+        "predicted_probability": 0.03924334228834414,
         "failures_after": [
           "PWF"
         ],
@@ -220,7 +220,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03691034143625238,
+        "predicted_probability": 0.0369103414362524,
         "failures_after": [
           "TWF"
         ],
@@ -242,7 +242,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.023003231505398153,
+        "predicted_probability": 0.023003231505397893,
         "failures_after": [],
         "success": true
       },
@@ -262,7 +262,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04718063579516826,
+        "predicted_probability": 0.047180635795168485,
         "failures_after": [],
         "success": true
       },
@@ -282,7 +282,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.046532677967604436,
+        "predicted_probability": 0.046532677967603665,
         "failures_after": [],
         "success": true
       },
@@ -302,7 +302,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.000532663402719445,
+        "predicted_probability": 0.0005326634027194535,
         "failures_after": [
           "PWF"
         ],
@@ -324,7 +324,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.047877461544716546,
+        "predicted_probability": 0.04787746154471604,
         "failures_after": [],
         "success": true
       },
@@ -344,7 +344,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04285911708959027,
+        "predicted_probability": 0.042859117089590254,
         "failures_after": [],
         "success": true
       },
@@ -364,7 +364,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04838473398123187,
+        "predicted_probability": 0.048384733981231776,
         "failures_after": [],
         "success": true
       },
@@ -384,7 +384,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.042207828699412794,
+        "predicted_probability": 0.042207828699412725,
         "failures_after": [],
         "success": true
       },
@@ -404,7 +404,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.044708915205812765,
+        "predicted_probability": 0.04470891520581191,
         "failures_after": [
           "PWF"
         ],
@@ -428,7 +428,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.04683988061658419,
+        "predicted_probability": 0.046839880616583715,
         "failures_after": [],
         "success": true
       },
@@ -448,7 +448,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0006064897391738004,
+        "predicted_probability": 0.0006064897391738053,
         "failures_after": [
           "PWF"
         ],
@@ -470,7 +470,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.040865846051531984,
+        "predicted_probability": 0.04086584605153082,
         "failures_after": [
           "PWF"
         ],
@@ -492,7 +492,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 7.038237494829061e-05,
+        "predicted_probability": 7.038237494829198e-05,
         "failures_after": [
           "PWF"
         ],
@@ -516,7 +516,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.03512216914628484,
+        "predicted_probability": 0.03512216914628395,
         "failures_after": [],
         "success": true
       },
@@ -536,7 +536,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.033842916376333285,
+        "predicted_probability": 0.033842916376331925,
         "failures_after": [
           "PWF"
         ],
@@ -558,7 +558,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.044675725722489006,
+        "predicted_probability": 0.04467572572248838,
         "failures_after": [],
         "success": true
       },
@@ -578,7 +578,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.00013521498549986792,
+        "predicted_probability": 0.00013521498549987033,
         "failures_after": [
           "PWF"
         ],
@@ -602,7 +602,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.041126331033885466,
+        "predicted_probability": 0.04112633103388487,
         "failures_after": [],
         "success": true
       },
@@ -622,7 +622,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0008691775624460114,
+        "predicted_probability": 0.0008691775624460221,
         "failures_after": [
           "PWF"
         ],
@@ -644,7 +644,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.03767479203284484,
+        "predicted_probability": 0.037674792032844705,
         "failures_after": [],
         "success": true
       },
@@ -664,7 +664,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03874038172122208,
+        "predicted_probability": 0.03874038172122093,
         "failures_after": [
           "PWF"
         ],
@@ -686,7 +686,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.0465454717125618,
+        "predicted_probability": 0.04654547171256132,
         "failures_after": [],
         "success": true
       },
@@ -706,7 +706,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.011609048528364864,
+        "predicted_probability": 0.011609048528364793,
         "failures_after": [
           "TWF"
         ],
@@ -728,7 +728,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0002829336753715238,
+        "predicted_probability": 0.0002829336753715283,
         "failures_after": [
           "PWF"
         ],
@@ -752,7 +752,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.04992230971736943,
+        "predicted_probability": 0.04992230971736819,
         "failures_after": [],
         "success": true
       },
@@ -772,7 +772,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04327927530949125,
+        "predicted_probability": 0.04327927530949027,
         "failures_after": [],
         "success": true
       },
@@ -792,7 +792,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.0480749479445336,
+        "predicted_probability": 0.04807494794453285,
         "failures_after": [],
         "success": true
       },
@@ -812,7 +812,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.041463712057104585,
+        "predicted_probability": 0.04146371205710421,
         "failures_after": [],
         "success": true
       },
@@ -832,7 +832,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.04997027436560833,
+        "predicted_probability": 0.04997027436560772,
         "failures_after": [],
         "success": true
       },
@@ -852,7 +852,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.035925325753840914,
+        "predicted_probability": 0.035925325753840484,
         "failures_after": [],
         "success": true
       },
@@ -872,7 +872,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0004830190607039811,
+        "predicted_probability": 0.0004830190607039834,
         "failures_after": [
           "PWF"
         ],
@@ -895,7 +895,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.02449061406912535,
+        "predicted_probability": 0.024490614069124495,
         "failures_after": [
           "PWF"
         ],
@@ -917,7 +917,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0449371663064004,
+        "predicted_probability": 0.04493716630639971,
         "failures_after": [
           "OSF"
         ],
@@ -939,7 +939,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04239970760900933,
+        "predicted_probability": 0.0423997076090087,
         "failures_after": [
           "OSF"
         ],
@@ -961,7 +961,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.00020533532852436,
+        "predicted_probability": 0.00020533532852436219,
         "failures_after": [
           "PWF"
         ],
@@ -985,7 +985,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.038397618432370606,
+        "predicted_probability": 0.03839761843237013,
         "failures_after": [],
         "success": true
       },
@@ -1005,7 +1005,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04394432334086435,
+        "predicted_probability": 0.043944323340863886,
         "failures_after": [],
         "success": true
       },
@@ -1026,7 +1026,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.026266460885932135,
+        "predicted_probability": 0.026266460885931427,
         "failures_after": [
           "PWF"
         ],
@@ -1070,7 +1070,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.0416954515809039,
+        "predicted_probability": 0.04169545158090383,
         "failures_after": [],
         "success": true
       },
@@ -1090,7 +1090,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.04969046677251751,
+        "predicted_probability": 0.049690466772517386,
         "failures_after": [],
         "success": true
       },
@@ -1110,7 +1110,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.042305091446620445,
+        "predicted_probability": 0.04230509144662077,
         "failures_after": [
           "TWF"
         ],
@@ -1132,7 +1132,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.013938365272555165,
+        "predicted_probability": 0.013938365272555372,
         "failures_after": [
           "TWF"
         ],
@@ -1154,7 +1154,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0001833710601251766,
+        "predicted_probability": 0.00018337106012518312,
         "failures_after": [
           "PWF"
         ],
@@ -1178,7 +1178,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.04820584881908268,
+        "predicted_probability": 0.04820584881908229,
         "failures_after": [],
         "success": true
       },
@@ -1198,7 +1198,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0013839432005122428,
+        "predicted_probability": 0.001383943200512272,
         "failures_after": [
           "PWF"
         ],
@@ -1220,7 +1220,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.03527317529847384,
+        "predicted_probability": 0.03527317529847351,
         "failures_after": [],
         "success": true
       },
@@ -1240,7 +1240,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.02650736165829108,
+        "predicted_probability": 0.02650736165829131,
         "failures_after": [
           "TWF"
         ],
@@ -1264,7 +1264,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04285038177364618,
+        "predicted_probability": 0.042850381773645745,
         "failures_after": [],
         "success": true
       },
@@ -1284,7 +1284,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.04395667499540802,
+        "predicted_probability": 0.04395667499540813,
         "failures_after": [],
         "success": true
       },
@@ -1304,7 +1304,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.029349119265086043,
+        "predicted_probability": 0.029349119265086127,
         "failures_after": [],
         "success": true
       },
@@ -1324,7 +1324,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.00727194728519584,
+        "predicted_probability": 0.007271947285195949,
         "failures_after": [
           "TWF"
         ],
@@ -1346,7 +1346,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0022069615892621347,
+        "predicted_probability": 0.0022069615892621876,
         "failures_after": [
           "PWF"
         ],
@@ -1368,7 +1368,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.04885719300596375,
+        "predicted_probability": 0.048857193005964306,
         "failures_after": [
           "TWF"
         ],
@@ -1390,7 +1390,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.044212045631904534,
+        "predicted_probability": 0.0442120456319048,
         "failures_after": [],
         "success": true
       },
@@ -1410,7 +1410,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.04614968479456714,
+        "predicted_probability": 0.04614968479456773,
         "failures_after": [],
         "success": true
       },
@@ -1430,7 +1430,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04831203987912426,
+        "predicted_probability": 0.048312039879124816,
         "failures_after": [],
         "success": true
       },
@@ -1450,7 +1450,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04984582733642136,
+        "predicted_probability": 0.04984582733642104,
         "failures_after": [],
         "success": true
       },
@@ -1470,7 +1470,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04119825426479714,
+        "predicted_probability": 0.04119825426479712,
         "failures_after": [],
         "success": true
       },
@@ -1490,7 +1490,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04111671609049097,
+        "predicted_probability": 0.041116716090491195,
         "failures_after": [],
         "success": true
       },
@@ -1510,7 +1510,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04570832078333967,
+        "predicted_probability": 0.04570832078333986,
         "failures_after": [],
         "success": true
       },
@@ -1530,7 +1530,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.044766225763603174,
+        "predicted_probability": 0.04476622576360329,
         "failures_after": [],
         "success": true
       },
@@ -1550,7 +1550,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.03847831586684664,
+        "predicted_probability": 0.038478315866846205,
         "failures_after": [],
         "success": true
       },
@@ -1570,7 +1570,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.03933086557411789,
+        "predicted_probability": 0.03933086557411821,
         "failures_after": [
           "TWF"
         ],
@@ -1592,7 +1592,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.04567342314289633,
+        "predicted_probability": 0.045673423142895825,
         "failures_after": [],
         "success": true
       },
@@ -1614,7 +1614,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.031725445705982465,
+        "predicted_probability": 0.03172544570598255,
         "failures_after": [],
         "success": true
       },
@@ -1634,7 +1634,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.041737890280625065,
+        "predicted_probability": 0.04173789028062591,
         "failures_after": [
           "TWF"
         ],
@@ -1656,7 +1656,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04021949255912982,
+        "predicted_probability": 0.040219492559129995,
         "failures_after": [],
         "success": true
       },
@@ -1676,7 +1676,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.00646447374284035,
+        "predicted_probability": 0.00646447374284051,
         "failures_after": [
           "TWF"
         ],
@@ -1698,7 +1698,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.036869600135475765,
+        "predicted_probability": 0.03686960013547615,
         "failures_after": [],
         "success": true
       },
@@ -1718,7 +1718,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.04369207724511368,
+        "predicted_probability": 0.04369207724511427,
         "failures_after": [],
         "success": true
       },
@@ -1738,7 +1738,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0012947050162713243,
+        "predicted_probability": 0.0012947050162713553,
         "failures_after": [
           "PWF"
         ],
@@ -1760,7 +1760,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.039478743609017215,
+        "predicted_probability": 0.03947874360901776,
         "failures_after": [
           "HDF"
         ],
@@ -1784,7 +1784,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.029739268984099336,
+        "predicted_probability": 0.029739268984099412,
         "failures_after": [],
         "success": true
       },
@@ -1804,7 +1804,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.036358194609773097,
+        "predicted_probability": 0.03635819460977275,
         "failures_after": [],
         "success": true
       },
@@ -1824,7 +1824,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.03567223996119367,
+        "predicted_probability": 0.03567223996119345,
         "failures_after": [],
         "success": true
       },
@@ -1844,7 +1844,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0005041075293997936,
+        "predicted_probability": 0.0005041075293998088,
         "failures_after": [
           "PWF"
         ],
@@ -1868,7 +1868,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0014976158226649786,
+        "predicted_probability": 0.0014976158226650208,
         "failures_after": [
           "PWF"
         ],
@@ -1890,7 +1890,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.030094223253498656,
+        "predicted_probability": 0.03009422325349868,
         "failures_after": [],
         "success": true
       },
@@ -1910,7 +1910,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.041747016268414316,
+        "predicted_probability": 0.041747016268414865,
         "failures_after": [
           "TWF"
         ],
@@ -1932,7 +1932,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0021084168810737865,
+        "predicted_probability": 0.002108416881073852,
         "failures_after": [
           "PWF"
         ],
@@ -1954,7 +1954,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.04360364196982325,
+        "predicted_probability": 0.043603641969823755,
         "failures_after": [
           "TWF"
         ],
@@ -1976,7 +1976,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.0495549701765182,
+        "predicted_probability": 0.04955497017651778,
         "failures_after": [],
         "success": true
       },
@@ -1996,7 +1996,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.04744545369334689,
+        "predicted_probability": 0.04744545369334747,
         "failures_after": [
           "TWF"
         ],
@@ -2018,7 +2018,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.04365910093345707,
+        "predicted_probability": 0.04365910093345781,
         "failures_after": [
           "HDF"
         ],
@@ -2040,7 +2040,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.027897149688146886,
+        "predicted_probability": 0.027897149688147115,
         "failures_after": [
           "HDF"
         ],
@@ -2062,7 +2062,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03701365742327798,
+        "predicted_probability": 0.03701365742327824,
         "failures_after": [
           "HDF"
         ],
@@ -2084,7 +2084,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.027471395770499604,
+        "predicted_probability": 0.027471395770499937,
         "failures_after": [
           "HDF"
         ],
@@ -2106,7 +2106,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.047375740599640316,
+        "predicted_probability": 0.047375740599640837,
         "failures_after": [
           "HDF"
         ],
@@ -2130,7 +2130,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.049476977008066136,
+        "predicted_probability": 0.04947697700806678,
         "failures_after": [
           "HDF"
         ],
@@ -2153,7 +2153,7 @@
       "causaltwin": {
         "action": "torque -15%, tool change",
         "cost": 4.5,
-        "predicted_probability": 0.0478992269024844,
+        "predicted_probability": 0.047899226902484486,
         "failures_after": [],
         "success": true
       },
@@ -2175,7 +2175,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.038792125233059443,
+        "predicted_probability": 0.038792125233060096,
         "failures_after": [
           "TWF"
         ],
@@ -2197,7 +2197,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0009500351210758982,
+        "predicted_probability": 0.0009500351210759295,
         "failures_after": [
           "PWF"
         ],
@@ -2221,7 +2221,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -30%",
         "cost": 3.500000000000001,
-        "predicted_probability": 0.047763898885797386,
+        "predicted_probability": 0.04776389888579799,
         "failures_after": [],
         "success": true
       },
@@ -2241,7 +2241,7 @@
       "causaltwin": {
         "action": "torque -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.04431028128261755,
+        "predicted_probability": 0.04431028128261732,
         "failures_after": [],
         "success": true
       },
@@ -2264,7 +2264,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.0405680846406648,
+        "predicted_probability": 0.040568084640665365,
         "failures_after": [],
         "success": true
       },
@@ -2284,7 +2284,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.043679584001474765,
+        "predicted_probability": 0.043679584001475154,
         "failures_after": [],
         "success": true
       },
@@ -2304,7 +2304,7 @@
       "causaltwin": {
         "action": "torque -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.04074558081589741,
+        "predicted_probability": 0.0407455808158973,
         "failures_after": [],
         "success": true
       },
@@ -2324,7 +2324,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.024790233067965666,
+        "predicted_probability": 0.02479023306796577,
         "failures_after": [],
         "success": true
       },
@@ -2344,7 +2344,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.02261424424951324,
+        "predicted_probability": 0.022614244249513756,
         "failures_after": [
           "TWF"
         ],
@@ -2366,7 +2366,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0014349047815580167,
+        "predicted_probability": 0.001434904781558055,
         "failures_after": [
           "PWF"
         ],
@@ -2388,7 +2388,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.04449431996154097,
+        "predicted_probability": 0.04449431996154142,
         "failures_after": [],
         "success": true
       },
@@ -2408,7 +2408,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.049156306325801015,
+        "predicted_probability": 0.0491563063258016,
         "failures_after": [
           "HDF"
         ],
@@ -2432,7 +2432,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04989061594683006,
+        "predicted_probability": 0.049890615946830794,
         "failures_after": [
           "HDF"
         ],
@@ -2456,7 +2456,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04858472690937806,
+        "predicted_probability": 0.0485847269093788,
         "failures_after": [
           "HDF"
         ],
@@ -2480,7 +2480,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04426770347755564,
+        "predicted_probability": 0.04426770347755631,
         "failures_after": [
           "HDF"
         ],
@@ -2504,7 +2504,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.040986919408156186,
+        "predicted_probability": 0.04098691940815689,
         "failures_after": [
           "HDF"
         ],
@@ -2526,7 +2526,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.04083497037745663,
+        "predicted_probability": 0.04083497037745673,
         "failures_after": [],
         "success": true
       },
@@ -2546,7 +2546,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.04470421110340072,
+        "predicted_probability": 0.044704211103401614,
         "failures_after": [
           "HDF"
         ],
@@ -2570,7 +2570,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04332063464493881,
+        "predicted_probability": 0.04332063464493963,
         "failures_after": [
           "HDF"
         ],
@@ -2594,7 +2594,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04252405607657996,
+        "predicted_probability": 0.04252405607658081,
         "failures_after": [
           "HDF"
         ],
@@ -2618,7 +2618,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.03703903375923583,
+        "predicted_probability": 0.037039033759236055,
         "failures_after": [
           "HDF"
         ],
@@ -2642,7 +2642,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04239328388859789,
+        "predicted_probability": 0.04239328388859817,
         "failures_after": [
           "HDF"
         ],
@@ -2664,7 +2664,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.037220136360318797,
+        "predicted_probability": 0.037220136360319116,
         "failures_after": [
           "HDF"
         ],
@@ -2688,7 +2688,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.039076458134195684,
+        "predicted_probability": 0.039076458134196086,
         "failures_after": [
           "HDF"
         ],
@@ -2710,7 +2710,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.041773072308795935,
+        "predicted_probability": 0.04177307230879654,
         "failures_after": [
           "HDF"
         ],
@@ -2734,7 +2734,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03803232538222889,
+        "predicted_probability": 0.038032325382229365,
         "failures_after": [
           "HDF"
         ],
@@ -2756,7 +2756,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.044680595017503585,
+        "predicted_probability": 0.0446805950175041,
         "failures_after": [
           "HDF"
         ],
@@ -2780,7 +2780,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.039225052134422324,
+        "predicted_probability": 0.03922505213442293,
         "failures_after": [
           "HDF"
         ],
@@ -2802,7 +2802,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.03910862044868824,
+        "predicted_probability": 0.03910862044868893,
         "failures_after": [
           "HDF"
         ],
@@ -2824,7 +2824,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.044349939016763706,
+        "predicted_probability": 0.04434993901676448,
         "failures_after": [
           "HDF"
         ],
@@ -2846,7 +2846,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04576612403817006,
+        "predicted_probability": 0.045766124038170757,
         "failures_after": [
           "HDF"
         ],
@@ -2868,7 +2868,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.049768530624304017,
+        "predicted_probability": 0.04976853062430418,
         "failures_after": [
           "HDF"
         ],
@@ -2892,7 +2892,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.048670900624720605,
+        "predicted_probability": 0.048670900624721555,
         "failures_after": [
           "HDF"
         ],
@@ -2914,7 +2914,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.038149278527823224,
+        "predicted_probability": 0.03814927852782394,
         "failures_after": [
           "HDF"
         ],
@@ -2936,7 +2936,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03595070620329204,
+        "predicted_probability": 0.035950706203292694,
         "failures_after": [
           "TWF"
         ],
@@ -2958,7 +2958,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.030802870696606973,
+        "predicted_probability": 0.03080287069660711,
         "failures_after": [
           "HDF"
         ],
@@ -2982,7 +2982,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03728241932213274,
+        "predicted_probability": 0.037282419322133026,
         "failures_after": [
           "HDF"
         ],
@@ -3004,7 +3004,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.04207595245123794,
+        "predicted_probability": 0.042075952451238574,
         "failures_after": [
           "HDF"
         ],
@@ -3028,7 +3028,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04598206346873664,
+        "predicted_probability": 0.045982063468737254,
         "failures_after": [
           "HDF"
         ],
@@ -3052,7 +3052,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.045598402547288176,
+        "predicted_probability": 0.045598402547288835,
         "failures_after": [
           "HDF"
         ],
@@ -3076,7 +3076,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04274580510551468,
+        "predicted_probability": 0.04274580510551534,
         "failures_after": [
           "HDF"
         ],
@@ -3101,7 +3101,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -30%",
         "cost": 3.500000000000001,
-        "predicted_probability": 0.048339593121715645,
+        "predicted_probability": 0.048339593121716436,
         "failures_after": [
           "HDF"
         ],
@@ -3125,7 +3125,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.03817333491329275,
+        "predicted_probability": 0.03817333491329344,
         "failures_after": [
           "HDF"
         ],
@@ -3149,7 +3149,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04362197457927638,
+        "predicted_probability": 0.04362197457927728,
         "failures_after": [
           "HDF"
         ],
@@ -3173,7 +3173,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.03895416725178307,
+        "predicted_probability": 0.03895416725178402,
         "failures_after": [
           "HDF"
         ],
@@ -3195,7 +3195,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.043569166221788205,
+        "predicted_probability": 0.043569166221789316,
         "failures_after": [
           "HDF"
         ],
@@ -3217,7 +3217,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.040280779181368576,
+        "predicted_probability": 0.040280779181369596,
         "failures_after": [
           "HDF"
         ],
@@ -3241,7 +3241,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04450766990039027,
+        "predicted_probability": 0.04450766990039138,
         "failures_after": [
           "HDF"
         ],
@@ -3263,7 +3263,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.004576960155444003,
+        "predicted_probability": 0.004576960155444153,
         "failures_after": [
           "PWF"
         ],
@@ -3287,7 +3287,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0008571084805532528,
+        "predicted_probability": 0.00085710848055329,
         "failures_after": [
           "PWF"
         ],
@@ -3311,7 +3311,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04815329971842373,
+        "predicted_probability": 0.048153299718423866,
         "failures_after": [
           "HDF"
         ],
@@ -3335,7 +3335,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.04170548505264964,
+        "predicted_probability": 0.04170548505265003,
         "failures_after": [
           "HDF"
         ],
@@ -3357,7 +3357,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.0449479678302523,
+        "predicted_probability": 0.04494796783025274,
         "failures_after": [
           "HDF"
         ],
@@ -3381,7 +3381,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.04672489532311993,
+        "predicted_probability": 0.04672489532312039,
         "failures_after": [
           "HDF"
         ],
@@ -3404,7 +3404,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.03258215688612393,
+        "predicted_probability": 0.03258215688612469,
         "failures_after": [
           "HDF"
         ],
@@ -3428,7 +3428,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.04941492322119342,
+        "predicted_probability": 0.04941492322119468,
         "failures_after": [],
         "success": true
       },
@@ -3448,7 +3448,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.049472967047601984,
+        "predicted_probability": 0.049472967047603275,
         "failures_after": [
           "HDF"
         ],
@@ -3472,7 +3472,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.045789073572418786,
+        "predicted_probability": 0.04578907357241991,
         "failures_after": [
           "HDF"
         ],
@@ -3497,7 +3497,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.03670271411321612,
+        "predicted_probability": 0.03670271411321719,
         "failures_after": [
           "HDF"
         ],
@@ -3523,7 +3523,7 @@
       "causaltwin": {
         "action": "torque -50%",
         "cost": 5.0,
-        "predicted_probability": 0.03779976213098076,
+        "predicted_probability": 0.03779976213098196,
         "failures_after": [
           "HDF"
         ],
@@ -3547,7 +3547,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.0333684172354959,
+        "predicted_probability": 0.033368417235496384,
         "failures_after": [],
         "success": true
       },
@@ -3567,7 +3567,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.026179964041796455,
+        "predicted_probability": 0.026179964041796906,
         "failures_after": [
           "HDF"
         ],
@@ -3591,7 +3591,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.04314506171451317,
+        "predicted_probability": 0.04314506171451376,
         "failures_after": [
           "HDF"
         ],
@@ -3613,7 +3613,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.040728142067028926,
+        "predicted_probability": 0.040728142067029655,
         "failures_after": [
           "HDF"
         ],
@@ -3637,7 +3637,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.043677092464918695,
+        "predicted_probability": 0.043677092464919506,
         "failures_after": [
           "HDF"
         ],
@@ -3661,7 +3661,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04039806474680959,
+        "predicted_probability": 0.04039806474681038,
         "failures_after": [
           "HDF"
         ],
@@ -3685,7 +3685,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.045200095112528524,
+        "predicted_probability": 0.045200095112529495,
         "failures_after": [
           "HDF"
         ],
@@ -3710,7 +3710,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.03437691828878983,
+        "predicted_probability": 0.034376918288790595,
         "failures_after": [
           "HDF"
         ],
@@ -3734,7 +3734,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0034817527080511996,
+        "predicted_probability": 0.003481752708051354,
         "failures_after": [
           "PWF"
         ],
@@ -3756,7 +3756,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -30%",
         "cost": 3.500000000000001,
-        "predicted_probability": 0.048037056817342674,
+        "predicted_probability": 0.04803705681734394,
         "failures_after": [
           "HDF"
         ],
@@ -3780,7 +3780,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.0433763267645309,
+        "predicted_probability": 0.04337632676453201,
         "failures_after": [
           "HDF"
         ],
@@ -3804,7 +3804,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.04294376337718348,
+        "predicted_probability": 0.0429437633771846,
         "failures_after": [
           "HDF"
         ],
@@ -3828,7 +3828,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.043865420637592224,
+        "predicted_probability": 0.04386542063759353,
         "failures_after": [
           "HDF"
         ],
@@ -3852,7 +3852,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.04778070693949238,
+        "predicted_probability": 0.047780706939492906,
         "failures_after": [
           "HDF"
         ],
@@ -3874,7 +3874,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -30%",
         "cost": 3.500000000000001,
-        "predicted_probability": 0.04502883466658754,
+        "predicted_probability": 0.04502883466658874,
         "failures_after": [
           "HDF"
         ],
@@ -3899,7 +3899,7 @@
       "causaltwin": {
         "action": "torque -50%",
         "cost": 5.0,
-        "predicted_probability": 0.03208748502721897,
+        "predicted_probability": 0.03208748502721999,
         "failures_after": [
           "HDF"
         ],
@@ -3923,7 +3923,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.046570071658632764,
+        "predicted_probability": 0.0465700716586341,
         "failures_after": [
           "TWF"
         ],
@@ -3945,7 +3945,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.020677738717972197,
+        "predicted_probability": 0.02067773871797262,
         "failures_after": [
           "HDF"
         ],
@@ -3969,7 +3969,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04601680509465737,
+        "predicted_probability": 0.046016805094658136,
         "failures_after": [
           "HDF"
         ],
@@ -3993,7 +3993,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04551326410977571,
+        "predicted_probability": 0.045513264109776616,
         "failures_after": [
           "HDF"
         ],
@@ -4017,7 +4017,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04668225517935585,
+        "predicted_probability": 0.046682255179356945,
         "failures_after": [
           "HDF"
         ],
@@ -4041,7 +4041,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.029949653684557365,
+        "predicted_probability": 0.029949653684558125,
         "failures_after": [
           "HDF"
         ],
@@ -4065,7 +4065,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.043593608622114595,
+        "predicted_probability": 0.04359360862211557,
         "failures_after": [
           "HDF"
         ],
@@ -4087,7 +4087,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.043936131602753,
+        "predicted_probability": 0.043936131602754155,
         "failures_after": [
           "HDF"
         ],
@@ -4111,7 +4111,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.042692890112971386,
+        "predicted_probability": 0.042692890112972524,
         "failures_after": [
           "HDF"
         ],
@@ -4135,7 +4135,7 @@
       "causaltwin": {
         "action": "speed -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.04868462591760409,
+        "predicted_probability": 0.048684625917604626,
         "failures_after": [
           "HDF"
         ],
@@ -4157,7 +4157,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.046734026495275055,
+        "predicted_probability": 0.0467340264952756,
         "failures_after": [
           "HDF"
         ],
@@ -4181,7 +4181,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.034397291395905936,
+        "predicted_probability": 0.03439729139590638,
         "failures_after": [
           "HDF"
         ],
@@ -4205,7 +4205,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.04303594182914051,
+        "predicted_probability": 0.043035941829141056,
         "failures_after": [
           "HDF"
         ],
@@ -4229,7 +4229,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.04483879095328226,
+        "predicted_probability": 0.04483879095328287,
         "failures_after": [
           "HDF"
         ],
@@ -4253,7 +4253,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.045004913697002116,
+        "predicted_probability": 0.04500491369700275,
         "failures_after": [
           "HDF"
         ],
@@ -4277,7 +4277,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04603346296082298,
+        "predicted_probability": 0.0460334629608238,
         "failures_after": [
           "HDF"
         ],
@@ -4301,7 +4301,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.03912593766121786,
+        "predicted_probability": 0.0391259376612187,
         "failures_after": [
           "HDF"
         ],
@@ -4325,7 +4325,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.049232950099226055,
+        "predicted_probability": 0.04923295009922702,
         "failures_after": [
           "HDF"
         ],
@@ -4349,7 +4349,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.0406510414971763,
+        "predicted_probability": 0.0406510414971771,
         "failures_after": [
           "HDF"
         ],
@@ -4373,7 +4373,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.04647236388464176,
+        "predicted_probability": 0.0464723638846427,
         "failures_after": [
           "HDF"
         ],
@@ -4397,7 +4397,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.04867033554532559,
+        "predicted_probability": 0.048670335545326716,
         "failures_after": [
           "HDF"
         ],
@@ -4421,7 +4421,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.042854758260085,
+        "predicted_probability": 0.04285475826008603,
         "failures_after": [
           "HDF"
         ],
@@ -4445,7 +4445,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.03959348388782716,
+        "predicted_probability": 0.03959348388782736,
         "failures_after": [
           "HDF"
         ],
@@ -4470,7 +4470,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.032159827972649595,
+        "predicted_probability": 0.0321598279726499,
         "failures_after": [
           "HDF"
         ],
@@ -4495,7 +4495,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.04334182164104291,
+        "predicted_probability": 0.04334182164104321,
         "failures_after": [
           "HDF"
         ],
@@ -4519,7 +4519,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.0376527023352955,
+        "predicted_probability": 0.037652702335295885,
         "failures_after": [],
         "success": true
       },
@@ -4539,7 +4539,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03928255663291001,
+        "predicted_probability": 0.039282556632910345,
         "failures_after": [
           "HDF"
         ],
@@ -4563,7 +4563,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.04296925622432436,
+        "predicted_probability": 0.04296925622432494,
         "failures_after": [
           "HDF"
         ],
@@ -4587,7 +4587,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04443874181011491,
+        "predicted_probability": 0.044438741810115555,
         "failures_after": [
           "HDF"
         ],
@@ -4611,7 +4611,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.038739344604165525,
+        "predicted_probability": 0.038739344604166066,
         "failures_after": [
           "HDF"
         ],
@@ -4635,7 +4635,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.03231459884535785,
+        "predicted_probability": 0.0323145988453586,
         "failures_after": [
           "HDF"
         ],
@@ -4659,7 +4659,7 @@
       "causaltwin": {
         "action": "speed -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.04169239866447619,
+        "predicted_probability": 0.041692398664476396,
         "failures_after": [
           "HDF"
         ],
@@ -4683,7 +4683,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.04554464078008078,
+        "predicted_probability": 0.04554464078008175,
         "failures_after": [
           "HDF"
         ],
@@ -4707,7 +4707,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.0323412437648237,
+        "predicted_probability": 0.032341243764823925,
         "failures_after": [
           "HDF"
         ],
@@ -4731,7 +4731,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04881317229182999,
+        "predicted_probability": 0.04881317229183107,
         "failures_after": [
           "HDF"
         ],
@@ -4756,7 +4756,7 @@
       "causaltwin": {
         "action": "torque -10%, tool change",
         "cost": 4.0,
-        "predicted_probability": 0.03779496948859524,
+        "predicted_probability": 0.03779496948859543,
         "failures_after": [
           "HDF"
         ],
@@ -4781,7 +4781,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04076066029065059,
+        "predicted_probability": 0.04076066029065156,
         "failures_after": [
           "HDF"
         ],
@@ -4805,7 +4805,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.04830468215361243,
+        "predicted_probability": 0.048304682153612596,
         "failures_after": [
           "HDF"
         ],
@@ -4829,7 +4829,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.039156401055819884,
+        "predicted_probability": 0.03915640105582019,
         "failures_after": [
           "HDF"
         ],
@@ -4853,7 +4853,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03760965414192713,
+        "predicted_probability": 0.03760965414192766,
         "failures_after": [
           "HDF"
         ],
@@ -4877,7 +4877,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.049897293398860905,
+        "predicted_probability": 0.04989729339886139,
         "failures_after": [
           "HDF"
         ],
@@ -4901,7 +4901,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.04833181590896589,
+        "predicted_probability": 0.048331815908966576,
         "failures_after": [
           "HDF"
         ],
@@ -4925,7 +4925,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04745362847405677,
+        "predicted_probability": 0.04745362847405744,
         "failures_after": [
           "HDF"
         ],
@@ -4949,7 +4949,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0023412182098241393,
+        "predicted_probability": 0.0023412182098242183,
         "failures_after": [
           "PWF"
         ],
@@ -4971,7 +4971,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04855832465832928,
+        "predicted_probability": 0.04855832465832989,
         "failures_after": [
           "HDF"
         ],
@@ -4995,7 +4995,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04039669134118028,
+        "predicted_probability": 0.040396691341180846,
         "failures_after": [
           "HDF"
         ],
@@ -5019,7 +5019,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04279129893240542,
+        "predicted_probability": 0.04279129893240593,
         "failures_after": [
           "HDF"
         ],
@@ -5043,7 +5043,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.045346277706380195,
+        "predicted_probability": 0.04534627770638035,
         "failures_after": [],
         "success": true
       },
@@ -5063,7 +5063,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.04181176875881105,
+        "predicted_probability": 0.04181176875881187,
         "failures_after": [
           "TWF"
         ],
@@ -5085,7 +5085,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.046770846838126434,
+        "predicted_probability": 0.04677084683812668,
         "failures_after": [
           "HDF"
         ],
@@ -5109,7 +5109,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.017167652661613308,
+        "predicted_probability": 0.017167652661613533,
         "failures_after": [
           "HDF"
         ],
@@ -5133,7 +5133,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.04899312194106014,
+        "predicted_probability": 0.0489931219410604,
         "failures_after": [
           "HDF"
         ],
@@ -5157,7 +5157,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04756222876938755,
+        "predicted_probability": 0.04756222876938793,
         "failures_after": [
           "HDF"
         ],
@@ -5181,7 +5181,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.044997205468655946,
+        "predicted_probability": 0.04499720546865645,
         "failures_after": [
           "HDF"
         ],
@@ -5205,7 +5205,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.040006091283052256,
+        "predicted_probability": 0.04000609128305282,
         "failures_after": [
           "HDF"
         ],
@@ -5229,7 +5229,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.03913869331039136,
+        "predicted_probability": 0.03913869331039169,
         "failures_after": [],
         "success": true
       },
@@ -5249,7 +5249,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.04281657113794731,
+        "predicted_probability": 0.04281657113794765,
         "failures_after": [],
         "success": true
       },
@@ -5269,7 +5269,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.037585330543088255,
+        "predicted_probability": 0.03758533054308813,
         "failures_after": [],
         "success": true
       },
@@ -5291,7 +5291,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.023943045981645095,
+        "predicted_probability": 0.023943045981645036,
         "failures_after": [],
         "success": true
       },
@@ -5311,7 +5311,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0011538350618188352,
+        "predicted_probability": 0.001153835061818864,
         "failures_after": [
           "PWF"
         ],
@@ -5333,7 +5333,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0011124570452057305,
+        "predicted_probability": 0.0011124570452057583,
         "failures_after": [
           "PWF"
         ],
@@ -5355,7 +5355,7 @@
       "causaltwin": {
         "action": "speed -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.04920588832445655,
+        "predicted_probability": 0.049205888324456125,
         "failures_after": [],
         "success": true
       },
@@ -5375,7 +5375,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.03368292585720986,
+        "predicted_probability": 0.033682925857210465,
         "failures_after": [],
         "success": true
       },
@@ -5395,7 +5395,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.02705929786491144,
+        "predicted_probability": 0.027059297864911788,
         "failures_after": [
           "TWF"
         ],
@@ -5417,7 +5417,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.04561939997922988,
+        "predicted_probability": 0.045619399979229536,
         "failures_after": [],
         "success": true
       },
@@ -5437,7 +5437,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.03932702740338403,
+        "predicted_probability": 0.03932702740338446,
         "failures_after": [
           "TWF"
         ],
@@ -5459,7 +5459,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0009087244293340044,
+        "predicted_probability": 0.0009087244293340301,
         "failures_after": [
           "PWF"
         ],
@@ -5484,7 +5484,7 @@
       "causaltwin": {
         "action": "speed -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.045535928256315715,
+        "predicted_probability": 0.045535928256315174,
         "failures_after": [],
         "success": true
       },
@@ -5506,7 +5506,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.022921240986899752,
+        "predicted_probability": 0.02292124098689957,
         "failures_after": [],
         "success": true
       },
@@ -5526,7 +5526,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.038407721528734735,
+        "predicted_probability": 0.03840772152873499,
         "failures_after": [],
         "success": true
       },
@@ -5547,7 +5547,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.028161819543968205,
+        "predicted_probability": 0.02816181954396786,
         "failures_after": [],
         "success": true
       },
@@ -5567,7 +5567,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04838114598509578,
+        "predicted_probability": 0.0483811459850962,
         "failures_after": [],
         "success": true
       },
@@ -5587,7 +5587,7 @@
       "causaltwin": {
         "action": "speed -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.043306699500699895,
+        "predicted_probability": 0.04330669950069942,
         "failures_after": [],
         "success": true
       },
@@ -5607,7 +5607,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.0461149037948409,
+        "predicted_probability": 0.04611490379484117,
         "failures_after": [],
         "success": true
       },
@@ -5627,7 +5627,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.04296818244937718,
+        "predicted_probability": 0.04296818244937751,
         "failures_after": [],
         "success": true
       },
@@ -5647,7 +5647,7 @@
       "causaltwin": {
         "action": "torque -30%",
         "cost": 3.0000000000000004,
-        "predicted_probability": 0.04599210067361642,
+        "predicted_probability": 0.045992100673616615,
         "failures_after": [],
         "success": true
       },
@@ -5667,7 +5667,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.046608796905963874,
+        "predicted_probability": 0.04660879690596435,
         "failures_after": [],
         "success": true
       },
@@ -5689,7 +5689,7 @@
       "causaltwin": {
         "action": "speed -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.04583861332711184,
+        "predicted_probability": 0.04583861332711129,
         "failures_after": [],
         "success": true
       },
@@ -5711,7 +5711,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.01672113949834237,
+        "predicted_probability": 0.016721139498342533,
         "failures_after": [
           "TWF"
         ],
@@ -5733,7 +5733,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.048499941202369605,
+        "predicted_probability": 0.04849994120236884,
         "failures_after": [],
         "success": true
       },
@@ -5753,7 +5753,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.04232521356409553,
+        "predicted_probability": 0.04232521356409573,
         "failures_after": [],
         "success": true
       },
@@ -5793,7 +5793,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04642472201690587,
+        "predicted_probability": 0.04642472201690588,
         "failures_after": [],
         "success": true
       },
@@ -5813,7 +5813,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.04413130057907246,
+        "predicted_probability": 0.04413130057907263,
         "failures_after": [
           "TWF"
         ],
@@ -5835,7 +5835,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.03788251246002416,
+        "predicted_probability": 0.03788251246002364,
         "failures_after": [],
         "success": true
       },
@@ -5856,7 +5856,7 @@
       "causaltwin": {
         "action": "speed -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.042471516766518946,
+        "predicted_probability": 0.04247151676651862,
         "failures_after": [],
         "success": true
       },
@@ -5876,7 +5876,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.030698285498235518,
+        "predicted_probability": 0.030698285498235285,
         "failures_after": [],
         "success": true
       },
@@ -5896,7 +5896,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03303153605322226,
+        "predicted_probability": 0.03303153605322252,
         "failures_after": [
           "TWF"
         ],
@@ -5918,7 +5918,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.03601864096637,
+        "predicted_probability": 0.036018640966370384,
         "failures_after": [
           "TWF"
         ],
@@ -5940,7 +5940,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.048673334771000845,
+        "predicted_probability": 0.04867333477100116,
         "failures_after": [
           "TWF"
         ],
@@ -5962,7 +5962,7 @@
       "causaltwin": {
         "action": "speed -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.047450589778768135,
+        "predicted_probability": 0.04745058977876785,
         "failures_after": [],
         "success": true
       },
@@ -5984,7 +5984,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04492350536738424,
+        "predicted_probability": 0.04492350536738417,
         "failures_after": [],
         "success": true
       },
@@ -6004,7 +6004,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04042553503207329,
+        "predicted_probability": 0.040425535032073426,
         "failures_after": [],
         "success": true
       },
@@ -6024,7 +6024,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.03952815777592221,
+        "predicted_probability": 0.03952815777592242,
         "failures_after": [],
         "success": true
       },
@@ -6044,7 +6044,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.041964921581941435,
+        "predicted_probability": 0.04196492158194208,
         "failures_after": [],
         "success": true
       },
@@ -6064,7 +6064,7 @@
       "causaltwin": {
         "action": "speed -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.037129716232399336,
+        "predicted_probability": 0.03712971623239912,
         "failures_after": [],
         "success": true
       },
@@ -6084,7 +6084,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.048562181718377104,
+        "predicted_probability": 0.04856218171837762,
         "failures_after": [
           "TWF"
         ],
@@ -6106,7 +6106,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.00120210803368044,
+        "predicted_probability": 0.0012021080336804657,
         "failures_after": [
           "PWF"
         ],
@@ -6128,7 +6128,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.035922107297813845,
+        "predicted_probability": 0.035922107297813685,
         "failures_after": [],
         "success": true
       },
@@ -6148,7 +6148,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03924878464150043,
+        "predicted_probability": 0.039248784641499404,
         "failures_after": [
           "PWF"
         ],
@@ -6170,7 +6170,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.000958420977108538,
+        "predicted_probability": 0.00095842097710855,
         "failures_after": [
           "PWF"
         ],
@@ -6192,7 +6192,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0007176186178378123,
+        "predicted_probability": 0.000717618617837825,
         "failures_after": [
           "PWF"
         ],
@@ -6215,7 +6215,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.04933313593466591,
+        "predicted_probability": 0.049333135934665075,
         "failures_after": [
           "PWF"
         ],
@@ -6237,7 +6237,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.015084647125372589,
+        "predicted_probability": 0.015084647125372734,
         "failures_after": [
           "TWF"
         ],
@@ -6259,7 +6259,7 @@
       "causaltwin": {
         "action": "speed -10%, torque -20%",
         "cost": 2.9999999999999996,
-        "predicted_probability": 0.04982167564043845,
+        "predicted_probability": 0.049821675640438635,
         "failures_after": [],
         "success": true
       },
@@ -6279,7 +6279,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04875905995022907,
+        "predicted_probability": 0.04875905995022827,
         "failures_after": [],
         "success": true
       },
@@ -6299,7 +6299,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0039689211422367695,
+        "predicted_probability": 0.003968921142236742,
         "failures_after": [
           "TWF"
         ],
@@ -6321,7 +6321,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.036340444453415166,
+        "predicted_probability": 0.03634044445341465,
         "failures_after": [],
         "success": true
       },
@@ -6341,7 +6341,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.014585949098582438,
+        "predicted_probability": 0.014585949098582296,
         "failures_after": [
           "TWF"
         ],
@@ -6363,7 +6363,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.00036315126847223634,
+        "predicted_probability": 0.0003631512684722386,
         "failures_after": [
           "PWF"
         ],
@@ -6385,7 +6385,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.03638877189159243,
+        "predicted_probability": 0.036388771891591835,
         "failures_after": [],
         "success": true
       },
@@ -6405,7 +6405,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.0419588951160486,
+        "predicted_probability": 0.04195889511604809,
         "failures_after": [],
         "success": true
       },
@@ -6425,7 +6425,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.045614220521749134,
+        "predicted_probability": 0.045614220521748884,
         "failures_after": [],
         "success": true
       },
@@ -6445,7 +6445,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.022268026851173874,
+        "predicted_probability": 0.022268026851173316,
         "failures_after": [],
         "success": true
       },
@@ -6467,7 +6467,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.035452836867585075,
+        "predicted_probability": 0.03545283686758459,
         "failures_after": [],
         "success": true
       },
@@ -6487,7 +6487,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0016728564131567839,
+        "predicted_probability": 0.0016728564131567917,
         "failures_after": [
           "TWF"
         ],
@@ -6509,7 +6509,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.033490728961861886,
+        "predicted_probability": 0.0334907289618614,
         "failures_after": [],
         "success": true
       },
@@ -6529,7 +6529,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04193074501128481,
+        "predicted_probability": 0.04193074501128416,
         "failures_after": [],
         "success": true
       },
@@ -6549,7 +6549,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.026272899688361356,
+        "predicted_probability": 0.026272899688360492,
         "failures_after": [
           "PWF"
         ],
@@ -6571,7 +6571,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03715468687871844,
+        "predicted_probability": 0.03715468687871788,
         "failures_after": [
           "TWF"
         ],
@@ -6593,7 +6593,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.04396294757610548,
+        "predicted_probability": 0.043962947576104056,
         "failures_after": [
           "PWF"
         ],
@@ -6615,7 +6615,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04459058233990009,
+        "predicted_probability": 0.044590582339899446,
         "failures_after": [],
         "success": true
       },
@@ -6635,7 +6635,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0002676578722149595,
+        "predicted_probability": 0.0002676578722149619,
         "failures_after": [
           "PWF"
         ],
@@ -6659,7 +6659,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.04477381197935413,
+        "predicted_probability": 0.044773811979353505,
         "failures_after": [],
         "success": true
       },
@@ -6679,7 +6679,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.005496378828203133,
+        "predicted_probability": 0.0054963788282030995,
         "failures_after": [
           "TWF"
         ],
@@ -6701,7 +6701,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.037318169861125905,
+        "predicted_probability": 0.037318169861125426,
         "failures_after": [],
         "success": true
       },
@@ -6721,7 +6721,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.03794030400948845,
+        "predicted_probability": 0.037940304009487884,
         "failures_after": [],
         "success": true
       },
@@ -6741,7 +6741,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0030182002231157884,
+        "predicted_probability": 0.0030182002231157776,
         "failures_after": [
           "TWF"
         ],
@@ -6763,7 +6763,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.04820106065052697,
+        "predicted_probability": 0.04820106065052583,
         "failures_after": [],
         "success": true
       },
@@ -6783,7 +6783,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.040729838070819556,
+        "predicted_probability": 0.04072983807081829,
         "failures_after": [
           "PWF"
         ],
@@ -6807,7 +6807,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.03249469269228911,
+        "predicted_probability": 0.03249469269228877,
         "failures_after": [
           "TWF"
         ],
@@ -6829,7 +6829,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0003852988510993644,
+        "predicted_probability": 0.0003852988510993675,
         "failures_after": [
           "PWF"
         ],
@@ -6851,7 +6851,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.03571218051736748,
+        "predicted_probability": 0.035712180517367104,
         "failures_after": [],
         "success": true
       },
@@ -6871,7 +6871,7 @@
       "causaltwin": {
         "action": "tool change",
         "cost": 3.0,
-        "predicted_probability": 0.04998280330939385,
+        "predicted_probability": 0.04998280330939233,
         "failures_after": [
           "PWF"
         ],
@@ -6893,7 +6893,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.04775735687245119,
+        "predicted_probability": 0.04775735687245069,
         "failures_after": [],
         "success": true
       },
@@ -6913,7 +6913,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.023051179851559373,
+        "predicted_probability": 0.023051179851559196,
         "failures_after": [
           "TWF"
         ],
@@ -6935,7 +6935,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.015994089426439817,
+        "predicted_probability": 0.01599408942643965,
         "failures_after": [
           "TWF"
         ],
@@ -6958,7 +6958,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.03436341758944672,
+        "predicted_probability": 0.03436341758944621,
         "failures_after": [
           "TWF"
         ],
@@ -6983,7 +6983,7 @@
       "causaltwin": {
         "action": "speed -5%, torque -20%",
         "cost": 2.5,
-        "predicted_probability": 0.04159385719324722,
+        "predicted_probability": 0.04159385719324675,
         "failures_after": [],
         "success": true
       },
@@ -7003,7 +7003,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.046087385235528126,
+        "predicted_probability": 0.0460873852355276,
         "failures_after": [],
         "success": true
       },
@@ -7023,7 +7023,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.046732644515807636,
+        "predicted_probability": 0.0467326445158071,
         "failures_after": [],
         "success": true
       },
@@ -7043,7 +7043,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.015134938825379186,
+        "predicted_probability": 0.015134938825379122,
         "failures_after": [
           "TWF"
         ],
@@ -7066,7 +7066,7 @@
       "causaltwin": {
         "action": "speed -5%, tool change",
         "cost": 3.5000000000000004,
-        "predicted_probability": 0.043386432931963766,
+        "predicted_probability": 0.043386432931962475,
         "failures_after": [
           "PWF"
         ],
@@ -7091,7 +7091,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0034247499847948654,
+        "predicted_probability": 0.0034247499847948532,
         "failures_after": [
           "TWF"
         ],
@@ -7113,7 +7113,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.02179722282598059,
+        "predicted_probability": 0.02179722282597989,
         "failures_after": [
           "PWF"
         ],
@@ -7135,7 +7135,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.03976999048970519,
+        "predicted_probability": 0.039769990489705025,
         "failures_after": [],
         "success": true
       },
@@ -7155,7 +7155,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.035695382740127665,
+        "predicted_probability": 0.03569538274012749,
         "failures_after": [],
         "success": true
       },
@@ -7175,7 +7175,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.002508349404229177,
+        "predicted_probability": 0.002508349404229175,
         "failures_after": [
           "TWF"
         ],
@@ -7197,7 +7197,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.0413994933596557,
+        "predicted_probability": 0.041399493359654635,
         "failures_after": [],
         "success": true
       },
@@ -7217,7 +7217,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.037993266606048716,
+        "predicted_probability": 0.03799326660604829,
         "failures_after": [],
         "success": true
       },
@@ -7240,7 +7240,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.040917884305280705,
+        "predicted_probability": 0.04091788430528027,
         "failures_after": [],
         "success": true
       },
@@ -7260,7 +7260,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.04522931487725171,
+        "predicted_probability": 0.045229314877251264,
         "failures_after": [],
         "success": true
       },
@@ -7280,7 +7280,7 @@
       "causaltwin": {
         "action": "torque -10%",
         "cost": 0.9999999999999999,
-        "predicted_probability": 0.034854000218692976,
+        "predicted_probability": 0.03485400021869265,
         "failures_after": [],
         "success": true
       },
@@ -7300,7 +7300,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.033877306270107425,
+        "predicted_probability": 0.03387730627010709,
         "failures_after": [],
         "success": true
       },
@@ -7320,7 +7320,7 @@
       "causaltwin": {
         "action": "torque -5%",
         "cost": 0.5000000000000004,
-        "predicted_probability": 0.040219717342842465,
+        "predicted_probability": 0.04021971734284204,
         "failures_after": [
           "OSF"
         ],
@@ -7342,7 +7342,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.0009661145176514409,
+        "predicted_probability": 0.0009661145176514445,
         "failures_after": [
           "TWF"
         ],
@@ -7364,7 +7364,7 @@
       "causaltwin": {
         "action": "no action",
         "cost": 0.0,
-        "predicted_probability": 0.022794276665700473,
+        "predicted_probability": 0.02279427666569983,
         "failures_after": [
           "PWF"
         ],
@@ -7386,7 +7386,7 @@
       "causaltwin": {
         "action": "torque -20%",
         "cost": 1.9999999999999998,
-        "predicted_probability": 0.03792981590781216,
+        "predicted_probability": 0.03792981590781169,
         "failures_after": [],
         "success": true
       },
@@ -7406,7 +7406,7 @@
       "causaltwin": {
         "action": "torque -15%",
         "cost": 1.5000000000000002,
-        "predicted_probability": 0.03483100811272647,
+        "predicted_probability": 0.034831008112726124,
         "failures_after": [],
         "success": true
       },
@@ -7427,7 +7427,7 @@
       "causaltwin": {
         "action": "torque -40%",
         "cost": 4.0,
-        "predicted_probability": 0.026404200731457064,
+        "predicted_probability": 0.026404200731457272,
         "failures_after": [],
         "success": true
       },
@@ -7440,5 +7440,5 @@
       }
     }
   ],
-  "seconds": 3.194712745000004
+  "seconds": 2.304038908000166
 }

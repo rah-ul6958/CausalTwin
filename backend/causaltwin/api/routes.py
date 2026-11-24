@@ -38,6 +38,7 @@ from causaltwin.api.sessions import Session, requested_session_id, session_of
 from causaltwin.api.state import AppState
 from causaltwin.config import (
     ALLOW_BENCHMARK_RUN_ENV,
+    BASELINE_METHOD_LABELS,
     BENCHMARK_RESULTS_PATH,
     BOOTSTRAP_RESAMPLES,
     BYOD_MAX_COLUMNS,
@@ -48,6 +49,7 @@ from causaltwin.config import (
     FAULT_NAMES,
     HEAVY_REQUEST_TIMEOUT_SECONDS,
     LIVE_SEED,
+    MAIN_BASELINE,
     MEASURED_VARIABLES,
     OPTIMIZER_TARGET_RISK,
     SIM_STEP_MAX,
@@ -314,10 +316,13 @@ async def recommendation(
             _require_running(live)
         return live.recommend_now(target)
 
-    result, baseline_action = await _run_heavy(state, compute, "recommendation search")
+    result, baseline_actions = await _run_heavy(state, compute, "recommendation search")
     return RecommendResponse(
         recommendation=result,
-        baseline_action=baseline_action,
+        baseline_action=baseline_actions[MAIN_BASELINE],
+        baseline_actions=baseline_actions,
+        main_baseline=MAIN_BASELINE,
+        baseline_labels=dict(BASELINE_METHOD_LABELS),
         provenance=Provenance(
             method="Grid search over single levers (2% steps), lever pairs (5% steps) and a tool change, scored by "
             "the batched what-if engine; top 5 re-checked with independent noise",
@@ -326,8 +331,10 @@ async def recommendation(
             parameters={"target_risk": target, "n_candidates": result.n_candidates},
             assumptions=[
                 "Costs are illustrative units.",
-                "Baseline action: XGBoost + SHAP top feature mapped to an "
-                "engineer's action (vibration -> damping), shown for contrast.",
+                "Baselines, shown for contrast, all from the same XGBoost failure predictor: B1 maps the top SHAP "
+                "feature to an engineer's action (vibration -> damping); B2 blames the top SHAP feature among the "
+                "levers and tool wear; B3 (the main comparison) scores this same candidate search with XGBoost, "
+                "changing only the lever values in its feature row.",
             ],
         ),
     )
@@ -443,7 +450,8 @@ def benchmark(request: Request) -> dict[str, Any]:
         **results,
         "running": state.benchmark_running,
         "provenance": _provenance(
-            "CausalTwin optimizer vs XGBoost + SHAP baseline, both applied in forks of the real simulator",
+            "CausalTwin optimizer vs three XGBoost baselines (B1 naive SHAP, B2 actionable SHAP, B3 "
+            "predict-then-optimize, the main comparison), all applied in forks of the real simulator",
             f"{results.get('n_cases')} high-risk situations",
             ground_truth="simulator",
         ).model_dump()

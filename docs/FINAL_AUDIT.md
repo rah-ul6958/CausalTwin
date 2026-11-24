@@ -5,8 +5,8 @@ come from the generated block below. Status checked at the end of Phase 6 (closi
 Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test runs behind it.
 
 <!-- results:headline:start -->
-- **93%** of 30 simulated high-risk cases brought to 10% true failure risk or less by CausalTwin, against **3%** for a standard XGBoost + SHAP approach.
-- In **22 of 30** cases the standard approach blamed vibration, which has no causal effect on failure in the simulator.
+- **93%** of 30 simulated high-risk cases brought to 10% true failure risk or less by CausalTwin, against **50%** for the strongest predictive baseline (XGBoost predict-then-optimize: the same candidate actions, scored by a failure predictor; no predictive baseline reached the target in more than 57%).
+- That baseline said no action was needed in **8 of 30** cases whose true risk was 16% to 25%, and made the machine riskier than doing nothing in **3**; CausalTwin did neither in any case.
 - **9 of 9** injected physical faults were detected and the causal graph rewired; median detection delay **3 steps (30 s of machine time)**.
 <!-- results:headline:end -->
 
@@ -51,6 +51,9 @@ Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test
 
 - **Correlation Trap benchmark:** the standard explainable-AI workflow (XGBoost + SHAP, top feature
   mapped to an action) against causal recommendations, both judged by the real simulator, losses included.
+  Since Phase 7 the main comparison is the strongest predictive baseline (B3, predict-then-optimize: the
+  same candidate actions scored by XGBoost), with two SHAP baselines (B1, B2) still reported, and two
+  flags per method: made things worse than doing nothing, and "no action" while the risk was high.
 - **Causal drift detection with live rewiring:** the twin notices its own structure is outdated,
   re-discovers it and invalidates old advice.
 - **Glass-box UI:** every number traceable to its method, data window, parameters, timing and

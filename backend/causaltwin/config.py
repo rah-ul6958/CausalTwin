@@ -325,6 +325,16 @@ BASELINE_LEARNING_RATE = 0.1
 BASELINE_SEED = 0
 BASELINE_TEST_FRACTION = 0.2  # chronological final share used for accuracy metrics
 BASELINE_DEFAULT_MAGNITUDE_PCT = 20.0  # used when CausalTwin recommends no lever change
+# The three predictive baselines compared with CausalTwin (see intelligence/baseline.py).
+# B1 is the original naive rule, kept so nothing is hidden; B3 is the strongest and the main comparison.
+BASELINE_METHOD_LABELS: dict[str, str] = {
+    "naive_shap": "B1: naive SHAP",
+    "actionable_shap": "B2: actionable SHAP",
+    "counterfactual": "B3: predict-then-optimize",
+}
+MAIN_BASELINE = "counterfactual"
+# Features B2 may blame: the four levers, plus tool wear (acted on with a tool change).
+BASELINE_ACTIONABLE_FEATURES: tuple[str, ...] = (*LEVER_NAMES, "tool_wear")
 
 # Benchmark
 BENCHMARK_SITUATIONS_PER_SCENARIO = 6  # 5 scenarios x 6 = 30 situations
@@ -335,6 +345,8 @@ BENCHMARK_MIN_TRUE_RISK = 0.15  # a situation is "high risk" if true risk within
 BENCHMARK_MIN_GAP_STEPS = 400  # spacing between situations taken from one run
 BENCHMARK_MAX_STEPS_PER_RUN = 20_000
 BENCHMARK_RESULTS_PATH = DATA_DIR / "benchmark_results.json"
+# An action made things worse than doing nothing if its true risk exceeds the no-action risk by more than this.
+BENCHMARK_WORSE_MARGIN = 0.01
 
 # Drift detection (CUSUM on standardized one-step-ahead errors)
 DRIFT_CUSUM_K = 0.5  # allowance, in standard deviations

@@ -70,23 +70,79 @@ def _count(rate: float, total: int) -> int:
 # ---------------------------------------------------------------------------
 # Blocks
 # ---------------------------------------------------------------------------
+def _baseline_order(summary: dict[str, Any]) -> list[str]:
+    """Baseline method names, the main (strongest) one first, then the others from strongest to weakest."""
+    main = summary["main_baseline"]
+    return [main] + [method for method in reversed(list(summary["baseline_labels"])) if method != main]
+
+
+def _false_reassurance_risks(benchmark: dict[str, Any], method: str) -> list[float]:
+    """True no-action risks of the cases where a baseline chose to do nothing although the risk was high."""
+    return [
+        case["true_risk_no_action"] for case in benchmark["cases"] if case["baselines"][method]["false_reassurance"]
+    ]
+
+
+def _risk_range(risks: list[float], spoken: bool = False) -> str:
+    """[0.162, 0.247] -> "16% to 25%" (one value: "16%"); spoken: "16 to 25 percent"."""
+    low, high = _percent(min(risks)), _percent(max(risks))
+    if spoken:
+        return f"{low[:-1]} percent" if low == high else f"{low[:-1]} to {high[:-1]} percent"
+    return low if low == high else f"{low} to {high}"
+
+
+def _short(label: str) -> str:
+    """ "B3: predict-then-optimize" -> "B3"."""
+    return label.split(":")[0]
+
+
+def _best_baseline_success(summary: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """The baseline that reached the target most often (method name and summary)."""
+    method = max(summary["baselines"], key=lambda name: summary["baselines"][name]["success_rate"])
+    return method, summary["baselines"][method]
+
+
+def _causaltwin_flags_text(causaltwin: dict[str, Any]) -> str:
+    """How often CausalTwin itself said no action at high risk, or made things worse."""
+    reassured, worse = causaltwin["n_false_reassurance"], causaltwin["n_worse_than_no_action"]
+    if reassured == 0 and worse == 0:
+        return "CausalTwin did neither in any case"
+    return f"CausalTwin said no action at high risk in {reassured} and made things worse in {worse}"
+
+
 def headline_block(results: dict[str, dict[str, Any]]) -> str:
     """Three one-line headline numbers."""
     benchmark = results["benchmark"]
     summary = benchmark["summary"]
     total = benchmark["n_cases"]
     target = _percent(benchmark["settings"]["target_risk"])
-    vibration = summary["baseline"]["blamed"].get("vibration", 0)
+    main = summary["main_baseline"]
+    strongest = summary["baselines"][main]
+    reassured = _false_reassurance_risks(benchmark, main)
+    reassurance_text = (
+        f"said no action was needed in **{len(reassured)} of {total}** cases whose true risk was "
+        f"{_risk_range(reassured)}"
+        if reassured
+        else "never said no action was needed while the true risk was above the target"
+    )
+    ct = summary["causaltwin"]
+    best_method, best = _best_baseline_success(summary)
+    best_text = (
+        ""
+        if best_method == main
+        else f"; no predictive baseline reached the target in more than {_percent(best['success_rate'])}"
+    )
     faults = results["drift"]["faults"]
     delays = [run["detection_delay_steps"] for run in faults if run["detection_delay_steps"] is not None]
     median_delay = statistics.median(delays)
     confirmed = sum(1 for run in results["drift"]["faults"] if run["status"] == "confirmed")
     return (
-        f"- **{_percent(summary['causaltwin']['success_rate'])}** of {total} simulated high-risk cases brought to "
+        f"- **{_percent(ct['success_rate'])}** of {total} simulated high-risk cases brought to "
         f"{target} true failure risk or less by CausalTwin, against "
-        f"**{_percent(summary['baseline']['success_rate'])}** for a standard XGBoost + SHAP approach.\n"
-        f"- In **{vibration} of {total}** cases the standard approach blamed vibration, which has no causal effect "
-        "on failure in the simulator.\n"
+        f"**{_percent(strongest['success_rate'])}** for the strongest predictive baseline (XGBoost "
+        f"predict-then-optimize: the same candidate actions, scored by a failure predictor{best_text}).\n"
+        f"- That baseline {reassurance_text}, and made the machine riskier than doing nothing in "
+        f"**{strongest['n_worse_than_no_action']}**; {_causaltwin_flags_text(ct)}.\n"
         f"- **{confirmed} of {len(results['drift']['faults'])}** injected physical faults were detected and the "
         f"causal graph rewired; median detection delay **{median_delay:g} steps "
         f"({median_delay * SECONDS_PER_STEP:g} s of machine time)**.\n"
@@ -98,9 +154,11 @@ def quote_block(results: dict[str, dict[str, Any]]) -> str:
     benchmark = results["benchmark"]
     summary = benchmark["summary"]
     total = benchmark["n_cases"]
-    ours = _count(summary["causaltwin"]["success_rate"], total)
-    theirs = _count(summary["baseline"]["success_rate"], total)
-    vibration = summary["baseline"]["blamed"].get("vibration", 0)
+    main = summary["main_baseline"]
+    strongest = summary["baselines"][main]
+    ours = summary["causaltwin"]["n_success"]
+    theirs = strongest["n_success"]
+    reassured = _false_reassurance_risks(benchmark, main)
     recovery = results["validation"]["graph_recovery_with_failure"]
     faults = results["drift"]["faults"]
     confirmed = sum(1 for run in faults if run["status"] == "confirmed")
@@ -108,10 +166,18 @@ def quote_block(results: dict[str, dict[str, Any]]) -> str:
     delays = [
         run["detection_delay_steps"] * SECONDS_PER_STEP for run in faults if run["detection_delay_steps"] is not None
     ]
+    reassurance_text = (
+        f"in {len(reassured)} of the {total} it said no action was needed while the true risk was "
+        f"{_risk_range(reassured, spoken=True)}"
+        if reassured
+        else "it never said no action was needed while the risk was high"
+    )
     first = (
         f"We tested this on {total} high-risk moments in the simulator. CausalTwin's fix brought the true risk "
-        f"under the target in {ours} of {total}. The standard approach, XGBoost with SHAP, managed {theirs} of "
-        f"{total}, and in {vibration} of them it blamed vibration, which does not cause failure in this machine."
+        f"under the target in {ours} of {total}. The most thorough predictive baseline we built, XGBoost scoring "
+        f"the very same candidate actions, managed {theirs} of {total}: {reassurance_text}, and in "
+        f"{strongest['n_worse_than_no_action']} its change made the machine riskier than doing nothing. It cannot "
+        "know that changing a lever also changes the temperatures it reads."
     )
     second = (
         f"The discovered graph found {recovery['true_positives']} of the {recovery['n_true_edges']} true "
@@ -122,37 +188,40 @@ def quote_block(results: dict[str, dict[str, Any]]) -> str:
 
 
 def benchmark_block(results: dict[str, dict[str, Any]]) -> str:
-    """The Correlation Trap benchmark: both methods, every summary metric, wins and losses."""
+    """The Correlation Trap benchmark: both methods, every summary metric, wins and losses.
+
+    Since Phase 7: CausalTwin against all three baselines, the main (strongest) baseline first.
+    """
     benchmark = results["benchmark"]
     summary = benchmark["summary"]
     total = benchmark["n_cases"]
     settings = benchmark["settings"]
-    ct, bl = summary["causaltwin"], summary["baseline"]
-    rows = [
-        (
-            f"Reached the {_percent(settings['target_risk'])} target (true risk)",
-            f"**{_count(ct['success_rate'], total)} / {total} ({_percent(ct['success_rate'])})**",
-            f"{_count(bl['success_rate'], total)} / {total} ({_percent(bl['success_rate'])})",
-        ),
-        (
-            "Mean true risk after the action",
-            _percent(ct["mean_true_risk_after"], 1),
-            _percent(bl["mean_true_risk_after"], 1),
-        ),
-        (
-            "Mean risk reduction",
-            f"{ct['mean_risk_reduction'] * 100:.1f} points",
-            f"{bl['mean_risk_reduction'] * 100:.1f} points",
-        ),
+    labels = summary["baseline_labels"]
+    order = _baseline_order(summary)
+    columns = [summary["causaltwin"]] + [summary["baselines"][method] for method in order]
+
+    def count_and_rate(method_summary: dict[str, Any]) -> str:
+        return f"{method_summary['n_success']} / {total} ({_percent(method_summary['success_rate'])})"
+
+    rows: list[tuple[str, Callable[[dict[str, Any]], str]]] = [
+        (f"Reached the {_percent(settings['target_risk'])} target (true risk)", count_and_rate),
+        ("Mean true risk after the action", lambda s: _percent(s["mean_true_risk_after"], 1)),
+        ("Mean risk reduction", lambda s: f"{s['mean_risk_reduction'] * 100:.1f} points"),
         (
             f"Failure rate within {settings['horizon_steps']} steps (simulated futures)",
-            _percent(ct["mean_failure_rate_after"], 1),
-            _percent(bl["mean_failure_rate_after"], 1),
+            lambda s: _percent(s["mean_failure_rate_after"], 1),
         ),
-        ("Mean cost (illustrative units)", f"{ct['mean_cost']:.1f}", f"{bl['mean_cost']:.1f}"),
+        ("Mean cost (illustrative units)", lambda s: f"{s['mean_cost']:.1f}"),
+        ("Made things worse than doing nothing", lambda s: str(s["n_worse_than_no_action"])),
+        ("Said no action while the true risk was above the target", lambda s: str(s["n_false_reassurance"])),
     ]
-    lines = ["| Metric | CausalTwin | XGBoost + SHAP |", "|---|---|---|"]
-    lines += [f"| {name} | {ours} | {theirs} |" for name, ours, theirs in rows]
+    header = ["Metric", "CausalTwin"] + [labels[method] for method in order]
+    lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
+    for name, render in rows:
+        cells = [render(column) for column in columns]
+        cells[0] = f"**{cells[0]}**"
+        lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    main = summary["main_baseline"]
     wins = summary["wins"]
     worse = summary["cases_where_causaltwin_is_worse"]
     misses = [case for case in benchmark["cases"] if not case["causaltwin"]["success"]]
@@ -161,22 +230,53 @@ def benchmark_block(results: dict[str, dict[str, Any]]) -> str:
         f"{_percent(case['causaltwin']['true_risk_after'], 1)})"
         for case in misses
     )
+    wins_by_baseline = summary["wins_by_baseline"]
+    head_to_head = "; ".join(
+        f"against {_short(labels[method])}: better in {wins_by_baseline[method].get('causaltwin', 0)}, tied in "
+        f"{wins_by_baseline[method].get('tie', 0)}, worse in {wins_by_baseline[method].get('baseline', 0)}"
+        for method in order[1:]
+    )
     lines += [
         "",
-        f"No action: mean true risk {_percent(summary['mean_true_risk_no_action'], 1)}. "
-        f"Head to head: CausalTwin better in {wins.get('causaltwin', 0)}, tied in {wins.get('tie', 0)}, "
-        f"worse in {len(worse)} case(s){'' if not worse else ': ' + ', '.join(str(c) for c in worse)}.",
-        f"CausalTwin missed the target in {len(misses)} case(s){': ' + miss_text if misses else ''}.",
+        "B1 maps the top SHAP feature to an engineer's action (vibration becomes damping, ambient temperature means "
+        "no action). B2 takes the top SHAP feature among the four levers and tool wear. B3, the main comparison, "
+        "scores CausalTwin's own candidate actions (same grid, costs, target and planning margin) with the XGBoost "
+        "model, which can only change a lever's value in its input row.",
         "",
-        "| Scenario | Cases | CausalTwin reached target | Baseline reached target |",
-        "|---|---|---|---|",
+        f"No action: mean true risk {_percent(summary['mean_true_risk_no_action'], 1)}. "
+        f"Head to head against {_short(labels[main])}: CausalTwin better in {wins.get('causaltwin', 0)}, tied in "
+        f"{wins.get('tie', 0)}, worse in {len(worse)} case(s){'' if not worse else ': ' + ', '.join(map(str, worse))}"
+        f"; {head_to_head}.",
+        f"CausalTwin missed the target in {len(misses)} case(s){': ' + miss_text if misses else ''}.",
+    ]
+    for method in order:
+        method_summary = summary["baselines"][method]
+        made_worse = method_summary["cases_worse_than_no_action"]
+        reassured = method_summary["cases_false_reassurance"]
+        if made_worse or reassured:
+            parts = []
+            if made_worse:
+                parts.append(f"made things worse than doing nothing in case(s) {', '.join(map(str, made_worse))}")
+            if reassured:
+                parts.append(f"said no action while the risk was high in case(s) {', '.join(map(str, reassured))}")
+            lines.append(f"{labels[method]} {'; '.join(parts)}.")
+    lines += [
+        "",
+        "| Scenario | Cases | CausalTwin reached target | "
+        + " | ".join(f"{labels[method]} reached target" for method in order)
+        + " |",
+        "|" + "---|" * (3 + len(order)),
     ]
     for scenario, row in benchmark["per_scenario"].items():
         lines.append(
-            f"| {scenario} | {row['n']} | {_percent(row['causaltwin_success'])} | {_percent(row['baseline_success'])} |"
+            f"| {scenario} | {row['n']} | {_percent(row['causaltwin_success'])} | "
+            + " | ".join(_percent(row["baseline_success"][method]) for method in order)
+            + " |"
         )
-    blamed = ", ".join(f"{name} {count}" for name, count in sorted(bl["blamed"].items(), key=lambda item: -item[1]))
-    lines += ["", f"What the baseline blamed (top SHAP feature): {blamed}."]
+    for method, description in (("naive_shap", "top SHAP feature"), ("actionable_shap", "top actionable SHAP feature")):
+        blamed = summary["baselines"][method]["blamed"]
+        text = ", ".join(f"{name} {count}" for name, count in sorted(blamed.items(), key=lambda item: -item[1]))
+        lines += ["", f"What {labels[method]} blamed ({description}): {text}."]
     calibration = benchmark.get("calibration") or {}
     if calibration:
         lines += [
@@ -201,6 +301,78 @@ def benchmark_block(results: dict[str, dict[str, Any]]) -> str:
         f"seeds each, {settings['horizon_steps']}-step horizon; benchmark run took "
         f"{benchmark['timing_seconds']['total']:.0f} s."
     )
+    return "\n".join(lines) + "\n"
+
+
+def straw_man_block(results: dict[str, dict[str, Any]]) -> str:
+    """Answer to "Is your baseline a straw man?": every baseline's numbers, the strongest one explained."""
+    benchmark = results["benchmark"]
+    summary = benchmark["summary"]
+    total = benchmark["n_cases"]
+    labels = summary["baseline_labels"]
+    order = _baseline_order(summary)
+    main = order[0]
+    ct = summary["causaltwin"]
+    lines = [
+        "| Method | Reached the target | Mean true risk after | Worse than doing nothing | No action while risk was "
+        "high |",
+        "|---|---|---|---|---|",
+        f"| CausalTwin | {ct['n_success']} / {total} | {_percent(ct['mean_true_risk_after'], 1)} | "
+        f"{ct['n_worse_than_no_action']} | {ct['n_false_reassurance']} |",
+    ]
+    for method in order:
+        row = summary["baselines"][method]
+        lines.append(
+            f"| {labels[method]} | {row['n_success']} / {total} | {_percent(row['mean_true_risk_after'], 1)} | "
+            f"{row['n_worse_than_no_action']} | {row['n_false_reassurance']} |"
+        )
+    strongest = summary["baselines"][main]
+    reassured = _false_reassurance_risks(benchmark, main)
+    wins = summary["wins"]
+    lines += [
+        "",
+        f"No action at all leaves a mean true risk of {_percent(summary['mean_true_risk_no_action'], 1)}. "
+        f"Head to head with {_short(labels[main])}, CausalTwin left a lower true risk in "
+        f"{wins.get('causaltwin', 0)} case(s), tied in {wins.get('tie', 0)} and was worse in "
+        f"{wins.get('baseline', 0)}.",
+    ]
+    best_method, best = _best_baseline_success(summary)
+    if best_method != main:
+        lines.append(
+            f"{_short(labels[best_method])} reached the target more often than {_short(labels[main])} "
+            f"({best['n_success']} against {strongest['n_success']}), but {_short(labels[main])} is the main "
+            f"comparison because it is the more capable method (it searches every action CausalTwin searches) and "
+            f"it left the lower mean true risk ({_percent(strongest['mean_true_risk_after'], 1)} against "
+            f"{_percent(best['mean_true_risk_after'], 1)}) and failure rate "
+            f"({_percent(strongest['mean_failure_rate_after'], 1)} against "
+            f"{_percent(best['mean_failure_rate_after'], 1)})."
+        )
+    if reassured:
+        lines.append(
+            f"{_short(labels[main])} said no action was needed in {len(reassured)} case(s) whose true risk was "
+            f"{_risk_range(reassured)}, and its change made things worse than doing nothing in "
+            f"{strongest['n_worse_than_no_action']}."
+        )
+    cases = benchmark["cases"]
+    lost = [case for case in cases if case["winner"] == "baseline"]
+    if lost:
+        both_reached = [case for case in lost if case["causaltwin"]["success"] and case["baselines"][main]["success"]]
+        cheaper = [case for case in lost if case["causaltwin"]["cost"] < case["baselines"][main]["cost"]]
+        lines.append(
+            f"In the {len(lost)} case(s) where {_short(labels[main])} left a lower true risk, both methods reached the "
+            f"target in {len(both_reached)} and CausalTwin's action cost less in {len(cheaper)}."
+        )
+    ties = [case for case in cases if case["winner"] == "tie"]
+    if ties:
+        both_tool = [
+            case
+            for case in ties
+            if "tool change" in case["causaltwin"]["action"] and case["baselines"][main]["blamed"] == "tool_wear"
+        ]
+        lines.append(
+            f"In {len(both_tool)} of the {len(ties)} tie(s) both methods changed the tool: tool wear is one of the "
+            "predictor's inputs, so for a tool change the edited input row matches what really happens."
+        )
     return "\n".join(lines) + "\n"
 
 
@@ -408,6 +580,7 @@ BLOCKS: dict[str, Callable[[dict[str, dict[str, Any]]], str]] = {
     "headline": headline_block,
     "quote": quote_block,
     "benchmark": benchmark_block,
+    "straw_man": straw_man_block,
     "graph": graph_block,
     "intervention": intervention_block,
     "drift": drift_block,

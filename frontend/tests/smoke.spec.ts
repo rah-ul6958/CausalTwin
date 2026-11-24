@@ -31,7 +31,8 @@ async function capture(page: Page, name: string) {
 
 test("landing shows live benchmark numbers", async ({ page }) => {
   const errors = await open(page, "/");
-  await expect(page.getByText(/high-risk cases brought to .* true risk or less by CausalTwin/)).toBeVisible();
+  await expect(page.getByText(/high-risk cases brought to .* true risk or less: CausalTwin versus the strongest predictive baseline/)).toBeVisible();
+  await expect(page.getByText(/times a predictive baseline made things worse than doing nothing/)).toBeVisible();
   await expect(page.getByText(/blamed vibration/)).toBeVisible();
   await capture(page, "01-landing");
   expect(errors).toEqual([]);
@@ -74,7 +75,12 @@ test("advisor shows a recommendation and the baseline", async ({ page }) => {
   const errors = await open(page, "/advisor");
   const card = page.getByTestId("recommendation-card");
   await expect(card.getByText("Predicted risk after")).toBeVisible();
-  await expect(page.getByText("Standard ML baseline for the same moment")).toBeVisible();
+  await expect(page.getByText("Predictive baselines for the same moment")).toBeVisible();
+  // The baseline selector defaults to the main baseline (B3) and can switch to B1.
+  const selector = page.getByRole("group", { name: "Baseline method" });
+  await expect(selector.getByRole("radio", { name: /B3/ })).toHaveAttribute("aria-checked", "true");
+  await selector.getByRole("radio", { name: /B1/ }).click();
+  await expect(page.getByText("Blames")).toBeVisible();
   await expect(page.getByText(/Every evaluated option/)).toBeVisible();
   await capture(page, "05-advisor");
   expect(errors).toEqual([]);
@@ -85,6 +91,8 @@ test("benchmark shows results including losses", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Every case" })).toBeVisible();
   await expect(page.locator("tbody tr").first()).toBeVisible();
   await expect(page.getByText("Is the baseline fair?")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Method comparison" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Where predictive baselines did harm" })).toBeVisible();
   await capture(page, "06-benchmark");
   expect(errors).toEqual([]);
 });

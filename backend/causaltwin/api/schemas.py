@@ -100,7 +100,11 @@ class RecommendResponse(BaseModel):
     """Recommendation, its full candidate table, and the baseline's action for contrast."""
 
     recommendation: Recommendation
-    baseline_action: BaselineAction | None
+    baseline_action: BaselineAction | None  # the main baseline (B3)
+    # All three baselines for the same moment, keyed by method name, with their display labels.
+    baseline_actions: dict[str, BaselineAction] = Field(default_factory=dict)
+    main_baseline: str | None = None
+    baseline_labels: dict[str, str] = Field(default_factory=dict)
     provenance: Provenance
 
 

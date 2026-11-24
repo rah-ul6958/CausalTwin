@@ -32,6 +32,7 @@ import numpy as np
 
 from causaltwin.api.hub import StreamHub
 from causaltwin.config import (
+    BASELINE_METHOD_LABELS,
     DEMO_SEED,
     LIVE_LOG_FLUSH_SECONDS,
     LIVE_MAX_FRAMES_PER_SECOND,
@@ -43,6 +44,7 @@ from causaltwin.config import (
     LIVE_STEPS_PER_SECOND,
     LIVE_TRUTH_EVERY,
     LIVE_TRUTH_SEEDS,
+    MAIN_BASELINE,
     MEASURED_VARIABLES,
     OPTIMIZER_TARGET_RISK,
     ROOT_CAUSE_RISK_THRESHOLD,
@@ -156,7 +158,8 @@ class LiveLoop:
         self.latest_true_risk_step: int | None = None
         self.latest_root_cause: RootCauseResult | None = None
         self.latest_recommendation: Recommendation | None = None
-        self.latest_baseline_action: BaselineAction | None = None
+        self.latest_baseline_action: BaselineAction | None = None  # the main baseline (B3)
+        self.latest_baseline_actions: dict[str, BaselineAction] = {}  # all three baselines, by method name
         self.alerts: list[dict[str, Any]] = []
         self.events: list[dict[str, Any]] = []
         self.applied: list[dict[str, Any]] = []
@@ -418,7 +421,9 @@ class LiveLoop:
         """Run the optimizer on the current state and remember the result (and the baseline's action)."""
         return self.recommend_now(target_risk)[0]
 
-    def recommend_now(self, target_risk: float = OPTIMIZER_TARGET_RISK) -> tuple[Recommendation, BaselineAction]:
+    def recommend_now(
+        self, target_risk: float = OPTIMIZER_TARGET_RISK
+    ) -> tuple[Recommendation, dict[str, BaselineAction]]:
         """The optimizer and the baseline on a snapshot; the lock is held only to copy and to store.
 
         If the simulation was reset meanwhile, the result is returned but not stored (it belongs to
@@ -433,13 +438,14 @@ class LiveLoop:
         recommendation = recommend(engine, history, target_risk=target_risk)
         magnitude = max((abs(c.change_pct) for c in recommendation.changes), default=20.0)
         with self.baseline_lock:  # the SHAP explainer is shared; one explanation at a time
-            baseline_action = self.models.baseline.recommend(latest, magnitude)
+            baseline_actions = self.models.baseline.recommend_all(latest, magnitude, target_risk)
         with self.lock:
             if self.run_id == run_id:
                 self.latest_recommendation = recommendation
                 self.drift.current_recommendation = recommendation
-                self.latest_baseline_action = baseline_action
-        return recommendation, baseline_action
+                self.latest_baseline_action = baseline_actions[MAIN_BASELINE]
+                self.latest_baseline_actions = baseline_actions
+        return recommendation, baseline_actions
 
     def apply_recommendation(self) -> dict[str, Any]:
         """Apply the latest recommendation to the live simulator."""
@@ -609,12 +615,18 @@ class DemoScript:
         contrast = (
             ""
             if baseline is None
-            else (f" Standard ML (XGBoost + SHAP) blames {baseline.blamed_feature}: {baseline.description}")
+            else (
+                f" For contrast, the strongest predictive baseline ({BASELINE_METHOD_LABELS[baseline.method]}: the "
+                f"same search, scored by XGBoost): {baseline.description}"
+            )
         )
         return {
             "narration": recommendation.explanation + contrast,
             "recommendation": recommendation.model_dump(exclude={"candidates"}),
             "baseline_action": None if baseline is None else baseline.model_dump(),
+            "baseline_actions": {
+                method: action.model_dump() for method, action in self.loop.latest_baseline_actions.items()
+            },
         }
 
     def _apply(self) -> dict[str, Any]:

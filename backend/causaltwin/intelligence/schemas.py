@@ -72,20 +72,27 @@ class Recommendation(BaseModel):
     search_ms: float
 
 
-class BaselineAction(BaseModel):
-    """What the standard-ML baseline would do, after mapping its top feature to an action."""
+BaselineMethod = Literal["naive_shap", "actionable_shap", "counterfactual"]
 
+
+class BaselineAction(BaseModel):
+    """What a standard-ML baseline would do (B1 and B2: map the top SHAP feature to an action; B3: search)."""
+
+    method: BaselineMethod = "naive_shap"
     blamed_feature: str
-    blamed_shap: float
+    blamed_shap: float | None  # None for B3, which searches actions instead of blaming a feature
     kind: Literal["lever", "damp_vibration", "tool_change", "none"]
     lever: str | None = None
     from_value: float | None = None
     to_value: float | None = None
     change_pct: float | None = None
+    # Every lever change of the action (one for B1 and B2, one or two for B3).
+    changes: list[LeverChange] = Field(default_factory=list)
     cost: float
     description: str
     shap_values: dict[str, float]
     predicted_risk: float  # the baseline model's own failure probability for the current state
+    predicted_risk_after: float | None = None  # the baseline model's own probability after its action
 
 
 class EdgeChange(BaseModel):
@@ -125,6 +132,12 @@ class BenchmarkMethodResult(BaseModel):
     risk_reduction: float
     failure_rate_after: float
     success: bool
+    # The method chose to do nothing.
+    no_action: bool = False
+    # True risk after the action exceeds the no-action true risk by more than BENCHMARK_WORSE_MARGIN.
+    worse_than_no_action: bool = False
+    # The method chose to do nothing while the true no-action risk was above the target.
+    false_reassurance: bool = False
     # CausalTwin only: what the twin predicted for its own action (calibration check).
     predicted_risk_after: float | None = None
     predicted_risk_after_interval: tuple[float, float] | None = None
@@ -143,5 +156,9 @@ class BenchmarkCase(BaseModel):
     twin_risk_no_action: float | None = None
     twin_risk_no_action_interval: tuple[float, float] | None = None
     causaltwin: BenchmarkMethodResult
-    baseline: BenchmarkMethodResult
+    # One result per baseline method, keyed by "naive_shap" (B1), "actionable_shap" (B2), "counterfactual" (B3).
+    baselines: dict[str, BenchmarkMethodResult]
+    # Head to head against the main baseline (B3).
     winner: Literal["causaltwin", "baseline", "tie"]
+    # Head to head against every baseline method.
+    winner_by_baseline: dict[str, Literal["causaltwin", "baseline", "tie"]] = Field(default_factory=dict)

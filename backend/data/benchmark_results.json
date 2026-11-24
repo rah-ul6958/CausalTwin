@@ -12,6 +12,7 @@
   "summary": {
     "causaltwin": {
       "success_rate": 0.9333333333333333,
+      "n_success": 28,
       "mean_risk_reduction": 0.2663897620810901,
       "mean_true_risk_after": 0.03775064957409618,
       "mean_failure_rate_after": 0.0,
@@ -19,54 +20,199 @@
       "blamed": {
         "ambient_temp -> coolant_temp -> bearing_temp": 7,
         "tool_wear": 23
+      },
+      "n_no_action": 0,
+      "n_worse_than_no_action": 0,
+      "cases_worse_than_no_action": [],
+      "n_false_reassurance": 0,
+      "cases_false_reassurance": []
+    },
+    "baselines": {
+      "naive_shap": {
+        "success_rate": 0.03333333333333333,
+        "n_success": 1,
+        "mean_risk_reduction": 0.0033778376991206375,
+        "mean_true_risk_after": 0.3007625739560656,
+        "mean_failure_rate_after": 0.2375,
+        "mean_cost": 2.52,
+        "blamed": {
+          "ambient_temp": 6,
+          "vibration": 22,
+          "lube_rate": 1,
+          "tool_wear": 1
+        },
+        "n_no_action": 6,
+        "n_worse_than_no_action": 1,
+        "cases_worse_than_no_action": [
+          11
+        ],
+        "n_false_reassurance": 6,
+        "cases_false_reassurance": [
+          0,
+          7,
+          8,
+          19,
+          21,
+          28
+        ]
+      },
+      "actionable_shap": {
+        "success_rate": 0.5666666666666667,
+        "n_success": 17,
+        "mean_risk_reduction": 0.15994312898448657,
+        "mean_true_risk_after": 0.1441972826706997,
+        "mean_failure_rate_after": 0.1,
+        "mean_cost": 5.685,
+        "blamed": {
+          "tool_wear": 17,
+          "lube_rate": 7,
+          "coolant_flow": 4,
+          "spindle_speed": 1,
+          "load_pct": 1
+        },
+        "n_no_action": 0,
+        "n_worse_than_no_action": 6,
+        "cases_worse_than_no_action": [
+          8,
+          11,
+          14,
+          18,
+          23,
+          24
+        ],
+        "n_false_reassurance": 0,
+        "cases_false_reassurance": []
+      },
+      "counterfactual": {
+        "success_rate": 0.5,
+        "n_success": 15,
+        "mean_risk_reduction": 0.20246870770334358,
+        "mean_true_risk_after": 0.10167170395184272,
+        "mean_failure_rate_after": 0.05,
+        "mean_cost": 4.488,
+        "blamed": {
+          "tool_wear": 15,
+          "coolant_flow": 3,
+          "none": 8,
+          "coolant_flow + lube_rate": 2,
+          "lube_rate": 1,
+          "load_pct + lube_rate": 1
+        },
+        "n_no_action": 8,
+        "n_worse_than_no_action": 3,
+        "cases_worse_than_no_action": [
+          9,
+          14,
+          16
+        ],
+        "n_false_reassurance": 8,
+        "cases_false_reassurance": [
+          8,
+          10,
+          11,
+          13,
+          15,
+          19,
+          21,
+          29
+        ]
       }
     },
-    "baseline": {
-      "success_rate": 0.03333333333333333,
-      "mean_risk_reduction": 0.0033778376991206375,
-      "mean_true_risk_after": 0.3007625739560656,
-      "mean_failure_rate_after": 0.2375,
-      "mean_cost": 2.52,
-      "blamed": {
-        "ambient_temp": 6,
-        "vibration": 22,
-        "lube_rate": 1,
-        "tool_wear": 1
-      }
+    "main_baseline": "counterfactual",
+    "baseline_labels": {
+      "naive_shap": "B1: naive SHAP",
+      "actionable_shap": "B2: actionable SHAP",
+      "counterfactual": "B3: predict-then-optimize"
     },
     "mean_true_risk_no_action": 0.3041404116551862,
     "mean_failure_rate_no_action": 0.23333333333333334,
     "wins": {
-      "causaltwin": 29,
-      "tie": 1
+      "baseline": 3,
+      "tie": 13,
+      "causaltwin": 14
     },
-    "cases_where_causaltwin_is_worse": []
+    "cases_where_causaltwin_is_worse": [
+      0,
+      7,
+      27
+    ],
+    "wins_by_baseline": {
+      "naive_shap": {
+        "causaltwin": 29,
+        "tie": 1
+      },
+      "actionable_shap": {
+        "baseline": 5,
+        "tie": 12,
+        "causaltwin": 13
+      },
+      "counterfactual": {
+        "baseline": 3,
+        "tie": 13,
+        "causaltwin": 14
+      }
+    },
+    "cases_where_causaltwin_is_worse_by_baseline": {
+      "naive_shap": [],
+      "actionable_shap": [
+        0,
+        5,
+        12,
+        27,
+        28
+      ],
+      "counterfactual": [
+        0,
+        7,
+        27
+      ]
+    }
   },
   "per_scenario": {
     "normal": {
       "n": 6,
       "causaltwin_success": 1.0,
-      "baseline_success": 0.0
+      "baseline_success": {
+        "naive_shap": 0.0,
+        "actionable_shap": 0.8333333333333334,
+        "counterfactual": 0.8333333333333334
+      }
     },
     "overload": {
       "n": 6,
       "causaltwin_success": 1.0,
-      "baseline_success": 0.0
+      "baseline_success": {
+        "naive_shap": 0.0,
+        "actionable_shap": 0.3333333333333333,
+        "counterfactual": 0.16666666666666666
+      }
     },
     "cooling_failure": {
       "n": 6,
       "causaltwin_success": 1.0,
-      "baseline_success": 0.16666666666666666
+      "baseline_success": {
+        "naive_shap": 0.16666666666666666,
+        "actionable_shap": 0.6666666666666666,
+        "counterfactual": 0.16666666666666666
+      }
     },
     "heat_wave": {
       "n": 6,
       "causaltwin_success": 1.0,
-      "baseline_success": 0.0
+      "baseline_success": {
+        "naive_shap": 0.0,
+        "actionable_shap": 0.3333333333333333,
+        "counterfactual": 0.6666666666666666
+      }
     },
     "tool_wear": {
       "n": 6,
       "causaltwin_success": 0.6666666666666666,
-      "baseline_success": 0.0
+      "baseline_success": {
+        "naive_shap": 0.0,
+        "actionable_shap": 0.6666666666666666,
+        "counterfactual": 0.6666666666666666
+      }
     }
   },
   "cases": [
@@ -75,39 +221,80 @@
       "scenario": "normal",
       "seed": 7000,
       "step": 3269,
-      "true_risk_no_action": 0.21077824453461325,
+      "true_risk_no_action": 0.2107782445346133,
       "failure_rate_no_action": 0.125,
-      "twin_risk_no_action": 0.1976795909172219,
+      "twin_risk_no_action": 0.19767959091722198,
       "twin_risk_no_action_interval": [
-        0.14098779666859937,
-        0.3075820598945239
+        0.14098779666859884,
+        0.3075820598945248
       ],
       "causaltwin": {
         "action": "coolant_flow +30%, lube_rate +30%",
         "blamed": "ambient_temp -> coolant_temp -> bearing_temp",
         "cost": 3.9000000000000012,
         "true_risk_after": 0.08453259604353772,
-        "risk_reduction": 0.12624564849107553,
+        "risk_reduction": 0.12624564849107558,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.07547824034656367,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.0754782403465639,
         "predicted_risk_after_interval": [
-          0.05186975835895018,
-          0.11481845083943786
+          0.05186975835895081,
+          0.11481845083943822
         ]
       },
-      "baseline": {
-        "action": "ambient_temp cannot be controlled; no action.",
-        "blamed": "ambient_temp",
-        "cost": 0.0,
-        "true_risk_after": 0.21077824453461325,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.125,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "ambient_temp cannot be controlled; no action.",
+          "blamed": "ambient_temp",
+          "cost": 0.0,
+          "true_risk_after": 0.2107782445346133,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.002397809472741888,
+          "risk_reduction": 0.20838043506187143,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0008474442292936146,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 59.1% to 0.1% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.002397809472741888,
+          "risk_reduction": 0.20838043506187143,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0008474442292936146,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "baseline",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "baseline",
+        "counterfactual": "baseline"
+      }
     },
     {
       "case_id": 1,
@@ -118,8 +305,8 @@
       "failure_rate_no_action": 0.125,
       "twin_risk_no_action": 0.2750541282403308,
       "twin_risk_no_action_interval": [
-        0.20455009508708055,
-        0.4088212962450376
+        0.20455009508708008,
+        0.4088212962450366
       ],
       "causaltwin": {
         "action": "tool change",
@@ -129,24 +316,65 @@
         "risk_reduction": 0.19886359887135446,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.005261225638546764,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.005261225638546788,
         "predicted_risk_after_interval": [
           0.004089475991895286,
           0.0065976001939499875
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.19982730061140874,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.125,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.19982730061140874,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0009637017400542791,
+          "risk_reduction": 0.19886359887135446,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0001660960988374427,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 18.1% to 0.0% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0009637017400542791,
+          "risk_reduction": 0.19886359887135446,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0001660960988374427,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 2,
@@ -155,10 +383,10 @@
       "step": 11078,
       "true_risk_no_action": 0.4598081038636194,
       "failure_rate_no_action": 0.5,
-      "twin_risk_no_action": 0.4780070695804537,
+      "twin_risk_no_action": 0.47800706958045297,
       "twin_risk_no_action_interval": [
-        0.3676075775887307,
-        0.65941641194086
+        0.36760757758872964,
+        0.6594164119408601
       ],
       "causaltwin": {
         "action": "tool change",
@@ -168,24 +396,65 @@
         "risk_reduction": 0.45411446875601225,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.01052367457995905,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.01052367457995908,
         "predicted_risk_after_interval": [
           0.007818914241510672,
-          0.013892330514199497
+          0.013892330514199707
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.4598081038636194,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.5,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.4598081038636194,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.5,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.005693635107607148,
+          "risk_reduction": 0.45411446875601225,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0012531147804111242,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 65.8% to 0.1% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.005693635107607148,
+          "risk_reduction": 0.45411446875601225,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0012531147804111242,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 3,
@@ -196,8 +465,8 @@
       "failure_rate_no_action": 0.125,
       "twin_risk_no_action": 0.2551696516423575,
       "twin_risk_no_action_interval": [
-        0.18848356475801062,
-        0.3808406238674756
+        0.1884835647580095,
+        0.38084062386747586
       ],
       "causaltwin": {
         "action": "tool change",
@@ -207,24 +476,65 @@
         "risk_reduction": 0.2705189960104575,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.007985685926128408,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.007985685926128427,
         "predicted_risk_after_interval": [
           0.006269353190378463,
-          0.009549174745519657
+          0.009549174745519662
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.27292755770030297,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.125,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.27292755770030297,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change lube_rate from 0.869 to 1.04 (+20%).",
+          "blamed": "lube_rate",
+          "cost": 1.6,
+          "true_risk_after": 0.2126328969277144,
+          "risk_reduction": 0.060294660772588576,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.22414253652095795,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 31.8% to 0.0% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.002408561689845462,
+          "risk_reduction": 0.2705189960104575,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0004495253670029342,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 4,
@@ -235,8 +545,8 @@
       "failure_rate_no_action": 0.25,
       "twin_risk_no_action": 0.31825062325519143,
       "twin_risk_no_action_interval": [
-        0.23613115520835862,
-        0.45458123618737983
+        0.23613115520835823,
+        0.4545812361873794
       ],
       "causaltwin": {
         "action": "tool change",
@@ -246,24 +556,65 @@
         "risk_reduction": 0.24297483307659756,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.00799191390703405,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.00799191390703407,
         "predicted_risk_after_interval": [
-          0.00647230712876094,
-          0.009602209913009174
+          0.006472307128761045,
+          0.009602209913009179
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.24351988737191166,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.25,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.24351988737191166,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0005450542953140819,
+          "risk_reduction": 0.24297483307659756,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.00013949500862509012,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 22.5% to 0.0% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0005450542953140819,
+          "risk_reduction": 0.24297483307659756,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.00013949500862509012,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 5,
@@ -272,10 +623,10 @@
       "step": 19041,
       "true_risk_no_action": 0.17350548146112624,
       "failure_rate_no_action": 0.125,
-      "twin_risk_no_action": 0.1635230757162305,
+      "twin_risk_no_action": 0.16352307571623065,
       "twin_risk_no_action_interval": [
-        0.1172112869429987,
-        0.26264602944988613
+        0.11721128694299869,
+        0.2626460294498871
       ],
       "causaltwin": {
         "action": "coolant_flow +30%, lube_rate +15%",
@@ -285,24 +636,65 @@
         "risk_reduction": 0.0958960975768869,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.07685322008133844,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.07685322008133871,
         "predicted_risk_after_interval": [
-          0.0542434369862016,
-          0.11555712179837542
+          0.05424343698620203,
+          0.11555712179837635
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.17350548146112624,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.125,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.17350548146112624,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0018093242199146153,
+          "risk_reduction": 0.17169615724121162,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0004007084935437888,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change coolant_flow from 20 to 24 (+20%). XGBoost predicts failure risk drops from 22.3% to 7.9% (cost 1.0).",
+          "blamed": "coolant_flow",
+          "cost": 1.0,
+          "true_risk_after": 0.11013687445551587,
+          "risk_reduction": 0.06336860700561037,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0788695439696312,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "baseline",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 6,
@@ -311,10 +703,10 @@
       "step": 776,
       "true_risk_no_action": 0.1598481512827989,
       "failure_rate_no_action": 0.0,
-      "twin_risk_no_action": 0.18968654663050344,
+      "twin_risk_no_action": 0.18968654663050358,
       "twin_risk_no_action_interval": [
-        0.13601730601150122,
-        0.29466327010936033
+        0.1360173060115014,
+        0.2946632701093612
       ],
       "causaltwin": {
         "action": "coolant_flow +25%, lube_rate +25%",
@@ -324,24 +716,65 @@
         "risk_reduction": 0.08119683122278167,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.0766871106532097,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.07668711065320995,
         "predicted_risk_after_interval": [
-          0.05283067995518792,
-          0.11308910075610587
+          0.052830679955188004,
+          0.11308910075610676
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.1598481512827989,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.0,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.1598481512827989,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change coolant_flow from 19 to 23.7 (+25%).",
+          "blamed": "coolant_flow",
+          "cost": 1.2500000000000002,
+          "true_risk_after": 0.11931055562593597,
+          "risk_reduction": 0.04053759565686292,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.028943369165062904,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change coolant_flow from 19 to 21.6 (+14%). XGBoost predicts failure risk drops from 12.2% to 7.8% (cost 0.7).",
+          "blamed": "coolant_flow",
+          "cost": 0.7000000000000011,
+          "true_risk_after": 0.1383034658442646,
+          "risk_reduction": 0.0215446854385343,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.07778532058000565,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 7,
@@ -350,10 +783,10 @@
       "step": 2058,
       "true_risk_no_action": 0.19934117779245428,
       "failure_rate_no_action": 0.125,
-      "twin_risk_no_action": 0.18420085261518843,
+      "twin_risk_no_action": 0.18420085261518857,
       "twin_risk_no_action_interval": [
-        0.13300417491350922,
-        0.2889655431681559
+        0.13300417491350944,
+        0.28896554316815654
       ],
       "causaltwin": {
         "action": "coolant_flow +30%, lube_rate +25%",
@@ -363,63 +796,145 @@
         "risk_reduction": 0.10001801660903341,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.0767808485610701,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.07678084856107034,
         "predicted_risk_after_interval": [
-          0.05432525606844619,
-          0.11235186081844234
+          0.05432525606844651,
+          0.11235186081844337
         ]
       },
-      "baseline": {
-        "action": "ambient_temp cannot be controlled; no action.",
-        "blamed": "ambient_temp",
-        "cost": 0.0,
-        "true_risk_after": 0.19934117779245428,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.125,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "ambient_temp cannot be controlled; no action.",
+          "blamed": "ambient_temp",
+          "cost": 0.0,
+          "true_risk_after": 0.19934117779245428,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change lube_rate from 0.92 to 1.2 (+30%).",
+          "blamed": "lube_rate",
+          "cost": 2.4000000000000004,
+          "true_risk_after": 0.11394002494062926,
+          "risk_reduction": 0.08540115285182502,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.2633909285068512,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 37.3% to 0.1% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0016943928881903714,
+          "risk_reduction": 0.1976467849042639,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0005853591719642282,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "baseline",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "baseline"
+      }
     },
     {
       "case_id": 8,
       "scenario": "overload",
       "seed": 7100,
       "step": 2888,
-      "true_risk_no_action": 0.16188881373195052,
+      "true_risk_no_action": 0.16188881373195044,
       "failure_rate_no_action": 0.0,
-      "twin_risk_no_action": 0.12542827574738397,
+      "twin_risk_no_action": 0.12542827574738422,
       "twin_risk_no_action_interval": [
-        0.08928333742470757,
-        0.18300383358114716
+        0.08928333742470695,
+        0.18300383358114752
       ],
       "causaltwin": {
         "action": "coolant_flow +15%, lube_rate +15%",
         "blamed": "tool_wear",
         "cost": 1.9499999999999993,
         "true_risk_after": 0.09130167598628453,
-        "risk_reduction": 0.070587137745666,
+        "risk_reduction": 0.07058713774566591,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.0771710153358421,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.07717101533584238,
         "predicted_risk_after_interval": [
-          0.0546033219155667,
-          0.11250390808303168
+          0.054603321915566896,
+          0.11250390808303196
         ]
       },
-      "baseline": {
-        "action": "ambient_temp cannot be controlled; no action.",
-        "blamed": "ambient_temp",
-        "cost": 0.0,
-        "true_risk_after": 0.16188881373195052,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.0,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "ambient_temp cannot be controlled; no action.",
+          "blamed": "ambient_temp",
+          "cost": 0.0,
+          "true_risk_after": 0.16188881373195044,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change spindle_speed from 3,395 to 3,904 (+15%).",
+          "blamed": "spindle_speed",
+          "cost": 7.499999999999995,
+          "true_risk_after": 0.2450720192267704,
+          "risk_reduction": -0.08318320549481997,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": true,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.053283777087926865,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "No action: XGBoost predicts 7.8% failure risk, at or below the 10% target.",
+          "blamed": "none",
+          "cost": 0.0,
+          "true_risk_after": 0.16188881373195044,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": 0.07771189510822296,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 9,
@@ -428,10 +943,10 @@
       "step": 3328,
       "true_risk_no_action": 0.17003562477341863,
       "failure_rate_no_action": 0.0,
-      "twin_risk_no_action": 0.20440435304736218,
+      "twin_risk_no_action": 0.20440435304736235,
       "twin_risk_no_action_interval": [
-        0.14884960896217225,
-        0.3132752655666852
+        0.14884960896217125,
+        0.3132752655666861
       ],
       "causaltwin": {
         "action": "tool change",
@@ -441,24 +956,65 @@
         "risk_reduction": 0.16886120314367545,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.004667790848105161,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.004667790848105189,
         "predicted_risk_after_interval": [
           0.003593496939758184,
           0.005817657451545038
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.17003562477341863,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.0,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.17003562477341863,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.001174421629743183,
+          "risk_reduction": 0.16886120314367545,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.00021761991956736892,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change coolant_flow from 25 to 23.7 (-5%); lube_rate from 0.786 to 0.55 (-30%). XGBoost predicts failure risk drops from 14.5% to 7.9% (cost 2.7).",
+          "blamed": "coolant_flow + lube_rate",
+          "cost": 2.6500000000000012,
+          "true_risk_after": 0.2884169160371015,
+          "risk_reduction": -0.11838129126368288,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": true,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.07867691665887833,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 10,
@@ -469,8 +1025,8 @@
       "failure_rate_no_action": 0.125,
       "twin_risk_no_action": 0.2299035801754679,
       "twin_risk_no_action_interval": [
-        0.16722645953475476,
-        0.34511725807719534
+        0.1672264595347542,
+        0.3451172580771947
       ],
       "causaltwin": {
         "action": "tool change",
@@ -480,24 +1036,65 @@
         "risk_reduction": 0.18917840315785184,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.006340673794971135,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.0063406737949711555,
         "predicted_risk_after_interval": [
           0.004751266898893225,
-          0.008191176419098072
+          0.008191176419098077
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.19143554709948335,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.125,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.19143554709948335,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.002257143941631512,
+          "risk_reduction": 0.18917840315785184,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.00016756818513385952,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "No action: XGBoost predicts 4.5% failure risk, at or below the 10% target.",
+          "blamed": "none",
+          "cost": 0.0,
+          "true_risk_after": 0.19143554709948335,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": 0.04510865733027458,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 11,
@@ -506,10 +1103,10 @@
       "step": 8358,
       "true_risk_no_action": 0.24668955224779304,
       "failure_rate_no_action": 0.125,
-      "twin_risk_no_action": 0.27271554241587126,
+      "twin_risk_no_action": 0.2727155424158712,
       "twin_risk_no_action_interval": [
-        0.2042075553900574,
-        0.4030468339095339
+        0.2042075553900551,
+        0.4030468339095345
       ],
       "causaltwin": {
         "action": "tool change",
@@ -519,24 +1116,65 @@
         "risk_reduction": 0.24457575131089754,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.009923303218689217,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.009923303218689238,
         "predicted_risk_after_interval": [
           0.007985691040462917,
-          0.011621864236405221
+          0.011621864236405228
         ]
       },
-      "baseline": {
-        "action": "Change lube_rate from 0.662 to 0.53 (-20%).",
-        "blamed": "lube_rate",
-        "cost": 1.6,
-        "true_risk_after": 0.3442155451981854,
-        "risk_reduction": -0.09752599295039238,
-        "failure_rate_after": 0.25,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Change lube_rate from 0.662 to 0.53 (-20%).",
+          "blamed": "lube_rate",
+          "cost": 1.6,
+          "true_risk_after": 0.3442155451981854,
+          "risk_reduction": -0.09752599295039238,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": true,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.018137047067284584,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change lube_rate from 0.662 to 0.53 (-20%).",
+          "blamed": "lube_rate",
+          "cost": 1.6,
+          "true_risk_after": 0.3442155451981854,
+          "risk_reduction": -0.09752599295039238,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": true,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.018137047067284584,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "No action: XGBoost predicts 2.3% failure risk, at or below the 10% target.",
+          "blamed": "none",
+          "cost": 0.0,
+          "true_risk_after": 0.24668955224779304,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": 0.022507784888148308,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 12,
@@ -545,10 +1183,10 @@
       "step": 355,
       "true_risk_no_action": 0.19805343699673347,
       "failure_rate_no_action": 0.25,
-      "twin_risk_no_action": 0.23045077280412138,
+      "twin_risk_no_action": 0.23045077280412143,
       "twin_risk_no_action_interval": [
-        0.16694571632051933,
-        0.3512857569057678
+        0.1669457163205195,
+        0.3512857569057673
       ],
       "causaltwin": {
         "action": "spindle_speed -10%, lube_rate +25%",
@@ -558,24 +1196,65 @@
         "risk_reduction": 0.11539457711308825,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.0757236245078383,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.07572362450783855,
         "predicted_risk_after_interval": [
-          0.05293717284516191,
-          0.11070417642394345
+          0.05293717284516221,
+          0.11070417642394415
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.19805343699673347,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.25,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.19805343699673347,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0018349711175646155,
+          "risk_reduction": 0.19621846587916886,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.00015476587577722967,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change lube_rate from 1.19 to 1.4 (+18%). XGBoost predicts failure risk drops from 14.0% to 7.6% (cost 1.4).",
+          "blamed": "lube_rate",
+          "cost": 1.44,
+          "true_risk_after": 0.12756568410933708,
+          "risk_reduction": 0.0704877528873964,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.07628325372934341,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "baseline",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 13,
@@ -584,10 +1263,10 @@
       "step": 2282,
       "true_risk_no_action": 0.19930678193598161,
       "failure_rate_no_action": 0.0,
-      "twin_risk_no_action": 0.18289190209298045,
+      "twin_risk_no_action": 0.1828919020929807,
       "twin_risk_no_action_interval": [
-        0.13170451871253439,
-        0.26833154391041136
+        0.13170451871253408,
+        0.26833154391041214
       ],
       "causaltwin": {
         "action": "tool change",
@@ -597,24 +1276,65 @@
         "risk_reduction": 0.1988611239240115,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.008837202056496535,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.008837202056496548,
         "predicted_risk_after_interval": [
-          0.007070928374650537,
-          0.01048802813321936
+          0.007070928374650437,
+          0.010488028133219366
         ]
       },
-      "baseline": {
-        "action": "Change the tool.",
-        "blamed": "tool_wear",
-        "cost": 8.0,
-        "true_risk_after": 0.00044565801197009314,
-        "risk_reduction": 0.1988611239240115,
-        "failure_rate_after": 0.0,
-        "success": true,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.00044565801197009314,
+          "risk_reduction": 0.1988611239240115,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0003243678074795753,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.00044565801197009314,
+          "risk_reduction": 0.1988611239240115,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0003243678074795753,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "No action: XGBoost predicts 8.6% failure risk, at or below the 10% target.",
+          "blamed": "none",
+          "cost": 0.0,
+          "true_risk_after": 0.19930678193598161,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": 0.08554428070783615,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "tie"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "tie",
+        "actionable_shap": "tie",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 14,
@@ -623,10 +1343,10 @@
       "step": 3871,
       "true_risk_no_action": 0.2953249169896448,
       "failure_rate_no_action": 0.25,
-      "twin_risk_no_action": 0.27434471490918017,
+      "twin_risk_no_action": 0.2743447149091801,
       "twin_risk_no_action_interval": [
-        0.20209924381033031,
-        0.4112754571719039
+        0.20209924381032934,
+        0.41127545717190306
       ],
       "causaltwin": {
         "action": "tool change",
@@ -636,24 +1356,65 @@
         "risk_reduction": 0.2938188673788835,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.00379144131518436,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.0037914413151843764,
         "predicted_risk_after_interval": [
           0.0028514008710059436,
-          0.004888103368928081
+          0.004888103368928187
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.2953249169896448,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.25,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.2953249169896448,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change coolant_flow from 16.3 to 13 (-20%).",
+          "blamed": "coolant_flow",
+          "cost": 0.9999999999999997,
+          "true_risk_after": 0.3382112879321305,
+          "risk_reduction": -0.04288637094248571,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": true,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.07954268157482147,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change coolant_flow from 16.3 to 13.7 (-16%). XGBoost predicts failure risk drops from 12.5% to 8.0% (cost 0.8).",
+          "blamed": "coolant_flow",
+          "cost": 0.8,
+          "true_risk_after": 0.3230630601671721,
+          "risk_reduction": -0.02773814317752732,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": true,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.07954268157482147,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 15,
@@ -662,10 +1423,10 @@
       "step": 4452,
       "true_risk_no_action": 0.22011709897937315,
       "failure_rate_no_action": 0.125,
-      "twin_risk_no_action": 0.24924688646179213,
+      "twin_risk_no_action": 0.249246886461792,
       "twin_risk_no_action_interval": [
-        0.17486475046816544,
-        0.3748845290074552
+        0.1748647504681647,
+        0.3748845290074541
       ],
       "causaltwin": {
         "action": "tool change",
@@ -675,24 +1436,65 @@
         "risk_reduction": 0.215525702084136,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.0050412302279466345,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.00504123022794667,
         "predicted_risk_after_interval": [
           0.00292070911353155,
-          0.008161880243867919
+          0.008161880243867936
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.22011709897937315,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.125,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.22011709897937315,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change lube_rate from 0.61 to 0.732 (+20%).",
+          "blamed": "lube_rate",
+          "cost": 1.5999999999999996,
+          "true_risk_after": 0.2058718403224113,
+          "risk_reduction": 0.014245258656961857,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.08024904131889343,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "No action: XGBoost predicts 8.5% failure risk, at or below the 10% target.",
+          "blamed": "none",
+          "cost": 0.0,
+          "true_risk_after": 0.22011709897937315,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": 0.08485256135463715,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 16,
@@ -701,10 +1503,10 @@
       "step": 7497,
       "true_risk_no_action": 0.21483732134607025,
       "failure_rate_no_action": 0.125,
-      "twin_risk_no_action": 0.26480489300380067,
+      "twin_risk_no_action": 0.26480489300380056,
       "twin_risk_no_action_interval": [
-        0.19392314808020014,
-        0.3970132848680522
+        0.1939231480802003,
+        0.3970132848680528
       ],
       "causaltwin": {
         "action": "tool change",
@@ -714,24 +1516,65 @@
         "risk_reduction": 0.21244713582500252,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.006340329034971721,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.0063403290349717464,
         "predicted_risk_after_interval": [
           0.004698866001329328,
           0.008286378087409976
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.21483732134607025,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.125,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.21483732134607025,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0023901855210677198,
+          "risk_reduction": 0.21244713582500252,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.00039581264718435705,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change coolant_flow from 10.6 to 10.1 (-5%); lube_rate from 0.869 to 0.956 (+10%). XGBoost predicts failure risk drops from 10.2% to 7.8% (cost 1.1).",
+          "blamed": "coolant_flow + lube_rate",
+          "cost": 1.0500000000000012,
+          "true_risk_after": 0.22544831196797205,
+          "risk_reduction": -0.010610990621901795,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": true,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.07787202298641205,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 17,
@@ -740,10 +1583,10 @@
       "step": 8450,
       "true_risk_no_action": 0.4559403740727459,
       "failure_rate_no_action": 0.5,
-      "twin_risk_no_action": 0.4424951503603737,
+      "twin_risk_no_action": 0.442495150360373,
       "twin_risk_no_action_interval": [
-        0.33964253278468176,
-        0.616929628806268
+        0.3396425327846805,
+        0.6169296288062683
       ],
       "causaltwin": {
         "action": "tool change",
@@ -753,24 +1596,65 @@
         "risk_reduction": 0.4490998078898501,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.01413234306393317,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.0141323430639332,
         "predicted_risk_after_interval": [
-          0.010887912275184592,
+          0.010887912275184486,
           0.0180444180257589
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.4559403740727459,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.5,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.4559403740727459,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.5,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.006840566182895816,
+          "risk_reduction": 0.4490998078898501,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.001930489670485258,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 22.3% to 0.2% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.006840566182895816,
+          "risk_reduction": 0.4490998078898501,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.001930489670485258,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 18,
@@ -779,10 +1663,10 @@
       "step": 841,
       "true_risk_no_action": 0.770719602781297,
       "failure_rate_no_action": 0.625,
-      "twin_risk_no_action": 0.7604485128434285,
+      "twin_risk_no_action": 0.7604485128434268,
       "twin_risk_no_action_interval": [
-        0.6240806680887268,
-        0.919513911021585
+        0.6240806680887254,
+        0.9195139110215838
       ],
       "causaltwin": {
         "action": "tool change",
@@ -792,24 +1676,65 @@
         "risk_reduction": 0.7400096453796688,
         "failure_rate_after": 0.0,
         "success": true,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
         "predicted_risk_after": 0.04787827447612084,
         "predicted_risk_after_interval": [
-          0.034351147412060815,
-          0.06387796846753818
+          0.03435114741206069,
+          0.06387796846753852
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.770719602781297,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.625,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.770719602781297,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.625,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change coolant_flow from 14.7 to 11.7 (-20%).",
+          "blamed": "coolant_flow",
+          "cost": 0.9999999999999999,
+          "true_risk_after": 0.8188876535179361,
+          "risk_reduction": -0.0481680507366391,
+          "failure_rate_after": 0.75,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": true,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.7420631051063538,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 76.6% to 0.4% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0307099574016282,
+          "risk_reduction": 0.7400096453796688,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.003815565025433898,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 19,
@@ -818,10 +1743,10 @@
       "step": 1368,
       "true_risk_no_action": 0.21018082926171072,
       "failure_rate_no_action": 0.125,
-      "twin_risk_no_action": 0.18689989715357036,
+      "twin_risk_no_action": 0.18689989715357044,
       "twin_risk_no_action_interval": [
-        0.12836059026832214,
-        0.2874638959200216
+        0.12836059026832222,
+        0.2874638959200213
       ],
       "causaltwin": {
         "action": "spindle_speed -10%, coolant_flow +20%",
@@ -831,24 +1756,65 @@
         "risk_reduction": 0.1166010254112934,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.0785443883232145,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.07854438832321473,
         "predicted_risk_after_interval": [
-          0.05393615135391412,
-          0.12434063527233265
+          0.05393615135391402,
+          0.12434063527233341
         ]
       },
-      "baseline": {
-        "action": "ambient_temp cannot be controlled; no action.",
-        "blamed": "ambient_temp",
-        "cost": 0.0,
-        "true_risk_after": 0.21018082926171072,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.125,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "ambient_temp cannot be controlled; no action.",
+          "blamed": "ambient_temp",
+          "cost": 0.0,
+          "true_risk_after": 0.21018082926171072,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change coolant_flow from 21.5 to 25.8 (+20%).",
+          "blamed": "coolant_flow",
+          "cost": 1.0000000000000002,
+          "true_risk_after": 0.1597683875180809,
+          "risk_reduction": 0.05041244174362983,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.01473273802548647,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "No action: XGBoost predicts 7.7% failure risk, at or below the 10% target.",
+          "blamed": "none",
+          "cost": 0.0,
+          "true_risk_after": 0.21018082926171072,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": 0.07678427547216415,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 20,
@@ -859,8 +1825,8 @@
       "failure_rate_no_action": 0.25,
       "twin_risk_no_action": 0.2593660643614786,
       "twin_risk_no_action_interval": [
-        0.19329384511959802,
-        0.3866272702293726
+        0.19329384511959696,
+        0.38662727022937315
       ],
       "causaltwin": {
         "action": "tool change",
@@ -870,24 +1836,65 @@
         "risk_reduction": 0.2904708930117122,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.0071572431115916844,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.007157243111591709,
         "predicted_risk_after_interval": [
           0.005579319425418128,
           0.008648724190126366
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.2926898469086092,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.25,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.2926898469086092,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0022189538968970107,
+          "risk_reduction": 0.2904708930117122,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.00016701739514246583,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 34.6% to 0.0% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0022189538968970107,
+          "risk_reduction": 0.2904708930117122,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.00016701739514246583,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 21,
@@ -896,10 +1903,10 @@
       "step": 2511,
       "true_risk_no_action": 0.1810111282436498,
       "failure_rate_no_action": 0.125,
-      "twin_risk_no_action": 0.17755513332098846,
+      "twin_risk_no_action": 0.1775551333209885,
       "twin_risk_no_action_interval": [
-        0.1192356044013352,
-        0.2753637127423658
+        0.11923560440133504,
+        0.2753637127423653
       ],
       "causaltwin": {
         "action": "spindle_speed -10%, coolant_flow +30%",
@@ -909,24 +1916,65 @@
         "risk_reduction": 0.08657175832907883,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.0749238732456816,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.0749238732456818,
         "predicted_risk_after_interval": [
-          0.04981617721673181,
-          0.12254270504146265
+          0.04981617721673223,
+          0.12254270504146342
         ]
       },
-      "baseline": {
-        "action": "ambient_temp cannot be controlled; no action.",
-        "blamed": "ambient_temp",
-        "cost": 0.0,
-        "true_risk_after": 0.1810111282436498,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.125,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "ambient_temp cannot be controlled; no action.",
+          "blamed": "ambient_temp",
+          "cost": 0.0,
+          "true_risk_after": 0.1810111282436498,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change lube_rate from 0.637 to 0.828 (+30%).",
+          "blamed": "lube_rate",
+          "cost": 2.400000000000001,
+          "true_risk_after": 0.14185322705557335,
+          "risk_reduction": 0.03915790118807644,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.02240120619535446,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "No action: XGBoost predicts 2.6% failure risk, at or below the 10% target.",
+          "blamed": "none",
+          "cost": 0.0,
+          "true_risk_after": 0.1810111282436498,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": 0.025726910680532455,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "causaltwin"
+      }
     },
     {
       "case_id": 22,
@@ -935,10 +1983,10 @@
       "step": 3147,
       "true_risk_no_action": 0.49568063763990144,
       "failure_rate_no_action": 0.5,
-      "twin_risk_no_action": 0.6347191863234591,
+      "twin_risk_no_action": 0.6347191863234578,
       "twin_risk_no_action_interval": [
-        0.4981184281011858,
-        0.8319022762475755
+        0.4981184281011853,
+        0.8319022762475738
       ],
       "causaltwin": {
         "action": "tool change",
@@ -948,24 +1996,65 @@
         "risk_reduction": 0.4886669044526135,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.008826645209846995,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.008826645209847044,
         "predicted_risk_after_interval": [
-          0.00535259918459165,
-          0.014104609294925179
+          0.005352599184591656,
+          0.014104609294925284
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.49568063763990144,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.5,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.49568063763990144,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.5,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.007013733187287957,
+          "risk_reduction": 0.4886669044526135,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0006820695125497878,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 39.4% to 0.1% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.007013733187287957,
+          "risk_reduction": 0.4886669044526135,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0006820695125497878,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 23,
@@ -974,10 +2063,10 @@
       "step": 4059,
       "true_risk_no_action": 0.3748909845154063,
       "failure_rate_no_action": 0.25,
-      "twin_risk_no_action": 0.3565900770382118,
+      "twin_risk_no_action": 0.35659007703821144,
       "twin_risk_no_action_interval": [
-        0.2678233853415204,
-        0.5130618334012531
+        0.2678233853415201,
+        0.5130618334012536
       ],
       "causaltwin": {
         "action": "tool change",
@@ -987,24 +2076,65 @@
         "risk_reduction": 0.36885700726275594,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.014340634174866206,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.014340634174866225,
         "predicted_risk_after_interval": [
           0.01115317125180051,
-          0.018014630248002275
+          0.018014630248002393
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.3748909845154063,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.25,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.3748909845154063,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change lube_rate from 0.732 to 0.586 (-20%).",
+          "blamed": "lube_rate",
+          "cost": 1.5999999999999994,
+          "true_risk_after": 0.4834442616180781,
+          "risk_reduction": -0.10855327710267176,
+          "failure_rate_after": 0.5,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": true,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.3228858709335327,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 37.3% to 0.6% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.006033977252650355,
+          "risk_reduction": 0.36885700726275594,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.005529581569135189,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 24,
@@ -1013,10 +2143,10 @@
       "step": 352,
       "true_risk_no_action": 0.7742701283490396,
       "failure_rate_no_action": 0.625,
-      "twin_risk_no_action": 0.8861737502706329,
+      "twin_risk_no_action": 0.8861737502706316,
       "twin_risk_no_action_interval": [
-        0.7937482229635894,
-        0.9819978521525574
+        0.7937482229635885,
+        0.9819978521525572
       ],
       "causaltwin": {
         "action": "tool change",
@@ -1026,24 +2156,65 @@
         "risk_reduction": 0.7673487519213946,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.023548881954463096,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.023548881954463113,
         "predicted_risk_after_interval": [
-          0.018992703911868487,
-          0.028401508003045365
+          0.018992703911868376,
+          0.02840150800304526
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.7742701283490396,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.625,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.7742701283490396,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.625,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change lube_rate from 0.626 to 0.501 (-20%).",
+          "blamed": "lube_rate",
+          "cost": 1.6000000000000003,
+          "true_risk_after": 0.905428431153461,
+          "risk_reduction": -0.13115830280442142,
+          "failure_rate_after": 0.75,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": true,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.2625763416290283,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 33.8% to 0.1% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.006921376427645037,
+          "risk_reduction": 0.7673487519213946,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.001311780884861946,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 25,
@@ -1052,10 +2223,10 @@
       "step": 910,
       "true_risk_no_action": 0.6007079641750476,
       "failure_rate_no_action": 0.625,
-      "twin_risk_no_action": 0.47186082145799163,
+      "twin_risk_no_action": 0.4718608214579911,
       "twin_risk_no_action_interval": [
-        0.3628040144625672,
-        0.6506307904032299
+        0.36280401446256566,
+        0.6506307904032291
       ],
       "causaltwin": {
         "action": "tool change",
@@ -1065,24 +2236,65 @@
         "risk_reduction": 0.5952068766088754,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.006743348767805715,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.006743348767805741,
         "predicted_risk_after_interval": [
-          0.0049991413682783595,
+          0.0049991413682784645,
           0.008772143590543716
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.6007079641750476,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.625,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.6007079641750476,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.625,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.005501087566172139,
+          "risk_reduction": 0.5952068766088754,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.00028719668625853956,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 38.4% to 0.0% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.005501087566172139,
+          "risk_reduction": 0.5952068766088754,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.00028719668625853956,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 26,
@@ -1091,10 +2303,10 @@
       "step": 1310,
       "true_risk_no_action": 0.4791608039505746,
       "failure_rate_no_action": 0.5,
-      "twin_risk_no_action": 0.48037175417056405,
+      "twin_risk_no_action": 0.4803717541705636,
       "twin_risk_no_action_interval": [
-        0.3725323149236154,
-        0.6497760858445546
+        0.3725323149236158,
+        0.649776085844553
       ],
       "causaltwin": {
         "action": "tool change",
@@ -1104,24 +2316,65 @@
         "risk_reduction": 0.4783470452956696,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.014920414162940227,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.01492041416294023,
         "predicted_risk_after_interval": [
-          0.01203949926573739,
+          0.012039499265737491,
           0.017867021609693123
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.4791608039505746,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.5,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.4791608039505746,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.5,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0008137586549049336,
+          "risk_reduction": 0.4783470452956696,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0030994743574410677,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 65.7% to 0.3% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0008137586549049336,
+          "risk_reduction": 0.4783470452956696,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0030994743574410677,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "tie",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 27,
@@ -1130,10 +2383,10 @@
       "step": 1740,
       "true_risk_no_action": 0.2391059193811299,
       "failure_rate_no_action": 0.25,
-      "twin_risk_no_action": 0.19613236873907539,
+      "twin_risk_no_action": 0.1961323687390756,
       "twin_risk_no_action_interval": [
-        0.13970757225938876,
-        0.2955780313808071
+        0.13970757225938865,
+        0.2955780313808065
       ],
       "causaltwin": {
         "action": "coolant_flow +25%, lube_rate +20%",
@@ -1143,24 +2396,65 @@
         "risk_reduction": 0.14485400058862544,
         "failure_rate_after": 0.0,
         "success": true,
-        "predicted_risk_after": 0.07846219787709267,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.07846219787709297,
         "predicted_risk_after_interval": [
-          0.054062571097405226,
-          0.11668465687019677
+          0.054062571097405566,
+          0.11668465687019683
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.2391059193811299,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.25,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.2391059193811299,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0007270016663187551,
+          "risk_reduction": 0.23837891771481115,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0007705303141847253,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change the tool. XGBoost predicts failure risk drops from 40.3% to 0.1% (cost 8.0).",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0007270016663187551,
+          "risk_reduction": 0.23837891771481115,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0007705303141847253,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "baseline",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "baseline",
+        "counterfactual": "baseline"
+      }
     },
     {
       "case_id": 28,
@@ -1169,9 +2463,9 @@
       "step": 2168,
       "true_risk_no_action": 0.21210529904443903,
       "failure_rate_no_action": 0.0,
-      "twin_risk_no_action": 0.13187335906721173,
+      "twin_risk_no_action": 0.13187335906721193,
       "twin_risk_no_action_interval": [
-        0.09359642796671877,
+        0.09359642796671873,
         0.21086036417642723
       ],
       "causaltwin": {
@@ -1182,24 +2476,65 @@
         "risk_reduction": 0.07837888855692385,
         "failure_rate_after": 0.0,
         "success": false,
-        "predicted_risk_after": 0.07586316159368905,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.07586316159368929,
         "predicted_risk_after_interval": [
-          0.053323189087965094,
-          0.11466519615756691
+          0.05332318908796562,
+          0.11466519615756775
         ]
       },
-      "baseline": {
-        "action": "ambient_temp cannot be controlled; no action.",
-        "blamed": "ambient_temp",
-        "cost": 0.0,
-        "true_risk_after": 0.21210529904443903,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.0,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "ambient_temp cannot be controlled; no action.",
+          "blamed": "ambient_temp",
+          "cost": 0.0,
+          "true_risk_after": 0.21210529904443903,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change the tool.",
+          "blamed": "tool_wear",
+          "cost": 8.0,
+          "true_risk_after": 0.0022174927715286064,
+          "risk_reduction": 0.20988780627291043,
+          "failure_rate_after": 0.0,
+          "success": true,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.0007789959199726582,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "Change load_pct from 56.8 to 54 (-5%); lube_rate from 0.795 to 0.993 (+25%). XGBoost predicts failure risk drops from 21.3% to 8.0% (cost 7.0).",
+          "blamed": "load_pct + lube_rate",
+          "cost": 7.000000000000002,
+          "true_risk_after": 0.1255996544304692,
+          "risk_reduction": 0.08650564461396984,
+          "failure_rate_after": 0.0,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.07972979545593262,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "tie",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "baseline",
+        "counterfactual": "tie"
+      }
     },
     {
       "case_id": 29,
@@ -1208,10 +2543,10 @@
       "step": 2636,
       "true_risk_no_action": 0.2205038326133532,
       "failure_rate_no_action": 0.25,
-      "twin_risk_no_action": 0.14591241909604485,
+      "twin_risk_no_action": 0.145912419096045,
       "twin_risk_no_action_interval": [
-        0.10207819421737091,
-        0.23713564265609563
+        0.10207819421737079,
+        0.23713564265609544
       ],
       "causaltwin": {
         "action": "spindle_speed -10%, coolant_flow +5%",
@@ -1221,43 +2556,84 @@
         "risk_reduction": 0.10820186542682973,
         "failure_rate_after": 0.0,
         "success": false,
-        "predicted_risk_after": 0.07831675291767912,
+        "no_action": false,
+        "worse_than_no_action": false,
+        "false_reassurance": false,
+        "predicted_risk_after": 0.07831675291767932,
         "predicted_risk_after_interval": [
-          0.05350603525030002,
-          0.1253391385083988
+          0.05350603525030001,
+          0.125339138508399
         ]
       },
-      "baseline": {
-        "action": "Damp vibration (remove the vibration signal's noise component).",
-        "blamed": "vibration",
-        "cost": 3.0,
-        "true_risk_after": 0.2205038326133532,
-        "risk_reduction": 0.0,
-        "failure_rate_after": 0.25,
-        "success": false,
-        "predicted_risk_after": null,
-        "predicted_risk_after_interval": null
+      "baselines": {
+        "naive_shap": {
+          "action": "Damp vibration (remove the vibration signal's noise component).",
+          "blamed": "vibration",
+          "cost": 3.0,
+          "true_risk_after": 0.2205038326133532,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": null,
+          "predicted_risk_after_interval": null
+        },
+        "actionable_shap": {
+          "action": "Change load_pct from 69.9 to 62.9 (-10%).",
+          "blamed": "load_pct",
+          "cost": 10.000000000000002,
+          "true_risk_after": 0.1924378501004699,
+          "risk_reduction": 0.02806598251288331,
+          "failure_rate_after": 0.125,
+          "success": false,
+          "no_action": false,
+          "worse_than_no_action": false,
+          "false_reassurance": false,
+          "predicted_risk_after": 0.05935997888445854,
+          "predicted_risk_after_interval": null
+        },
+        "counterfactual": {
+          "action": "No action: XGBoost predicts 8.8% failure risk, at or below the 10% target.",
+          "blamed": "none",
+          "cost": 0.0,
+          "true_risk_after": 0.2205038326133532,
+          "risk_reduction": 0.0,
+          "failure_rate_after": 0.25,
+          "success": false,
+          "no_action": true,
+          "worse_than_no_action": false,
+          "false_reassurance": true,
+          "predicted_risk_after": 0.08802320063114166,
+          "predicted_risk_after_interval": null
+        }
       },
-      "winner": "causaltwin"
+      "winner": "causaltwin",
+      "winner_by_baseline": {
+        "naive_shap": "causaltwin",
+        "actionable_shap": "causaltwin",
+        "counterfactual": "causaltwin"
+      }
     }
   ],
   "calibration": {
     "n_cases": 30,
     "no_action": {
-      "mean_predicted": 0.3075386984486156,
+      "mean_predicted": 0.3075386984486155,
       "mean_true": 0.3041404116551862,
-      "mean_error": 0.0033982867934293404,
-      "mean_absolute_error": 0.04063541266439898,
+      "mean_error": 0.0033982867934291587,
+      "mean_absolute_error": 0.040635412664398914,
       "interval_coverage": 0.8666666666666667,
-      "correlation": 0.9559547947468048
+      "correlation": 0.955954794746805
     },
     "after_action": {
-      "mean_predicted": 0.03530188963042734,
+      "mean_predicted": 0.03530188963042745,
       "mean_true": 0.03775064957409618,
-      "mean_error": -0.002448759943668833,
-      "mean_absolute_error": 0.01072270897829497,
+      "mean_error": -0.00244875994366873,
+      "mean_absolute_error": 0.010722708978294894,
       "interval_coverage": 0.43333333333333335,
-      "correlation": 0.9677505903598685
+      "correlation": 0.9677505903598687
     }
   },
   "baseline_accuracy": {
@@ -1270,7 +2646,7 @@
     "precision": 0.3007380073800738,
     "recall": 0.3196078431372549,
     "f1": 0.30988593155893535,
-    "training_seconds": 1.7197276999977475
+    "training_seconds": 0.3333195909999631
   },
   "graph_recovery": {
     "graph_recovery_with_failure": {
@@ -1301,7 +2677,7 @@
     }
   },
   "timing_seconds": {
-    "situation_search": 22.893735699999525,
-    "total": 57.99304659999689
+    "situation_search": 4.662233241999957,
+    "total": 13.093882163999979
   }
 }

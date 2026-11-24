@@ -38,12 +38,18 @@ def main() -> None:
     print(f"Benchmark: {results['n_cases']} cases in {time.perf_counter() - start:.1f} s -> {BENCHMARK_RESULTS_PATH}")
     print(json.dumps(results["summary"], indent=2))
     for case in results["cases"]:
-        ct, bl = case["causaltwin"], case["baseline"]
+        ct = case["causaltwin"]
         print(
             f"  #{case['case_id']:2d} {case['scenario']:16s} risk {case['true_risk_no_action']:.2f} | CT "
-            f"{ct['action']:<40s} -> {ct['true_risk_after']:.3f} (cost {ct['cost']:.1f}) | ML blames "
-            f"{bl['blamed']:<13s} {bl['action'][:42]:<42s} -> {bl['true_risk_after']:.3f} | {case['winner']}"
+            f"{ct['action']:<40s} -> {ct['true_risk_after']:.3f} (cost {ct['cost']:.1f}) | vs B3: {case['winner']}"
         )
+        for method, label in results["summary"]["baseline_labels"].items():
+            other = case["baselines"][method]
+            flags = [name for name in ("worse_than_no_action", "false_reassurance") if other[name]]
+            print(
+                f"      {label:26s} {other['action'][:70]:<70s} -> {other['true_risk_after']:.3f} "
+                f"(cost {other['cost']:.1f}){' ' + ', '.join(flags) if flags else ''}"
+            )
     print("baseline accuracy:", results["baseline_accuracy"])
     if arguments.drift:
         drift: dict[str, list[dict[str, Any]]] = {"faults": [], "false_alarms": []}

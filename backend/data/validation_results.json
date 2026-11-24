@@ -92,7 +92,7 @@
       "effect": "coolant_temp",
       "lag": 1,
       "strength": 0.052,
-      "p_value": 8.175457159321653e-91,
+      "p_value": 8.175461047907537e-91,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -101,7 +101,7 @@
       "effect": "motor_current",
       "lag": 1,
       "strength": 0.4368,
-      "p_value": 3.4021510471701854e-256,
+      "p_value": 3.402150343340492e-256,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -110,7 +110,7 @@
       "effect": "vibration",
       "lag": 1,
       "strength": 0.4004,
-      "p_value": 2.455049950365138e-202,
+      "p_value": 2.455048891197516e-202,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -119,7 +119,7 @@
       "effect": "tool_wear",
       "lag": 1,
       "strength": 0.4891,
-      "p_value": 1.1292010786625417e-173,
+      "p_value": 1.1291804558266885e-173,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -128,7 +128,7 @@
       "effect": "motor_current",
       "lag": 1,
       "strength": 0.3161,
-      "p_value": 3.472028896791609e-126,
+      "p_value": 3.472028486236452e-126,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -137,7 +137,7 @@
       "effect": "bearing_temp",
       "lag": 1,
       "strength": 0.1762,
-      "p_value": 4.931929253070615e-47,
+      "p_value": 4.93192711991102e-47,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -155,7 +155,7 @@
       "effect": "tool_wear",
       "lag": 1,
       "strength": 0.5544,
-      "p_value": 9.512613772181719e-229,
+      "p_value": 9.512469813824177e-229,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -164,7 +164,7 @@
       "effect": "coolant_temp",
       "lag": 1,
       "strength": -0.3801,
-      "p_value": 8.568684823903481e-200,
+      "p_value": 8.56869526034945e-200,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -173,7 +173,7 @@
       "effect": "bearing_temp",
       "lag": 2,
       "strength": -0.1588,
-      "p_value": 6.293205969932943e-187,
+      "p_value": 6.293200889816445e-187,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -182,7 +182,7 @@
       "effect": "bearing_temp",
       "lag": 2,
       "strength": 0.1985,
-      "p_value": 2.7469602598129308e-46,
+      "p_value": 2.7469610099211392e-46,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -191,7 +191,7 @@
       "effect": "bearing_temp",
       "lag": 2,
       "strength": 0.1105,
-      "p_value": 1.0218939230334018e-36,
+      "p_value": 1.0218955763613871e-36,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -200,7 +200,7 @@
       "effect": "vibration",
       "lag": 1,
       "strength": 0.1168,
-      "p_value": 6.74755244912376e-178,
+      "p_value": 6.747551697677177e-178,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -209,7 +209,7 @@
       "effect": "failure",
       "lag": 1,
       "strength": 1.8197,
-      "p_value": 2.7532921263426238e-08,
+      "p_value": 2.7532921263424894e-08,
       "confidence": 1.0,
       "uncertain": false
     },
@@ -218,7 +218,7 @@
       "effect": "failure",
       "lag": 1,
       "strength": 2.4112,
-      "p_value": 1.0842377041921641e-07,
+      "p_value": 1.0842377041919241e-07,
       "confidence": 1.0,
       "uncertain": false
     }
@@ -278,7 +278,7 @@
       ],
       "intercept": 3.7427423099512005,
       "equation": "coolant_temp(t) = 0.7083*coolant_temp(t-1) + 0.2844*ambient_temp(t-1) - 0.1339*coolant_flow(t-1) + 3.743",
-      "r_squared_holdout": 0.9217661921498748,
+      "r_squared_holdout": 0.9217661921498745,
       "residual_std": 0.3003240889682808,
       "auc_holdout": null,
       "n_train": 2356,
@@ -292,33 +292,33 @@
         {
           "variable": "bearing_temp",
           "lag": 1,
-          "coefficient": 0.7980289108801374
+          "coefficient": 0.7980289108801358
         },
         {
           "variable": "spindle_speed",
           "lag": 1,
-          "coefficient": 0.000782437597600104
+          "coefficient": 0.0007824375976001394
         },
         {
           "variable": "lube_rate",
           "lag": 2,
-          "coefficient": -2.2751249242207248
+          "coefficient": -2.2751249242207408
         },
         {
           "variable": "motor_current",
           "lag": 2,
-          "coefficient": 0.14417042642317596
+          "coefficient": 0.14417042642317324
         },
         {
           "variable": "coolant_temp",
           "lag": 2,
-          "coefficient": 0.19812947892080826
+          "coefficient": 0.19812947892081093
         }
       ],
       "intercept": 0.1444529195069819,
       "equation": "bearing_temp(t) = 0.798*bearing_temp(t-1) + 0.0007824*spindle_speed(t-1) - 2.275*lube_rate(t-2) + 0.1442*motor_current(t-2) + 0.1981*coolant_temp(t-2) + 0.1445",
       "r_squared_holdout": 0.9928265933212586,
-      "residual_std": 0.40572292459745224,
+      "residual_std": 0.4057229245974522,
       "auc_holdout": null,
       "n_train": 2348,
       "n_holdout": 587,
@@ -331,28 +331,28 @@
         {
           "variable": "vibration",
           "lag": 1,
-          "coefficient": 0.3954319770147862
+          "coefficient": 0.3954319770147811
         },
         {
           "variable": "load_pct",
           "lag": 1,
-          "coefficient": 0.012033468451110236
+          "coefficient": 0.012033468451110309
         },
         {
           "variable": "spindle_speed",
           "lag": 1,
-          "coefficient": 0.0004532014401660461
+          "coefficient": 0.0004532014401660501
         },
         {
           "variable": "tool_wear",
           "lag": 1,
-          "coefficient": 0.012173660636846505
+          "coefficient": 0.01217366063684661
         }
       ],
-      "intercept": 0.12180850182912017,
+      "intercept": 0.12180850182912195,
       "equation": "vibration(t) = 0.3954*vibration(t-1) + 0.01203*load_pct(t-1) + 0.0004532*spindle_speed(t-1) + 0.01217*tool_wear(t-1) + 0.1218",
-      "r_squared_holdout": 0.9872282004240676,
-      "residual_std": 0.07670250304899243,
+      "r_squared_holdout": 0.9872282004240674,
+      "residual_std": 0.07670250304899241,
       "auc_holdout": null,
       "n_train": 2356,
       "n_holdout": 590,
@@ -365,38 +365,38 @@
         {
           "variable": "tool_wear",
           "lag": 1,
-          "coefficient": 1.0000609990316716
+          "coefficient": 1.0000609990322173
         },
         {
           "variable": "tool_wear",
           "lag": 2,
-          "coefficient": -0.00014565569122970297
+          "coefficient": -0.0001456556917752091
         },
         {
           "variable": "load_pct",
           "lag": 1,
-          "coefficient": 0.0025887159534280727
+          "coefficient": 0.002588715953415305
         },
         {
           "variable": "load_pct",
           "lag": 2,
-          "coefficient": 5.021494143861317e-06
+          "coefficient": 5.0214941545789215e-06
         },
         {
           "variable": "spindle_speed",
           "lag": 1,
-          "coefficient": 7.584924809400271e-05
+          "coefficient": 7.58492480939071e-05
         },
         {
           "variable": "spindle_speed",
           "lag": 2,
-          "coefficient": -4.530299589864972e-06
+          "coefficient": -4.53029958980657e-06
         }
       ],
-      "intercept": -0.2130400258893843,
+      "intercept": -0.21304002588927773,
       "equation": "tool_wear(t) = 1*tool_wear(t-1) - 0.0001457*tool_wear(t-2) + 0.002589*load_pct(t-1) + 5.021e-06*load_pct(t-2) + 7.585e-05*spindle_speed(t-1) - 4.53e-06*spindle_speed(t-2) - 0.213",
       "r_squared_holdout": 0.9989111289334742,
-      "residual_std": 0.7494440584424653,
+      "residual_std": 0.7494440584424706,
       "auc_holdout": null,
       "n_train": 2348,
       "n_holdout": 587,
@@ -411,15 +411,15 @@
         {
           "variable": "bearing_temp",
           "lag": 1,
-          "coefficient": 0.2553041979733251
+          "coefficient": 0.25530419797332443
         },
         {
           "variable": "tool_wear",
           "lag": 1,
-          "coefficient": 0.07845630452004204
+          "coefficient": 0.07845630452004188
         }
       ],
-      "intercept": -27.453023403602078,
+      "intercept": -27.45302340360202,
       "equation": "logit P(failure(t)) = 0.2553*bearing_temp(t-1) + 0.07846*tool_wear(t-1) - 27.45",
       "r_squared_holdout": null,
       "residual_std": null,
@@ -432,8 +432,8 @@
     }
   ],
   "numpy_vs_tigramite_max_abs_difference": {
-    "partial_correlation": 8.183792065612032e-08,
-    "p_value": 3.4458108301160806e-06
+    "partial_correlation": 5.269547898034688e-08,
+    "p_value": 1.928231253112145e-06
   },
   "trap_check": {
     "discovered_failure_causes": [
@@ -441,7 +441,7 @@
       "tool_wear"
     ],
     "vibration_is_discovered_cause": false,
-    "vibration_failure_screen_p_value": 0.9297920888707188,
+    "vibration_failure_screen_p_value": 0.9297920888707207,
     "vibration_failure_correlation": 0.24663616836525196,
     "symptoms": [
       "vibration"
@@ -454,12 +454,12 @@
     "n_cases": 20,
     "seeds_per_case": 8,
     "horizon_steps": 30,
-    "bearing_temp_mae_end": 1.2636069946221078,
-    "bearing_temp_mae_mean": 0.6391030694406084,
+    "bearing_temp_mae_end": 1.2636069946221014,
+    "bearing_temp_mae_mean": 0.6391030694405947,
     "bearing_temp_mean_abs_true_change": 2.932571580931598,
     "bearing_temp_direction_accuracy": 0.9473684210526315,
     "bearing_temp_direction_cases": 19,
-    "risk_mae": 0.005683228972398077,
+    "risk_mae": 0.005683228972397936,
     "risk_mean_abs_true_change": 0.015627544546630685,
     "risk_direction_accuracy": 1.0,
     "risk_direction_cases": 9,
@@ -469,274 +469,274 @@
         "lever": "load_pct",
         "from": 98.1838766705101,
         "to": 75.79965793497661,
-        "predicted_bearing_change_end": -3.5099229884495315,
+        "predicted_bearing_change_end": -3.509922988449489,
         "true_bearing_change_end": -2.2790599499931403,
-        "predicted_bearing_change_mean": -2.592228022319324,
+        "predicted_bearing_change_mean": -2.5922280223192855,
         "true_bearing_change_mean": -1.7014493740501984,
-        "predicted_risk_change": -0.0526261943040937,
+        "predicted_risk_change": -0.05262619430409247,
         "true_risk_change": -0.06803850292660801,
-        "predicted_baseline_risk": 0.10532157668511659
+        "predicted_baseline_risk": 0.10532157668511904
       },
       {
         "step": 61590,
         "lever": "load_pct",
         "from": 56.916234411352214,
         "to": 43.79380040025794,
-        "predicted_bearing_change_end": -2.057643080785155,
+        "predicted_bearing_change_end": -2.0576430807850983,
         "true_bearing_change_end": -2.071339405198331,
-        "predicted_bearing_change_mean": -1.5196572892042037,
+        "predicted_bearing_change_mean": -1.5196572892041655,
         "true_bearing_change_mean": -1.506527904865433,
-        "predicted_risk_change": -0.011105405171191608,
+        "predicted_risk_change": -0.011105405171191872,
         "true_risk_change": -0.011062419548108146,
-        "predicted_baseline_risk": 0.03435111256494241
+        "predicted_baseline_risk": 0.0343511125649449
       },
       {
         "step": 62091,
         "lever": "load_pct",
         "from": 69.02921981819165,
         "to": 87.3343228674527,
-        "predicted_bearing_change_end": 2.8703035275717355,
+        "predicted_bearing_change_end": 2.8703035275716573,
         "true_bearing_change_end": 2.6342271105855506,
-        "predicted_bearing_change_mean": 2.1198417347670055,
+        "predicted_bearing_change_mean": 2.119841734766953,
         "true_bearing_change_mean": 2.00637905513432,
-        "predicted_risk_change": 0.0033279840640476222,
+        "predicted_risk_change": 0.0033279840640474227,
         "true_risk_change": 0.0069990183998820815,
-        "predicted_baseline_risk": 0.003970262598714006
+        "predicted_baseline_risk": 0.003970262598714194
       },
       {
         "step": 62632,
         "lever": "coolant_flow",
         "from": 14.158368331238691,
         "to": 11.522329163406171,
-        "predicted_bearing_change_end": 1.1799435377344878,
+        "predicted_bearing_change_end": 1.179943537734502,
         "true_bearing_change_end": 1.6203175011701898,
-        "predicted_bearing_change_mean": 0.8166122879275013,
+        "predicted_bearing_change_mean": 0.8166122879275077,
         "true_bearing_change_mean": 1.0784163089718395,
-        "predicted_risk_change": 0.04788451490321444,
+        "predicted_risk_change": 0.04788451490321466,
         "true_risk_change": 0.06768915664601925,
-        "predicted_baseline_risk": 0.8599506916802236
+        "predicted_baseline_risk": 0.8599506916802181
       },
       {
         "step": 62910,
         "lever": "spindle_speed",
         "from": 3507.3314991588,
         "to": 4163.422157847464,
-        "predicted_bearing_change_end": 4.412301113117216,
+        "predicted_bearing_change_end": 4.412301113117259,
         "true_bearing_change_end": 5.216893860758733,
-        "predicted_bearing_change_mean": 3.506922825789123,
+        "predicted_bearing_change_mean": 3.506922825789163,
         "true_bearing_change_mean": 3.849841469923895,
-        "predicted_risk_change": 0.04016249567299614,
+        "predicted_risk_change": 0.04016249567300027,
         "true_risk_change": 0.0753487755740845,
-        "predicted_baseline_risk": 0.024394359953353265
+        "predicted_baseline_risk": 0.024394359953355257
       },
       {
         "step": 63321,
         "lever": "coolant_flow",
         "from": 15.704291186435388,
         "to": 13.049950072592146,
-        "predicted_bearing_change_end": 1.1881358526237378,
+        "predicted_bearing_change_end": 1.1881358526237449,
         "true_bearing_change_end": 2.0287113051611128,
-        "predicted_bearing_change_mean": 0.8222820041394943,
+        "predicted_bearing_change_mean": 0.8222820041395004,
         "true_bearing_change_mean": 1.1825530964773436,
-        "predicted_risk_change": 0.046889741982809874,
+        "predicted_risk_change": 0.046889741982811706,
         "true_risk_change": 0.0684605765298291,
-        "predicted_baseline_risk": 0.24163985351700012
+        "predicted_baseline_risk": 0.24163985351701356
       },
       {
         "step": 63648,
         "lever": "spindle_speed",
         "from": 2565.153079483751,
         "to": 2982.667823208459,
-        "predicted_bearing_change_end": 2.8078448368117535,
+        "predicted_bearing_change_end": 2.8078448368117677,
         "true_bearing_change_end": 1.4134773119028026,
-        "predicted_bearing_change_mean": 2.2316915589046467,
+        "predicted_bearing_change_mean": 2.2316915589046613,
         "true_bearing_change_mean": 1.2432703011539217,
-        "predicted_risk_change": 0.0032097265782240125,
+        "predicted_risk_change": 0.0032097265782241894,
         "true_risk_change": 0.0007836467544526521,
-        "predicted_baseline_risk": 0.0036923273751194056
+        "predicted_baseline_risk": 0.0036923273751195782
       },
       {
         "step": 64037,
         "lever": "coolant_flow",
         "from": 20.446791359800383,
         "to": 17.629606418485793,
-        "predicted_bearing_change_end": 1.2610279872435584,
+        "predicted_bearing_change_end": 1.2610279872435655,
         "true_bearing_change_end": 1.5741798094810013,
-        "predicted_bearing_change_mean": 0.8727290051359127,
+        "predicted_bearing_change_mean": 0.8727290051359196,
         "true_bearing_change_mean": 1.069731226895109,
-        "predicted_risk_change": 0.0002846172569332167,
+        "predicted_risk_change": 0.00028461725693324945,
         "true_risk_change": 0.0005507284012704894,
-        "predicted_baseline_risk": 0.0012134438559450278
+        "predicted_baseline_risk": 0.0012134438559451345
       },
       {
         "step": 64405,
         "lever": "coolant_flow",
         "from": 18.280340153902486,
         "to": 14.7340605102673,
-        "predicted_bearing_change_end": 1.587385270890067,
+        "predicted_bearing_change_end": 1.5873852708900813,
         "true_bearing_change_end": 2.557379887130983,
-        "predicted_bearing_change_mean": 1.0985935143751284,
+        "predicted_bearing_change_mean": 1.0985935143751364,
         "true_bearing_change_mean": 1.553837456934404,
-        "predicted_risk_change": 5.7157422061410135e-05,
+        "predicted_risk_change": 5.7157422061411816e-05,
         "true_risk_change": 0.0001156537883480746,
-        "predicted_baseline_risk": 0.00018743520064226583
+        "predicted_baseline_risk": 0.00018743520064227527
       },
       {
         "step": 64620,
         "lever": "lube_rate",
         "from": 1.3972010784451794,
         "to": 1.5,
-        "predicted_bearing_change_end": -1.155899056965069,
+        "predicted_bearing_change_end": -1.155899056965083,
         "true_bearing_change_end": -2.468274984374788,
-        "predicted_bearing_change_mean": -0.9285503914028982,
+        "predicted_bearing_change_mean": -0.9285503914029064,
         "true_bearing_change_mean": -1.6032757079201896,
-        "predicted_risk_change": -0.0001547116441105701,
+        "predicted_risk_change": -0.0001547116441105817,
         "true_risk_change": -0.00039975877775025315,
-        "predicted_baseline_risk": 0.0007558276802155323
+        "predicted_baseline_risk": 0.0007558276802155828
       },
       {
         "step": 65215,
         "lever": "spindle_speed",
         "from": 3083.0047191037456,
         "to": 2553.8185397038683,
-        "predicted_bearing_change_end": -3.5588508043677507,
+        "predicted_bearing_change_end": -3.5588508043678004,
         "true_bearing_change_end": -4.477877761024684,
-        "predicted_bearing_change_mean": -2.828595510472288,
+        "predicted_bearing_change_mean": -2.828595510472338,
         "true_bearing_change_mean": -3.3994126490516314,
-        "predicted_risk_change": -0.0015549432159985552,
+        "predicted_risk_change": -0.001554943215998649,
         "true_risk_change": -0.0024554837819817654,
-        "predicted_baseline_risk": 0.0029929843040986696
+        "predicted_baseline_risk": 0.0029929843040987815
       },
       {
         "step": 65491,
         "lever": "lube_rate",
         "from": 0.7249688209420136,
         "to": 0.9364370643725728,
-        "predicted_bearing_change_end": -2.3778064931263856,
+        "predicted_bearing_change_end": -2.3778064931263714,
         "true_bearing_change_end": -1.268008333305918,
-        "predicted_bearing_change_mean": -1.9101262662761904,
+        "predicted_bearing_change_mean": -1.9101262662761784,
         "true_bearing_change_mean": -1.4494770228016083,
-        "predicted_risk_change": -0.0007374906564947825,
+        "predicted_risk_change": -0.0007374906564947936,
         "true_risk_change": -0.0007084624243442611,
-        "predicted_baseline_risk": 0.0019295474972484206
+        "predicted_baseline_risk": 0.0019295474972484722
       },
       {
         "step": 65700,
         "lever": "load_pct",
         "from": 93.58019852885039,
         "to": 78.95148935741399,
-        "predicted_bearing_change_end": -2.2938322404194196,
+        "predicted_bearing_change_end": -2.2938322404193627,
         "true_bearing_change_end": -1.9050710543416525,
-        "predicted_bearing_change_mean": -1.6940930703272712,
+        "predicted_bearing_change_mean": -1.6940930703272286,
         "true_bearing_change_mean": -1.3647810703944325,
-        "predicted_risk_change": -0.00045243195298519,
+        "predicted_risk_change": -0.000452431952985164,
         "true_risk_change": -0.0007794093011561781,
-        "predicted_baseline_risk": 0.0012402195359855594
+        "predicted_baseline_risk": 0.001240219535985579
       },
       {
         "step": 66240,
         "lever": "coolant_flow",
         "from": 13.498240034889305,
         "to": 16.174896036995253,
-        "predicted_bearing_change_end": -1.1981244402449533,
+        "predicted_bearing_change_end": -1.1981244402449605,
         "true_bearing_change_end": 0.09707590376955011,
-        "predicted_bearing_change_mean": -0.8291948801625184,
+        "predicted_bearing_change_mean": -0.8291948801625242,
         "true_bearing_change_mean": -0.0406343971555429,
-        "predicted_risk_change": -0.00031568617525908125,
+        "predicted_risk_change": -0.0003156861752591233,
         "true_risk_change": -4.8912634008579925e-05,
-        "predicted_baseline_risk": 0.001707353372210395
+        "predicted_baseline_risk": 0.0017073533722105432
       },
       {
         "step": 66515,
         "lever": "spindle_speed",
         "from": 3162.6323137581,
         "to": 3977.1534816971275,
-        "predicted_bearing_change_end": 5.47776836685663,
+        "predicted_bearing_change_end": 5.477768366856701,
         "true_bearing_change_end": 6.961969911202549,
-        "predicted_bearing_change_mean": 4.353762453565523,
+        "predicted_bearing_change_mean": 4.3537624535655945,
         "true_bearing_change_mean": 4.775605065465633,
-        "predicted_risk_change": 0.015587869170445683,
+        "predicted_risk_change": 0.015587869170447478,
         "true_risk_change": 0.004548847179472487,
-        "predicted_baseline_risk": 0.006510507084040564
+        "predicted_baseline_risk": 0.006510507084041129
       },
       {
         "step": 67110,
         "lever": "load_pct",
         "from": 85.1622082928187,
         "to": 100.0,
-        "predicted_bearing_change_end": 2.3266171058357656,
+        "predicted_bearing_change_end": 2.326617105835709,
         "true_bearing_change_end": 2.4325336571672738,
-        "predicted_bearing_change_mean": 1.7183060935531027,
+        "predicted_bearing_change_mean": 1.7183060935530616,
         "true_bearing_change_mean": 1.7125900898876805,
-        "predicted_risk_change": 0.0005879215304265046,
+        "predicted_risk_change": 0.000587921530426469,
         "true_risk_change": 0.0006615185912844518,
-        "predicted_baseline_risk": 0.0009480924447494715
+        "predicted_baseline_risk": 0.0009480924447494966
       },
       {
         "step": 67616,
         "lever": "spindle_speed",
         "from": 2149.2583135066507,
         "to": 1673.4923115173547,
-        "predicted_bearing_change_end": -3.199592666593439,
+        "predicted_bearing_change_end": -3.1995926665934604,
         "true_bearing_change_end": -5.373013414400592,
-        "predicted_bearing_change_mean": -2.5430550336526694,
+        "predicted_bearing_change_mean": -2.543055033652693,
         "true_bearing_change_mean": -4.015481911015908,
-        "predicted_risk_change": -1.6743584124165323e-05,
+        "predicted_risk_change": -1.674358412416699e-05,
         "true_risk_change": -5.0566660367179495e-05,
-        "predicted_baseline_risk": 3.773065997835057e-05
+        "predicted_baseline_risk": 3.7730659978352235e-05
       },
       {
         "step": 68056,
         "lever": "spindle_speed",
         "from": 1864.3295359368713,
         "to": 2300.0579461200227,
-        "predicted_bearing_change_end": 2.9303342820191247,
+        "predicted_bearing_change_end": 2.9303342820191887,
         "true_bearing_change_end": -2.9148928900495035,
-        "predicted_bearing_change_mean": 2.3290468889928273,
+        "predicted_bearing_change_mean": 2.329046888992884,
         "true_bearing_change_mean": -0.3287201896597067,
-        "predicted_risk_change": 0.00021092760257412522,
+        "predicted_risk_change": 0.00021092760257414468,
         "true_risk_change": -0.0003796065386573316,
-        "predicted_baseline_risk": 0.00026308607696425956
+        "predicted_baseline_risk": 0.00026308607696426455
       },
       {
         "step": 68477,
         "lever": "spindle_speed",
         "from": 3907.5572106277405,
         "to": 3113.477042244318,
-        "predicted_bearing_change_end": -5.3402997961675,
+        "predicted_bearing_change_end": -5.340299796167592,
         "true_bearing_change_end": -4.318906681940481,
-        "predicted_bearing_change_mean": -4.244501626614,
+        "predicted_bearing_change_mean": -4.244501626614089,
         "true_bearing_change_mean": -3.5836535000978085,
-        "predicted_risk_change": -0.0003603036631457529,
+        "predicted_risk_change": -0.00036030366314580896,
         "true_risk_change": -0.00039905392533071127,
-        "predicted_baseline_risk": 0.0005535492046546564
+        "predicted_baseline_risk": 0.0005535492046547258
       },
       {
         "step": 69020,
         "lever": "spindle_speed",
         "from": 2003.6636905652758,
         "to": 1756.071110772837,
-        "predicted_bearing_change_end": -1.6650946038482601,
+        "predicted_bearing_change_end": -1.665094603848246,
         "true_bearing_change_end": -5.038220885673142,
-        "predicted_bearing_change_mean": -1.3234269655745097,
+        "predicted_bearing_change_mean": -1.3234269655745026,
         "true_bearing_change_mean": -2.4397915829514085,
-        "predicted_risk_change": -0.001389078561122148,
+        "predicted_risk_change": -0.0013890785611223797,
         "true_risk_change": -0.00307079254965828,
-        "predicted_baseline_risk": 0.004928268234442151
+        "predicted_baseline_risk": 0.004928268234442714
       }
     ]
   },
   "timings_ms": {
-    "warm_up": 4688.31,
-    "pcmci": 1054.92,
-    "failure_screen": 1286.81,
-    "discovery": 2342.32,
-    "bootstrap": 5867.49,
-    "fit_model": 404.24,
-    "correlation_graph": 88.34,
-    "fit_engine": 8741.53,
-    "fit_total": 8741.68550000104,
-    "what_if_200_rollouts_median": 31.962099998054327
+    "warm_up": 1679.29,
+    "pcmci": 654.73,
+    "failure_screen": 311.12,
+    "discovery": 966.17,
+    "bootstrap": 1430.75,
+    "fit_model": 73.84,
+    "correlation_graph": 16.27,
+    "fit_engine": 2506.62,
+    "fit_total": 2506.7061680001643,
+    "what_if_200_rollouts_median": 12.218989000075453
   },
   "variables": [
     "ambient_temp",

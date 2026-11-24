@@ -14,6 +14,7 @@ from causaltwin.api.live import GROUND_TRUTH_LABEL, LiveLoop
 from causaltwin.api.sessions import session_of
 from causaltwin.api.state import AppState
 from causaltwin.config import (
+    BASELINE_METHOD_LABELS,
     DEFAULT_CONFIG,
     DRIFT_CUSUM_H,
     DRIFT_CUSUM_K,
@@ -26,6 +27,7 @@ from causaltwin.config import (
     LIVE_RISK_ROLLOUTS,
     LIVE_STEPS_PER_SECOND,
     LIVE_TRUTH_EVERY,
+    MAIN_BASELINE,
     OPTIMIZER_PLANNING_MARGIN,
     OPTIMIZER_SEARCH_ROLLOUTS,
     OPTIMIZER_TARGET_RISK,
@@ -124,6 +126,8 @@ def configuration(request: Request) -> dict[str, Any]:
                 }
             ],
             "damping_cost": VIBRATION_DAMPING_COST,
+            "methods": dict(BASELINE_METHOD_LABELS),
+            "main_method": MAIN_BASELINE,
         },
         "demo_beats": [{"name": beat.name, "title": beat.title} for beat in _demo_beats()],
     }

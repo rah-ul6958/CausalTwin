@@ -8,8 +8,8 @@ copy them from here rather than typing them. Label anything from the simulator a
 ## Numbers for the deck (generated)
 
 <!-- results:headline:start -->
-- **93%** of 30 simulated high-risk cases brought to 10% true failure risk or less by CausalTwin, against **3%** for a standard XGBoost + SHAP approach.
-- In **22 of 30** cases the standard approach blamed vibration, which has no causal effect on failure in the simulator.
+- **93%** of 30 simulated high-risk cases brought to 10% true failure risk or less by CausalTwin, against **50%** for the strongest predictive baseline (XGBoost predict-then-optimize: the same candidate actions, scored by a failure predictor; no predictive baseline reached the target in more than 57%).
+- That baseline said no action was needed in **8 of 30** cases whose true risk was 16% to 25%, and made the machine riskier than doing nothing in **3**; CausalTwin did neither in any case.
 - **9 of 9** injected physical faults were detected and the causal graph rewired; median detection delay **3 steps (30 s of machine time)**.
 <!-- results:headline:end -->
 
@@ -27,7 +27,7 @@ copy them from here rather than typing them. Label anything from the simulator a
   this machine vibration does not cause failure; damping it leaves the risk unchanged.
 - **Visual:** `03-graph-explorer.png` (correlation and causal overlay), or the landing page's animated
   illustration (`01-landing.png`, labelled "Illustration").
-- **Numbers:** the vibration-blame count from the headline block; the trap check from the graph block
+- **Numbers:** the vibration-blame count of B1 (naive SHAP) from the benchmark block; the trap check from the graph block
   (correlation with failure, failure-screen p-value, zero risk change when vibration is halved).
 
 ## Slide 3. CausalTwin architecture
@@ -41,15 +41,15 @@ copy them from here rather than typing them. Label anything from the simulator a
 <!-- results:timings:start -->
 | Operation | Median | Slowest run | Budget | Within budget |
 |---|---|---|---|---|
-| Simulate 20,000 steps | 1.51 s | 1.91 s | 2.00 s | yes |
-| Causal discovery on one 3,000-step window | 2.34 s | 3.06 s | 3.00 s | yes |
-| Fit the causal model | 424 ms | 450 ms | 1.00 s | yes |
-| One what-if simulation (200 rollouts) | 39 ms | 50 ms | 200 ms | yes |
-| Recommendation search | 488 ms | 560 ms | 1.00 s | yes |
-| Baseline XGBoost training | 1.81 s | 1.83 s | 10.00 s | yes |
-| Full benchmark (30 cases) | 56.96 s | 56.96 s | 60.00 s | yes |
+| Simulate 20,000 steps | 316 ms | 378 ms | 2.00 s | yes |
+| Causal discovery on one 3,000-step window | 769 ms | 829 ms | 3.00 s | yes |
+| Fit the causal model | 77 ms | 78 ms | 1.00 s | yes |
+| One what-if simulation (200 rollouts) | 7 ms | 11 ms | 200 ms | yes |
+| Recommendation search | 122 ms | 164 ms | 1.00 s | yes |
+| Baseline XGBoost training | 282 ms | 284 ms | 10.00 s | yes |
+| Full benchmark (30 cases) | 12.61 s | 12.61 s | 60.00 s | yes |
 
-Measured 2026-11-15 on Windows (16 logical CPUs, Python 3.11.16) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
+Measured 2026-11-24 on Linux (16 logical CPUs, Python 3.11.18) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
 <!-- results:timings:end -->
 
 ## Slide 4. Live demo
@@ -63,31 +63,43 @@ Measured 2026-11-15 on Windows (16 logical CPUs, Python 3.11.16) by `scripts/mea
 ## Slide 5. Proof: benchmark and validation
 
 - **Key message:** On 30 simulated high-risk moments, judged by the real simulator, CausalTwin's fix works
-  far more often than the standard approach, and the losses are reported too.
+  far more often than the strongest predictive baseline we could build (B3: XGBoost scoring the very same
+  candidate actions), and the losses are reported too. The predictive baselines sometimes said "no
+  action needed" while the risk was high, or made things worse than doing nothing; CausalTwin never did.
+  Have the answer to "Is your baseline a straw man?" ready from `docs/JUDGE_QA.md`.
 - **Visual:** `06-benchmark.png`; a bar chart of the success rates below; the graph-recovery table.
 - **Numbers:**
 
 <!-- results:benchmark:start -->
-| Metric | CausalTwin | XGBoost + SHAP |
-|---|---|---|
-| Reached the 10% target (true risk) | **28 / 30 (93%)** | 1 / 30 (3%) |
-| Mean true risk after the action | 3.8% | 30.1% |
-| Mean risk reduction | 26.6 points | 0.3 points |
-| Failure rate within 30 steps (simulated futures) | 0.0% | 23.8% |
-| Mean cost (illustrative units) | 6.6 | 2.5 |
+| Metric | CausalTwin | B3: predict-then-optimize | B2: actionable SHAP | B1: naive SHAP |
+|---|---|---|---|---|
+| Reached the 10% target (true risk) | **28 / 30 (93%)** | 15 / 30 (50%) | 17 / 30 (57%) | 1 / 30 (3%) |
+| Mean true risk after the action | **3.8%** | 10.2% | 14.4% | 30.1% |
+| Mean risk reduction | **26.6 points** | 20.2 points | 16.0 points | 0.3 points |
+| Failure rate within 30 steps (simulated futures) | **0.0%** | 5.0% | 10.0% | 23.8% |
+| Mean cost (illustrative units) | **6.6** | 4.5 | 5.7 | 2.5 |
+| Made things worse than doing nothing | **0** | 3 | 6 | 1 |
+| Said no action while the true risk was above the target | **0** | 8 | 0 | 6 |
 
-No action: mean true risk 30.4%. Head to head: CausalTwin better in 29, tied in 1, worse in 0 case(s).
+B1 maps the top SHAP feature to an engineer's action (vibration becomes damping, ambient temperature means no action). B2 takes the top SHAP feature among the four levers and tool wear. B3, the main comparison, scores CausalTwin's own candidate actions (same grid, costs, target and planning margin) with the XGBoost model, which can only change a lever's value in its input row.
+
+No action: mean true risk 30.4%. Head to head against B3: CausalTwin better in 14, tied in 13, worse in 3 case(s): 0, 7, 27; against B2: better in 13, tied in 12, worse in 5; against B1: better in 29, tied in 1, worse in 0.
 CausalTwin missed the target in 2 case(s): case 28 (tool_wear, true risk after 13.4%), case 29 (tool_wear, true risk after 11.2%).
+B3: predict-then-optimize made things worse than doing nothing in case(s) 9, 14, 16; said no action while the risk was high in case(s) 8, 10, 11, 13, 15, 19, 21, 29.
+B2: actionable SHAP made things worse than doing nothing in case(s) 8, 11, 14, 18, 23, 24.
+B1: naive SHAP made things worse than doing nothing in case(s) 11; said no action while the risk was high in case(s) 0, 7, 8, 19, 21, 28.
 
-| Scenario | Cases | CausalTwin reached target | Baseline reached target |
-|---|---|---|---|
-| normal | 6 | 100% | 0% |
-| overload | 6 | 100% | 0% |
-| cooling_failure | 6 | 100% | 17% |
-| heat_wave | 6 | 100% | 0% |
-| tool_wear | 6 | 67% | 0% |
+| Scenario | Cases | CausalTwin reached target | B3: predict-then-optimize reached target | B2: actionable SHAP reached target | B1: naive SHAP reached target |
+|---|---|---|---|---|---|
+| normal | 6 | 100% | 83% | 83% | 0% |
+| overload | 6 | 100% | 17% | 33% | 0% |
+| cooling_failure | 6 | 100% | 17% | 67% | 17% |
+| heat_wave | 6 | 100% | 67% | 33% | 0% |
+| tool_wear | 6 | 67% | 67% | 67% | 0% |
 
-What the baseline blamed (top SHAP feature): vibration 22, ambient_temp 6, lube_rate 1, tool_wear 1.
+What B1: naive SHAP blamed (top SHAP feature): vibration 22, ambient_temp 6, lube_rate 1, tool_wear 1.
+
+What B2: actionable SHAP blamed (top actionable SHAP feature): tool_wear 17, lube_rate 7, coolant_flow 4, spindle_speed 1, load_pct 1.
 
 Calibration: the twin's predicted risk against the simulator's true risk in the same cases.
 
@@ -96,7 +108,7 @@ Calibration: the twin's predicted risk against the simulator's true risk in the 
 | Risk with no action | 30.8% | 30.4% | 4.1 points | 87% | 0.96 |
 | Risk after its own action | 3.5% | 3.8% | 1.1 points | 43% | 0.97 |
 
-Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 58 s.
+Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 13 s.
 <!-- results:benchmark:end -->
 
 <!-- results:graph:start -->

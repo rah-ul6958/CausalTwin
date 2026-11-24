@@ -36,6 +36,8 @@ def test_blocks_contain_only_computed_numbers() -> None:
     """Spot checks: the headline success rates and the drift table come from the result files."""
     script = _load_script()
     blocks = script.render_all()
-    assert "%" in blocks["headline"] and "XGBoost + SHAP" in blocks["headline"]
+    assert "%" in blocks["headline"] and "predict-then-optimize" in blocks["headline"]
+    assert "B3: predict-then-optimize" in blocks["benchmark"] and "B1: naive SHAP" in blocks["benchmark"]
+    assert "B2: actionable SHAP" in blocks["straw_man"] and "CausalTwin" in blocks["straw_man"]
     assert blocks["drift"].count("|") > 10 and "Fault-free runs" in blocks["drift"]
     assert "Within budget" in blocks["timings"]

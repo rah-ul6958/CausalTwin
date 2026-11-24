@@ -14,11 +14,12 @@ import { Panel } from "@/components/common/panel";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { ConfidenceBar, DataSourceBadge, GroundTruthBadge, HowComputed, InfoTip, TimingChip } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { api } from "@/lib/api";
 import { formatNumber, formatPercent, formatPoints, formatSigned, humanize } from "@/lib/format";
 import { useDataSource } from "@/lib/data-source";
 import { useLiveStore } from "@/lib/store";
-import type { BaselineAction, CandidateResult, Recommendation, RiskEstimate, RootCausePath } from "@/lib/types";
+import type { BaselineAction, BaselineMethod, CandidateResult, Recommendation, RiskEstimate, RootCausePath } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 import { cn } from "@/lib/utils";
 
@@ -183,7 +184,31 @@ function RecommendationCard({ recommendation, provenanceNode, onApply, applying 
   );
 }
 
-function BaselineCard({ action }: { action: BaselineAction | null }) {
+/** What each predictive baseline does, for the selector's help text. */
+const BASELINE_EXPLANATIONS: Record<BaselineMethod, string> = {
+  counterfactual:
+    "Predict-then-optimize: the same candidate actions CausalTwin searches (same grid, costs, target and planning margin), each scored by the XGBoost failure predictor. It can only change a lever's value in the model's input row; the temperatures and other readings stay as they are now, so it cannot see effects that flow through them.",
+  actionable_shap:
+    "Actionable SHAP: the feature with the largest positive SHAP value among the four levers and tool wear. A lever is moved in the direction the ML model says lowers risk; tool wear becomes a tool change.",
+  naive_shap:
+    "Naive SHAP: the feature with the largest positive SHAP value, mapped to an engineer's action: a lever is moved in the direction the ML model says lowers risk; vibration becomes \"damp vibration\" (remove its noise), a hot bearing or coolant becomes more coolant, motor current becomes less load, tool wear becomes a tool change, ambient temperature means no action. The mapping is a modelling choice, documented in the backend.",
+};
+
+const BASELINE_FALLBACK_LABELS: Record<BaselineMethod, string> = {
+  counterfactual: "B3: predict-then-optimize",
+  actionable_shap: "B2: actionable SHAP",
+  naive_shap: "B1: naive SHAP",
+};
+
+function BaselineCard({ actions, labels, main }: {
+  actions: Partial<Record<BaselineMethod, BaselineAction>>;
+  labels: Partial<Record<BaselineMethod, string>>;
+  main: BaselineMethod;
+}) {
+  const [selected, setSelected] = useState<BaselineMethod>(main);
+  const methods = (["counterfactual", "actionable_shap", "naive_shap"] as const).filter((method) => actions[method]);
+  const action = actions[selected] ?? actions[main] ?? null;
+  const labelOf = (method: BaselineMethod) => labels[method] ?? BASELINE_FALLBACK_LABELS[method];
   const data = useMemo(
     () =>
       Object.entries(action?.shap_values ?? {})
@@ -192,22 +217,47 @@ function BaselineCard({ action }: { action: BaselineAction | null }) {
         .slice(0, 6),
     [action],
   );
+  const searches = action?.method === "counterfactual";
   return (
-    <Panel index={1} title="Standard ML baseline for the same moment" subtitle="XGBoost + SHAP: fix the top feature" icon={<TriangleAlert className="size-4 text-warn" />}
-      actions={<InfoTip>The baseline blames the feature with the largest positive SHAP value and maps it to an engineer&apos;s action: a lever is moved in the direction the ML model says lowers risk; vibration becomes &quot;damp vibration&quot; (remove its noise), a hot bearing or coolant becomes more coolant, motor current becomes less load, tool wear becomes a tool change, ambient temperature means no action. The mapping is a modelling choice, documented in the backend.</InfoTip>}>
+    <Panel index={1} title="Predictive baselines for the same moment" subtitle={action ? labelOf(action.method) : "XGBoost failure predictor"} icon={<TriangleAlert className="size-4 text-warn" />}
+      actions={<InfoTip>{action ? BASELINE_EXPLANATIONS[action.method] : BASELINE_EXPLANATIONS[main]}</InfoTip>}>
+      {methods.length > 1 && (
+        <ToggleGroup type="single" value={action?.method ?? main} onValueChange={(value) => value && setSelected(value as BaselineMethod)} variant="outline" size="sm" aria-label="Baseline method" className="mb-3">
+          {methods.map((method) => (
+            <ToggleGroupItem key={method} value={method} aria-label={labelOf(method)}>
+              {labelOf(method).split(":")[0]}
+              {method === main && <span className="ml-1 text-[9px] text-amber-200">main</span>}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      )}
       {!action ? (
         <EmptyState title="No baseline action" />
       ) : (
         <div className="space-y-3 text-sm">
           <div className="rounded-lg border border-warn/30 bg-warn/5 p-3">
-            <p className="text-xs text-muted-foreground">Blames</p>
-            <p className="font-heading text-lg text-amber-100">{humanize(action.blamed_feature)}</p>
+            <p className="text-xs text-muted-foreground">{searches ? "Would do" : "Blames"}</p>
+            <p className="font-heading text-lg text-amber-100">
+              {searches ? (action.kind === "none" ? "Nothing" : action.kind === "tool_change" ? "Tool change" : action.changes.map((change) => `${humanize(change.lever)} ${formatSigned(change.change_pct, 0)}%`).join(", ")) : humanize(action.blamed_feature)}
+            </p>
             <p className="mt-1 text-xs text-slate-300">{action.description}</p>
           </div>
           <p className="text-xs text-muted-foreground">
-            Baseline&apos;s own predicted failure probability (next 30 steps): <span className="tabular text-slate-200">{formatPercent(action.predicted_risk)}</span> - cost{" "}
-            <span className="tabular text-slate-200">{formatNumber(action.cost, 1)}</span>
+            Baseline&apos;s own predicted failure probability (next 30 steps): <span className="tabular text-slate-200">{formatPercent(action.predicted_risk)}</span>
+            {action.predicted_risk_after !== null && action.kind !== "none" && (
+              <>
+                {" "}to <span className="tabular text-slate-200">{formatPercent(action.predicted_risk_after)}</span> after its action
+              </>
+            )}{" "}
+            - cost <span className="tabular text-slate-200">{formatNumber(action.cost, 1)}</span>
           </p>
+          {searches && (
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              This prediction holds bearing and coolant temperature, vibration and motor current at their current readings while a lever moves, so it is not
+              what the machine would do. The Benchmark page shows how often that difference matters.
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground">SHAP values of the same model at this moment (what B1 and B2 rank):</p>
           <div className="h-44">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 20 }}>
@@ -446,7 +496,15 @@ export function Advisor() {
             applying={applying}
           />
         )}
-        {data ? <BaselineCard action={data.baseline_action} /> : <Panel title="Standard ML baseline"><LoadingOrError state={recommendation} rows={6} /></Panel>}
+        {data ? (
+          <BaselineCard
+            actions={Object.keys(data.baseline_actions ?? {}).length ? data.baseline_actions : data.baseline_action ? { [data.baseline_action.method ?? "naive_shap"]: data.baseline_action } : {}}
+            labels={data.baseline_labels ?? {}}
+            main={data.main_baseline ?? data.baseline_action?.method ?? "counterfactual"}
+          />
+        ) : (
+          <Panel title="Predictive baselines"><LoadingOrError state={recommendation} rows={6} /></Panel>
+        )}
         <Panel index={2} title="Root cause" subtitle="Ranked causal paths that explain the current risk" actions={<HowComputed provenance={rootCause.data?.provenance} />}>
           {rootCause.error ? (
             <ErrorState message={rootCause.error} onRetry={rootCause.reload} />
