@@ -40,7 +40,7 @@ Open http://localhost:3000.
 
 ```bash
 npm run lint
-npx tsc --noEmit
+npm run typecheck                 # generates Next.js route types, then tsc --noEmit
 npx playwright install chromium   # once
 npm run test:e2e                  # smoke test per page, then the full guided demo
 ```

@@ -73,7 +73,7 @@ Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test
 - **Gaps:**
   - not validated on a real machine;
   - on AI4I, the linear failure model's advice lost to XGBoost + SHAP (threshold-type failures);
-  - industry impact figures are left as `[source needed]` for the team to fill.
+  - no industry impact figures are given: the README states no downtime statistic without a linked source.
 
 ## User Experience (15%)
 
@@ -171,4 +171,4 @@ Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test
   next to the ground truth); intervals after an action are too narrow.
 - Private simulations are limited by CPU (4 by default, 2 on Render's free plan); viewers beyond the
   limit share one. Many-machine operation is designed, not built.
-- Manual items: slides, video, GIF, the live URL in the README, and `[source needed]` statistics.
+- Manual items: slides, video, GIF and the live URL in the README (full list in `docs/phase_7_report.md`).

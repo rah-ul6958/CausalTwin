@@ -303,3 +303,51 @@ documentation screenshots in `docs/screenshots/`, which now show the Phase 7 pag
 **Checks after A4.** Backend: 109 passed, ruff and ruff format clean, mypy clean. Frontend: lint clean,
 `tsc --noEmit` clean, build succeeded; Playwright (Chromium) 25 passed. Timings: what-if 7 ms,
 recommendation search 152 ms, benchmark 12.9 s (budgets 200 ms, 1 s, 60 s).
+
+## A5. Deployment readiness and presentation gaps
+
+**What changed.**
+
+- **Fonts work offline.** `src/app/layout.tsx` loads Inter, Space Grotesk and JetBrains Mono with
+  `next/font/local` from files committed under `frontend/src/fonts/` (the Latin, normal-style variable
+  builds from the Fontsource 5.3.0 packages, 22-48 kB each), with their SIL Open Font License files and
+  a README naming the source. Checked: `npm run build` succeeds with the network routed to a dead proxy,
+  and the build output references no Google Fonts address. The demo script's backup plan mentions it.
+- **Type check order.** Reproduced: on a tree without `.next/`, `npx tsc --noEmit` fails with "Cannot
+  find name 'LayoutProps'". New script `npm run typecheck` (`next typegen && tsc --noEmit`) passes on the
+  same tree. The README and `frontend/README.md` use it. (Earlier phase reports keep the command they ran.)
+- **README placeholders.** The two `[source needed]` sentences are removed, not replaced: no statistic
+  with a verified, linked source was added, and none was invented. The slides outline and the final audit
+  now say to leave a number out rather than leave a placeholder.
+- **Hosting plan.** `docs/DEPLOYMENT.md` section 9 gives exact steps for the two judged-demo options:
+  (A) the Render 1 CPU / 2 GB instance (`1c-2g`) during the judging window with
+  `CAUSALTWIN_MAX_SESSIONS=3`, switched back afterwards, with a warning that a Blueprint sync can
+  reapply `render.yaml`'s values; (B) `docker compose` on the laptop behind two Cloudflare quick tunnels
+  (API and frontend), with `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL` and `CAUSALTWIN_CORS_ORIGINS`
+  set to the tunnel addresses and the required rebuild. `render.yaml` is unchanged (`plan: free`). The
+  Render plan name and sizes come from the existing section 1 (checked against Render's documentation
+  on 2026-11-15); the Cloudflare and Render dashboard steps were not executed from here.
+
+## Manual items for the human
+
+These need a person, an account or a recording, and are not done:
+
+1. **Deploy** (docs/DEPLOYMENT.md): Render backend and Vercel frontend, or option B of section 9; choose
+   the judged-demo option and rehearse it once.
+2. **Live demo link** in README.md line 8: `[live demo link: add after deployment, see docs/DEPLOYMENT.md]`.
+3. **Demo video**: record it (docs/DEMO_SCRIPT.md, "Recording the backup video") and replace
+   `[video link: add after recording, see docs/DEMO_SCRIPT.md]` in README.md line 9.
+4. **GIF**: export the 10-second loop and replace `[GIF placeholder: ...]` in README.md line 13.
+5. **Slides**: build them from docs/SLIDES_OUTLINE.md; use only numbers from the generated blocks, and
+   any industry statistic only with a real, linked source.
+6. **Optional**: Firefox and WebKit end-to-end runs (`npx playwright install firefox webkit`, then
+   `npm run test:e2e`); only Chromium was run in this phase.
+
+## End of Part A
+
+Every result was regenerated in the required order (validation, benchmark with drift, AI4I, timings,
+selection-rule comparison, README blocks; `update_readme_results.py --check` reports every block up to
+date). Checks: backend 109 passed, ruff, ruff format and mypy clean; frontend lint, `npm run typecheck`
+and build pass; Playwright (Chromium) 25 of 25 passed against the backend in Docker and the production
+frontend build, which also refreshed `docs/screenshots/`. All timings are within budget (benchmark 13.9 s,
+recommendation search 145 ms median, what-if 9 ms median).

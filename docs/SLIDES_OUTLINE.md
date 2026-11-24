@@ -19,7 +19,7 @@ copy them from here rather than typing them. Label anything from the simulator a
   engineers guess, and a wrong guess costs downtime.
 - **Visual:** a plain alarm ("Failure risk: HIGH") next to three question marks: Why? Which lever? How much?
 - **Numbers:** none of ours. If you use an industry figure for downtime cost, it must have a source;
-  otherwise leave `[source needed]`.
+  otherwise leave the number out (no `[source needed]` placeholders on slides).
 
 ## Slide 2. Why correlation fails: the vibration trap
 
@@ -41,13 +41,13 @@ copy them from here rather than typing them. Label anything from the simulator a
 <!-- results:timings:start -->
 | Operation | Median | Slowest run | Budget | Within budget |
 |---|---|---|---|---|
-| Simulate 20,000 steps | 357 ms | 361 ms | 2.00 s | yes |
-| Causal discovery on one 3,000-step window | 738 ms | 762 ms | 3.00 s | yes |
-| Fit the causal model | 72 ms | 75 ms | 1.00 s | yes |
-| One what-if simulation (200 rollouts) | 7 ms | 10 ms | 200 ms | yes |
-| Recommendation search | 152 ms | 180 ms | 1.00 s | yes |
-| Baseline XGBoost training | 301 ms | 318 ms | 10.00 s | yes |
-| Full benchmark (30 cases) | 12.94 s | 12.94 s | 60.00 s | yes |
+| Simulate 20,000 steps | 282 ms | 348 ms | 2.00 s | yes |
+| Causal discovery on one 3,000-step window | 709 ms | 746 ms | 3.00 s | yes |
+| Fit the causal model | 68 ms | 88 ms | 1.00 s | yes |
+| One what-if simulation (200 rollouts) | 9 ms | 16 ms | 200 ms | yes |
+| Recommendation search | 145 ms | 192 ms | 1.00 s | yes |
+| Baseline XGBoost training | 342 ms | 350 ms | 10.00 s | yes |
+| Full benchmark (30 cases) | 13.86 s | 13.86 s | 60.00 s | yes |
 
 Measured 2026-11-24 on Linux (16 logical CPUs, Python 3.11.18) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
 <!-- results:timings:end -->
@@ -110,7 +110,7 @@ Calibration: the twin's predicted risk against the simulator's true risk in the 
 | ... after a lever change | 11 | 7.7% | 9.4% | 1.8 points | 91% | 0 / 1 | 0.22 |
 | ... after a tool change | 19 | 1.1% | 0.5% | 0.7 points | 16% | 16 / 0 | 0.91 |
 
-Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 13 s.
+Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 14 s.
 <!-- results:benchmark:end -->
 
 <!-- results:graph:start -->
@@ -166,4 +166,4 @@ Fault-free runs: 60,000 steps, 5 suspected alarms, 0 wrongly confirmed structura
 - **Next steps (honest):** validate on a real machine's data with its engineers; a live MTConnect/OPC UA
   connector; non-linear effects and hidden-confounder checks; one twin per machine at factory scale.
 - **Numbers:** repeat the two headline numbers; nothing new. Any market or downtime statistic needs a
-  source: `[source needed]`.
+  real, linked source; otherwise leave it out.

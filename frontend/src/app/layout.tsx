@@ -1,14 +1,30 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 
 import { AppShell } from "@/components/shell/app-shell";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({ variable: "--font-space-grotesk", subsets: ["latin"] });
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-const jetbrainsMono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"] });
+// The font files are committed under src/fonts (SIL Open Font License), so the build works offline.
+const spaceGrotesk = localFont({
+  src: "../fonts/space-grotesk-latin-wght-normal.woff2",
+  weight: "300 700",
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
+const inter = localFont({
+  src: "../fonts/inter-latin-wght-normal.woff2",
+  weight: "100 900",
+  variable: "--font-inter",
+  display: "swap",
+});
+const jetbrainsMono = localFont({
+  src: "../fonts/jetbrains-mono-latin-wght-normal.woff2",
+  weight: "100 800",
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "CausalTwin - glass-box causal digital twin",

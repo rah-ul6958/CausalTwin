@@ -62,7 +62,7 @@ failure. It is a symptom." That is the Correlation Trap in one click.
 |---|---|
 | The cloud backend is asleep or slow | Open `BACKEND_URL/health` and wait about a minute; keep talking through the Benchmark page, which needs no live data. |
 | No network, or the hosting is down | Run locally: `docker compose up` (build the images beforehand with `docker compose up --build`, so no download is needed), then open http://localhost:3000. Test this the day before. |
-| The laptop cannot run Docker | `cd backend && uvicorn causaltwin.api.app:app --port 8000` and `cd frontend && npm run start` (after `npm run build`). |
+| The laptop cannot run Docker | `cd backend && uvicorn causaltwin.api.app:app --port 8000` and `cd frontend && npm run start` (after `npm run build`, which works offline: the fonts are committed under `frontend/src/fonts/`). |
 | Nothing runs | Play the recorded backup video, then walk through the screenshots in `docs/screenshots/`. |
 | A beat shows an error | Press **Next beat** again; a failed beat is retried, not skipped. **Restart** replays the story from the start. |
 

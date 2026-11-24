@@ -49,6 +49,10 @@ small CPU quota and the drift beat took more than 6 minutes.
 `render.yaml` uses `plan: free`. To use a paid plan, change that line before step 2, or change the
 instance type in the Render dashboard afterwards.
 
+The free plan is too slow for live judging (0.1 CPU, and it sleeps after 15 idle minutes). Section 9
+gives two ways to run the judged demo: a larger Render instance for the judging window only, or the
+laptop exposed through a Cloudflare quick tunnel. The choice is yours; `render.yaml` stays on `free`.
+
 ## 2. Backend on Render (Blueprint)
 
 1. Sign in at https://dashboard.render.com and connect your Git provider if asked.
@@ -131,7 +135,7 @@ Open `FRONTEND_URL` in a fresh browser window and tick each item:
 - [ ] The **Benchmark** page loads the cached results. **Re-run benchmark** explains that re-runs are
       disabled on this server.
 - [ ] The What-If Lab answers when a slider moves, and the Advisor shows a recommendation next to the
-      XGBoost + SHAP baseline.
+      predictive baselines (B3 selected; B2 and B1 one click away).
 - [ ] The System Console shows log entries and pipeline timings.
 - [ ] Data page: **Export CSV** downloads a file, and a small CSV upload returns a graph with the
       "no ground truth" banner.
@@ -174,3 +178,90 @@ docker compose up --build      # first time; afterwards: docker compose up
 ```
 
 Open http://localhost:3000. The backend is on http://localhost:8000. Settings are in `.env.example`.
+
+## 9. The judged demo: two options
+
+Pick one before the judging day and rehearse it once. Both keep `render.yaml` unchanged.
+
+### Option A: a 1 CPU / 2 GB Render instance during the judging window
+
+The Render instance type with 1 CPU and 2 GB (Blueprint name `1c-2g`, legacy name `standard`; see the
+table in section 1 and Render's pricing page for the current price) is close to laptop speed. Use it
+only for the judging window and switch back afterwards.
+
+1. Deploy as in sections 2 to 5 first (the free plan is fine for setting up).
+2. On the judging day, at least 30 minutes before you present, open https://dashboard.render.com,
+   select `causaltwin-backend`, then **Settings > Instance Type**, choose the instance with 1 CPU and
+   2 GB, and confirm. Render redeploys the service on the new instance; wait until it shows **Live**.
+3. Open **Environment**, set `CAUSALTWIN_MAX_SESSIONS` to `3` and save. Render restarts the service.
+   (Three private simulations at once: one per judge's tab plus one spare. Viewers beyond that share
+   one simulation, as described in section 2.)
+4. Open `BACKEND_URL/health` and wait for `"status":"ok"`, then run the post-deploy checklist in
+   section 5 once, including the guided demo.
+5. Do not push to the deployed branch during the judging window. With Blueprint auto-sync on, a sync
+   can apply the `plan: free` and `CAUSALTWIN_MAX_SESSIONS: "2"` values from `render.yaml` again. If
+   that happens, repeat steps 2 and 3.
+6. After judging, set **Instance Type** back to **Free** and `CAUSALTWIN_MAX_SESSIONS` back to `2`, so
+   the paid instance stops costing money. Check Render's pricing page for how partial months are billed.
+
+The frontend on Vercel needs no change for this option.
+
+### Option B: the laptop, exposed with Cloudflare quick tunnels
+
+Everything runs on the laptop with `docker compose`; two free Cloudflare quick tunnels give it public
+`https://...trycloudflare.com` addresses, one for the frontend and one for the API. No Cloudflare
+account is needed. Cloudflare describes quick tunnels as meant for testing, with no uptime guarantee
+and a limit on concurrent requests; read
+https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/
+before relying on one. The laptop must stay awake, plugged in and online for the whole session.
+
+1. Install `cloudflared`:
+   - Windows: `winget install --id Cloudflare.cloudflared`
+   - macOS: `brew install cloudflared`
+   - Linux: the package for your distribution from https://pkg.cloudflare.com/ (see Cloudflare's
+     download page).
+2. Build the images once while you still have a fast connection: `docker compose build`.
+3. Open a terminal and start the API tunnel. Leave this window open for the whole session:
+
+   ```bash
+   cloudflared tunnel --url http://localhost:8000
+   ```
+
+   It prints an address such as `https://api-words-1234.trycloudflare.com`. This is `API_TUNNEL`.
+4. Open a second terminal and start the frontend tunnel. Leave it open too:
+
+   ```bash
+   cloudflared tunnel --url http://localhost:3000
+   ```
+
+   Its address is `FRONTEND_TUNNEL`.
+5. In the repository root, copy `.env.example` to `.env` and set (no trailing slashes):
+
+   ```bash
+   NEXT_PUBLIC_API_URL=https://API_TUNNEL
+   NEXT_PUBLIC_WS_URL=wss://API_TUNNEL/ws/stream
+   CAUSALTWIN_CORS_ORIGINS=https://FRONTEND_TUNNEL,http://localhost:3000
+   CAUSALTWIN_MAX_SESSIONS=4
+   CAUSALTWIN_ALLOW_BENCHMARK_RUN=0
+   ```
+
+   Replace `API_TUNNEL` and `FRONTEND_TUNNEL` with the host names from steps 3 and 4.
+   `CAUSALTWIN_ALLOW_BENCHMARK_RUN=0` stops visitors from starting the one-minute benchmark re-run.
+6. Rebuild the frontend with these addresses and start everything (the `NEXT_PUBLIC_` values are
+   compiled into the frontend, so the rebuild is required):
+
+   ```bash
+   docker compose up --build
+   ```
+
+7. Check from a phone on mobile data (not the laptop's network): open `https://API_TUNNEL/health`, then
+   `https://FRONTEND_TUNNEL`. The top bar must show **Live** and **Private**. Run the post-deploy
+   checklist in section 5.
+8. Give the judges `https://FRONTEND_TUNNEL`.
+9. If either `cloudflared` window is closed or restarts, its address changes. Start it again, update
+   `.env` (step 5) and run `docker compose up --build` again.
+10. To stop: `Ctrl+C` in the compose window and in both tunnel windows. The public addresses stop
+    working immediately.
+
+The app has no logins and no secrets, so a public address exposes only the demo itself; anyone with
+the address can use it while the tunnels run.
