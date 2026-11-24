@@ -242,6 +242,17 @@ Own Data path (tabular mode, with the physics features the documentation describ
 smallest change for every failed row, and was compared with XGBoost + SHAP on the same rows.
 
 <!-- results:ai4i:start -->
+| Failed rows whose failure the action removes | CausalTwin | XGBoost + SHAP |
+|---|---|---|
+| All scored rows | **123 / 330 (37%)** | **213 / 330 (65%)** |
+| Heat dissipation failures (115 rows) | 0% | 22% |
+| Power failures (95 rows) | 47% | 77% |
+| Overstrain failures (98 rows) | 85% | 82% |
+| Tool wear failures (46 rows) | 9% | 93% |
+| Mean cost (illustrative) | 1.6 | 1.9 |
+
+10,000 rows, 339 failures; 330 scored (9 failures without a preventable mode are not scored).
+Discovered failure causes: power_w, temperature_difference_k, wear_torque. CausalTwin's failure model: `logit P(failure(t)) = - 0.6908*temperature_difference_k(t) + 0.0007106*power_w(t) + 0.0002344*wear_torque(t) - 2.77` (held-out AUC 0.814). Baseline XGBoost held-out AUC 0.964; it blamed torque_nm 135, tool_wear_min 97, air_temp_k 61, speed_rpm 36, process_temp_k 1.
 <!-- results:ai4i:end -->
 
 What this shows, honestly: causal discovery found exactly the documented mechanism (failure caused by

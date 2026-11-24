@@ -46,7 +46,7 @@ TARGET_FILES = [
     REPOSITORY_DIR / "docs" / "FINAL_AUDIT.md",
     REPOSITORY_DIR / "docs" / "DEMO_SCRIPT.md",
 ]
-BLOCK_PATTERN = re.compile(r"(<!-- results:([a-z_]+):start -->\n)(.*?)(<!-- results:\2:end -->)", re.DOTALL)
+BLOCK_PATTERN = re.compile(r"(<!-- results:([a-z0-9_]+):start -->\n)(.*?)(<!-- results:\2:end -->)", re.DOTALL)
 
 
 def _percent(value: float, digits: int = 0) -> str:
