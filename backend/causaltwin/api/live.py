@@ -156,6 +156,11 @@ class LiveLoop:
         self.latest_true_risk: float | None = None
         # Step at which latest_true_risk was computed (it is refreshed only every few steps).
         self.latest_true_risk_step: int | None = None
+        # Calibration check for this session: is the ground truth inside the twin's 90% interval?
+        # Counted whenever both are computed at the same step (validation only; the twin never sees it).
+        self.interval_checks = 0
+        self.interval_hits = 0
+        self.latest_interval_check: dict[str, Any] | None = None
         self.latest_root_cause: RootCauseResult | None = None
         self.latest_recommendation: Recommendation | None = None
         self.latest_baseline_action: BaselineAction | None = None  # the main baseline (B3)
@@ -264,6 +269,44 @@ class LiveLoop:
                 )
             self.flush_logs()
 
+    def _check_interval(self, step: int) -> None:
+        """Count whether the ground truth falls inside the twin's 90% interval (same step only)."""
+        risk, truth = self.latest_risk, self.latest_true_risk
+        if risk is None or truth is None or self.latest_true_risk_step != step:
+            return
+        inside = risk.lower <= truth <= risk.upper
+        self.interval_checks += 1
+        self.interval_hits += int(inside)
+        self.latest_interval_check = {
+            "step": step,
+            "inside": inside,
+            "true_risk": truth,
+            "twin_lower": risk.lower,
+            "twin_upper": risk.upper,
+        }
+
+    def interval_summary(self) -> dict[str, Any]:
+        """The latest interval check and this session's running count."""
+        latest = self.latest_interval_check
+        current = latest is not None and latest["step"] == self.latest_true_risk_step
+        return {
+            "inside_twin_interval": latest["inside"] if current and latest is not None else None,
+            "interval_checks": self.interval_checks,
+            "interval_hits": self.interval_hits,
+        }
+
+    def interval_text(self) -> str:
+        """One sentence for the demo narration: the ground truth and whether it is inside the interval."""
+        latest = self.latest_interval_check
+        if latest is None or latest["step"] != self.latest_true_risk_step:
+            return ""
+        where = "inside" if latest["inside"] else "outside"
+        return (
+            f" Simulator ground truth (validation only): {latest['true_risk']:.1%}, {where} the twin's 90% interval "
+            f"({latest['twin_lower']:.1%}-{latest['twin_upper']:.1%}); this session so far: inside in "
+            f"{self.interval_hits} of {self.interval_checks} checks."
+        )
+
     def _estimate_risk(self, step: int, publish: bool) -> None:
         """The twin's risk of failure within the horizon from the current state."""
         if not self.history_is_usable():
@@ -271,6 +314,7 @@ class LiveLoop:
         else:
             result = self.engine.what_if([], history=self.history(), n_rollouts=LIVE_RISK_ROLLOUTS)
             self.latest_risk = result.baseline_risk
+        self._check_interval(step)
         if not publish:
             return
         risk = self.latest_risk
@@ -296,6 +340,7 @@ class LiveLoop:
                     "true_hazard_per_step": None if self.simulator is None else self.simulator.get_true_hazard(),
                     "true_risk_within_horizon": self.latest_true_risk,
                     "true_risk_step": self.latest_true_risk_step,
+                    **self.interval_summary(),
                 },
             },
         )
@@ -569,7 +614,11 @@ class DemoScript:
             **details,
             "step": self.loop.step_count,
             "twin_risk": None if self.loop.latest_risk is None else self.loop.latest_risk.model_dump(),
-            "validation": {"label": GROUND_TRUTH_LABEL, "true_risk_within_horizon": self.loop.latest_true_risk},
+            "validation": {
+                "label": GROUND_TRUTH_LABEL,
+                "true_risk_within_horizon": self.loop.latest_true_risk,
+                **self.loop.interval_summary(),
+            },
         }
         self.results.append(result)
         self.loop.hub.broadcast("demo", result)
@@ -606,6 +655,7 @@ class DemoScript:
         return {
             "narration": f"A hot afternoon and a new aggressive job with a fresh tool ({settings}). "
             f"Bearing temperature climbs; predicted failure risk is now {self._risk_text()}."
+            + self.loop.interval_text()
         }
 
     def _recommendation(self) -> dict[str, Any]:
@@ -653,7 +703,7 @@ class DemoScript:
         minutes = WHATIF_HORIZON * SECONDS_PER_STEP / 60
         return {
             "narration": f"{minutes:g} minutes after the change, predicted failure risk is "
-            f"{self._risk_text()}{predicted}."
+            f"{self._risk_text()}{predicted}." + self.loop.interval_text()
         }
 
     def _fault_injected(self) -> dict[str, Any]:

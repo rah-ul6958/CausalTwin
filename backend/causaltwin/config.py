@@ -144,6 +144,10 @@ WHATIF_ROLLOUTS = 200
 # uncertainty that comes from having seen only a limited number of failures.
 WHATIF_FAILURE_PARAMETER_UNCERTAINTY = True
 WHATIF_PARAMETER_STREAM = 7919  # separate random stream, so the noise draws are unchanged
+# Phase 7: every rollout also draws the linear equations' coefficients from their estimated
+# sampling distribution (Ridge covariance stored at fit time), on another separate random stream.
+WHATIF_EQUATION_PARAMETER_UNCERTAINTY = True
+WHATIF_EQUATION_PARAMETER_STREAM = 7927  # separate from the noise and failure-model streams
 WHATIF_SEED = 11
 WHATIF_INTERVAL_PERCENTILES = (5.0, 95.0)  # 90% interval
 # Non-intervened exogenous variables: "random_walk" (historical one-step changes) or "constant".

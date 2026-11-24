@@ -149,8 +149,14 @@ export function DemoPanel({ open, onClose }: { open: boolean; onClose: () => voi
                   {result.narration}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Twin risk {formatPercent(result.twin_risk?.probability)} - simulator ground truth{" "}
-                  {formatPercent(result.validation?.true_risk_within_horizon)} (validation only)
+                  Twin risk {formatPercent(result.twin_risk?.probability)}
+                  {result.twin_risk ? ` (90% interval ${formatPercent(result.twin_risk.lower)}-${formatPercent(result.twin_risk.upper)})` : ""} -
+                  simulator ground truth {formatPercent(result.validation?.true_risk_within_horizon)} (validation only)
+                  {typeof result.validation?.inside_twin_interval === "boolean" && (
+                    <span className={result.validation.inside_twin_interval ? "text-good" : "text-warn"}>
+                      {result.validation.inside_twin_interval ? ", inside the twin's interval" : ", outside the twin's interval"}
+                    </span>
+                  )}
                 </p>
               </div>
             ) : (

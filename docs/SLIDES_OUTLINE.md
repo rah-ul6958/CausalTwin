@@ -41,13 +41,13 @@ copy them from here rather than typing them. Label anything from the simulator a
 <!-- results:timings:start -->
 | Operation | Median | Slowest run | Budget | Within budget |
 |---|---|---|---|---|
-| Simulate 20,000 steps | 309 ms | 333 ms | 2.00 s | yes |
-| Causal discovery on one 3,000-step window | 750 ms | 889 ms | 3.00 s | yes |
-| Fit the causal model | 73 ms | 108 ms | 1.00 s | yes |
-| One what-if simulation (200 rollouts) | 7 ms | 9 ms | 200 ms | yes |
-| Recommendation search | 118 ms | 161 ms | 1.00 s | yes |
-| Baseline XGBoost training | 284 ms | 286 ms | 10.00 s | yes |
-| Full benchmark (30 cases) | 13.20 s | 13.20 s | 60.00 s | yes |
+| Simulate 20,000 steps | 299 ms | 305 ms | 2.00 s | yes |
+| Causal discovery on one 3,000-step window | 686 ms | 763 ms | 3.00 s | yes |
+| Fit the causal model | 72 ms | 77 ms | 1.00 s | yes |
+| One what-if simulation (200 rollouts) | 7 ms | 11 ms | 200 ms | yes |
+| Recommendation search | 142 ms | 176 ms | 1.00 s | yes |
+| Baseline XGBoost training | 292 ms | 295 ms | 10.00 s | yes |
+| Full benchmark (30 cases) | 14.51 s | 14.51 s | 60.00 s | yes |
 
 Measured 2026-11-24 on Linux (16 logical CPUs, Python 3.11.18) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
 <!-- results:timings:end -->
@@ -75,7 +75,7 @@ Measured 2026-11-24 on Linux (16 logical CPUs, Python 3.11.18) by `scripts/measu
 |---|---|---|---|---|
 | Reached the 10% target (true risk) | **28 / 30 (93%)** | 15 / 30 (50%) | 17 / 30 (57%) | 1 / 30 (3%) |
 | Mean true risk after the action | **3.8%** | 10.2% | 14.4% | 30.1% |
-| Mean risk reduction | **26.6 points** | 20.2 points | 16.0 points | 0.3 points |
+| Mean risk reduction | **26.7 points** | 20.2 points | 16.0 points | 0.3 points |
 | Failure rate within 30 steps (simulated futures) | **0.0%** | 5.0% | 10.0% | 23.8% |
 | Mean cost (illustrative units) | **6.6** | 4.5 | 5.7 | 2.5 |
 | Made things worse than doing nothing | **0** | 3 | 6 | 1 |
@@ -103,12 +103,14 @@ What B2: actionable SHAP blamed (top actionable SHAP feature): tool_wear 17, lub
 
 Calibration: the twin's predicted risk against the simulator's true risk in the same cases.
 
-| Twin prediction | Mean predicted | Mean true | Mean absolute error | Truth inside the 90% interval | Correlation |
-|---|---|---|---|---|---|
-| Risk with no action | 30.8% | 30.4% | 4.1 points | 87% | 0.96 |
-| Risk after its own action | 3.5% | 3.8% | 1.1 points | 43% | 0.97 |
+| Twin prediction | Cases | Mean predicted | Mean true | Mean absolute error | Truth inside the 90% interval | Truth below / above it | Correlation |
+|---|---|---|---|---|---|---|---|
+| Risk with no action | 30 | 30.8% | 30.4% | 4.0 points | 90% | 3 / 0 | 0.96 |
+| Risk after its own action | 30 | 3.5% | 3.8% | 1.1 points | 43% | 16 / 1 | 0.97 |
+| ... after a lever change | 11 | 7.7% | 9.4% | 1.8 points | 91% | 0 / 1 | 0.22 |
+| ... after a tool change | 19 | 1.1% | 0.5% | 0.7 points | 16% | 16 / 0 | 0.91 |
 
-Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 15 s.
+Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 12 s.
 <!-- results:benchmark:end -->
 
 <!-- results:graph:start -->

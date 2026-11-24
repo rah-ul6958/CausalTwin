@@ -257,3 +257,63 @@ def test_preprocessing_masks_regime_breaks(mixed_data: pd.DataFrame) -> None:
     assert prepared.row_mask[stopped].all() and prepared.row_mask[resets].all()
     joined = pd.concat([mixed_data.iloc[:100], mixed_data.iloc[500:600]], ignore_index=True)
     assert prepare_data(joined).row_mask[100]
+
+
+def test_ridge_covariance_matches_ordinary_least_squares_without_penalty() -> None:
+    """With no penalty the Ridge approximation is the textbook OLS covariance (statsmodels)."""
+    import statsmodels.api as sm
+
+    from causaltwin.engine.causal_model import ridge_covariance
+
+    rng = np.random.default_rng(3)
+    design = rng.normal(5.0, 2.0, size=(400, 3))
+    target = 1.5 + design @ np.array([0.8, -0.3, 0.05]) + rng.normal(0.0, 0.7, size=400)
+    fit = sm.OLS(target, sm.add_constant(design)).fit()
+    covariance = ridge_covariance(design, fit.resid, penalty=0.0)
+    assert covariance is not None and covariance.shape == (4, 4)
+    np.testing.assert_allclose(covariance, fit.cov_params(), rtol=1e-6, atol=1e-12)
+    assert ridge_covariance(design[:3], fit.resid[:3], penalty=0.0) is None  # too few rows
+
+
+def test_linear_equations_store_a_usable_covariance(fitted_engine: CausalTwinEngine) -> None:
+    """Every fitted linear equation keeps a symmetric, positive semi-definite covariance of its parameters."""
+    model = fitted_engine.model
+    assert model is not None
+    for equation in model.equations.values():
+        if not equation.terms:
+            continue
+        covariance = equation.covariance
+        assert covariance is not None and covariance.shape == (len(equation.terms) + 1,) * 2
+        np.testing.assert_allclose(covariance, covariance.T)
+        assert np.linalg.eigvalsh(covariance).min() > -1e-12 * max(1.0, float(np.abs(covariance).max()))
+
+
+def test_equation_parameter_draws_leave_the_other_random_streams_unchanged(
+    fitted_engine: CausalTwinEngine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With every equation covariance set to zero, the rollouts equal those of the switched-off engine.
+
+    The coefficient draws come from a stream of their own, so the noise and failure-model draws are the
+    same with the switch on or off; only the coefficients differ.
+    """
+    import copy
+
+    from causaltwin.engine import whatif
+
+    model = fitted_engine.model
+    assert model is not None
+    zero_model = copy.deepcopy(model)
+    for equation in zero_model.equations.values():
+        if equation.covariance is not None:
+            equation.covariance = np.zeros_like(equation.covariance)
+    state = fitted_engine._history_array(None)
+    interventions = [Intervention(variable="coolant_flow", change_type="set", value=30.0)]
+    with_zero_draws = whatif.run_what_if(zero_model, state, interventions, 30, 100, 4, (5.0, 95.0))
+    monkeypatch.setattr(whatif, "WHATIF_EQUATION_PARAMETER_UNCERTAINTY", False)
+    switched_off = whatif.run_what_if(model, state, interventions, 30, 100, 4, (5.0, 95.0))
+    assert with_zero_draws.risk is not None and switched_off.risk is not None
+    assert with_zero_draws.risk.probability == pytest.approx(switched_off.risk.probability, abs=1e-12)
+    assert with_zero_draws.risk.upper == pytest.approx(switched_off.risk.upper, abs=1e-12)
+    monkeypatch.setattr(whatif, "WHATIF_EQUATION_PARAMETER_UNCERTAINTY", True)
+    with_draws = whatif.run_what_if(model, state, interventions, 30, 100, 4, (5.0, 95.0))
+    assert with_draws.risk is not None and with_draws.risk.probability != switched_off.risk.probability

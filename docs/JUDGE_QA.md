@@ -88,6 +88,12 @@ Nothing is invented; each value comes from a computation:
   coefficients (they come from a limited number of failures). Uncertainty in the linear equations'
   coefficients is not included. How often the truth falls inside the interval is measured in the
   benchmark's calibration table: well before an action, too rarely after one. We say this in the UI.
+  Since Phase 7 each rollout also draws the linear equations' coefficients (standard Ridge covariance
+  stored at fit time), so the previous sentence about them no longer holds. That changed coverage very
+  little: the misses after an action are almost all tool changes, where the truth lies below the
+  twin's small predicted risk (the calibration table splits lever changes from tool changes). The
+  Control Room shows, live, whether the ground truth is inside the twin's interval and how often it
+  has been this session; the guided demo says it at beats 2 and 5.
 - **Recommendation confidence:** the geometric mean of three parts, each shown in the expandable breakdown:
   - the lowest bootstrap confidence of the edges on its causal path;
   - how tight the predicted risk interval is;
@@ -178,7 +184,8 @@ Fault-free runs: 60,000 steps, 5 suspected alarms, 0 wrongly confirmed structura
   matches the truth closely, but in extreme states, such as the demo's hot afternoon, the twin
   under-predicts. The cause is measured: the failure model rests on about 90 failures. The demo shows
   the twin and the ground truth side by side, so this is visible.
-- **Intervals after an action are too narrow** (calibration table).
+- **Intervals after an action are too narrow** (calibration table), mainly after tool changes, where
+  the truth is below the twin's already small predicted risk.
 - **The benchmark has 30 cases on one simulator.** CausalTwin misses the target in 2 of them; the
   benchmark table lists them.
 

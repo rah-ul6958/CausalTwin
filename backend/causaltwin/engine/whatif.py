@@ -17,13 +17,22 @@ Choices (shown to users in the "How was this computed?" drawer):
   of failures), so every rollout draws its own coefficients from their estimated sampling
   distribution. The risk and its interval include this; uncertainty in the linear
   equations' coefficients is not included.
+- Phase 7: with WHATIF_EQUATION_PARAMETER_UNCERTAINTY (the default), every rollout also draws
+  each linear equation's intercept and coefficients from their estimated sampling distribution
+  (the Ridge covariance stored at fit time), on a random stream of its own, so the noise and the
+  failure-model draws are unchanged. The risk and its interval then include this as well.
 """
 
 import time
 
 import numpy as np
 
-from causaltwin.config import WHATIF_FAILURE_PARAMETER_UNCERTAINTY, WHATIF_PARAMETER_STREAM
+from causaltwin.config import (
+    WHATIF_EQUATION_PARAMETER_STREAM,
+    WHATIF_EQUATION_PARAMETER_UNCERTAINTY,
+    WHATIF_FAILURE_PARAMETER_UNCERTAINTY,
+    WHATIF_PARAMETER_STREAM,
+)
 from causaltwin.engine.causal_model import CausalModel
 from causaltwin.engine.schemas import Intervention, RiskEstimate, VariableForecast, WhatIfResult
 from causaltwin.utils.timing import timed_step
@@ -37,8 +46,13 @@ ASSUMPTIONS = [
     "Exogenous variables that are not intervened on stay at their last observed value.",
     "Noise is resampled from each equation's fitted residuals; the baseline uses the same draws.",
     "Linear equations and a logistic failure model; no hidden confounders assumed.",
-    "Risk and interval include process noise and the failure model's coefficient uncertainty, not the "
-    "uncertainty of the linear equations' coefficients.",
+    (
+        "Risk and interval include process noise and the coefficient uncertainty of the failure model and of "
+        "the linear equations (standard approximation, rows treated as independent)."
+        if WHATIF_EQUATION_PARAMETER_UNCERTAINTY
+        else "Risk and interval include process noise and the failure model's coefficient uncertainty, not the "
+        "uncertainty of the linear equations' coefficients."
+    ),
     "No tool changes or maintenance are simulated inside the horizon.",
 ]
 
@@ -133,6 +147,28 @@ def _failure_parameters(model: CausalModel, seed: int, n_rollouts: int) -> np.nd
     return rng.multivariate_normal(point, covariance, size=n_rollouts, method="eigh")
 
 
+def _equation_parameters(model: CausalModel, seed: int, n_rollouts: int) -> dict[str, np.ndarray]:
+    """Linear-equation (intercept, coefficients...) for each rollout, per equation: (rollouts, 1 + terms).
+
+    Drawn around the fitted values with each fit's covariance, from a random stream of its own
+    (separate from the noise and the failure-model streams), so those draws stay exactly the same.
+    Equations without a usable covariance, or every equation when the switch is off, are left out
+    and use their fitted values.
+    """
+    if not WHATIF_EQUATION_PARAMETER_UNCERTAINTY:
+        return {}
+    rng = np.random.default_rng([seed, WHATIF_EQUATION_PARAMETER_STREAM])
+    parameters = {}
+    for name in sorted(model.equations):
+        equation = model.equations[name]
+        point = np.concatenate([[equation.intercept], equation.coefficients])
+        covariance = getattr(equation, "covariance", None)  # models pickled before Phase 7 have none
+        if covariance is None or covariance.shape != (point.size, point.size):
+            continue
+        parameters[name] = rng.multivariate_normal(point, covariance, size=n_rollouts, method="eigh")
+    return parameters
+
+
 def _simulate(
     model: CausalModel,
     history: np.ndarray,
@@ -142,11 +178,13 @@ def _simulate(
     noise_scale: dict[str, float],
     exogenous_draws: dict[str, np.ndarray] | None = None,
     failure_parameters: np.ndarray | None = None,
+    equation_parameters: dict[str, np.ndarray] | None = None,
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """Roll the model forward. Returns paths (rollouts, history + horizon, variables) and hazards.
 
     `failure_parameters` (rollouts, 1 + terms) gives each rollout its own failure-model
     intercept and coefficients; without it the fitted values are used.
+    `equation_parameters` does the same for the linear equations it contains (by target name).
     """
     n_rollouts = next(iter(noise_draws.values())).shape[0] if noise_draws else 1
     n_history, n_variables = history.shape
@@ -173,9 +211,15 @@ def _simulate(
             if endogenous_forcing is not None and _is_forced(endogenous_forcing, step, False):
                 paths[:, row, position] = endogenous_forcing[0]
                 continue
-            value = np.full(n_rollouts, equation.intercept)
-            for (cause, lag), coefficient in zip(equation.terms, equation.coefficients, strict=True):
-                value += coefficient * paths[:, row - lag, index[cause]]
+            drawn = (equation_parameters or {}).get(name)
+            if drawn is None:
+                value = np.full(n_rollouts, equation.intercept)
+                for (cause, lag), coefficient in zip(equation.terms, equation.coefficients, strict=True):
+                    value += coefficient * paths[:, row - lag, index[cause]]
+            else:
+                value = drawn[:, 0].copy()
+                for term_position, (cause, lag) in enumerate(equation.terms):
+                    value += drawn[:, 1 + term_position] * paths[:, row - lag, index[cause]]
             value += noise_scale.get(name, 1.0) * equation.residuals[noise_draws[name][:, step]]
             paths[:, row, position] = value
         if hazards is not None and model.failure is not None:
@@ -235,9 +279,12 @@ def run_what_if(
         forced = _forcing(model, interventions, history[-1])
         scale = noise_scale or {}
         parameters = _failure_parameters(model, seed, n_rollouts)
-        paths, hazards = _simulate(model, history, forced, horizon, noise_draws, scale, exogenous_draws, parameters)
+        equation_parameters = _equation_parameters(model, seed, n_rollouts)
+        paths, hazards = _simulate(
+            model, history, forced, horizon, noise_draws, scale, exogenous_draws, parameters, equation_parameters
+        )
         baseline_paths, baseline_hazards = _simulate(
-            model, history, {}, horizon, noise_draws, scale, exogenous_draws, parameters
+            model, history, {}, horizon, noise_draws, scale, exogenous_draws, parameters, equation_parameters
         )
 
         future = paths[:, needed_rows:, :]
@@ -310,6 +357,11 @@ def batch_failure_risk(
     parameters = _failure_parameters(model, seed, n_rollouts)
     assert parameters is not None
     tiled_parameters = np.tile(parameters, (n_candidates, 1))  # same draws for every candidate
+    # Per-rollout linear-equation parameters, one row array per (intercept, coefficient), same for every candidate.
+    tiled_equation_parameters = {
+        name: [np.tile(drawn[:, column], n_candidates).astype(STATE_DTYPE) for column in range(drawn.shape[1])]
+        for name, drawn in _equation_parameters(model, seed, n_rollouts).items()
+    }
     walk_steps = {
         name: model.exogenous_steps[name][draws].astype(STATE_DTYPE) for name, draws in exogenous_draws.items()
     }  # (rollouts, horizon), shared by every candidate
@@ -364,10 +416,17 @@ def batch_failure_risk(
         for name in order:
             equation = model.equations[name]
             position = index[name]
-            value = np.full(n_rows, equation.intercept, dtype=STATE_DTYPE)
-            for (cause, lag), coefficient in zip(equation.terms, equation.coefficients, strict=True):
-                source = current if lag == 0 else recent[-lag]
-                value += STATE_DTYPE(coefficient) * source[index[cause]]
+            drawn_columns = tiled_equation_parameters.get(name)
+            if drawn_columns is None:
+                value = np.full(n_rows, equation.intercept, dtype=STATE_DTYPE)
+                for (cause, lag), coefficient in zip(equation.terms, equation.coefficients, strict=True):
+                    source = current if lag == 0 else recent[-lag]
+                    value += STATE_DTYPE(coefficient) * source[index[cause]]
+            else:
+                value = drawn_columns[0].copy()
+                for term_position, (cause, lag) in enumerate(equation.terms):
+                    source = current if lag == 0 else recent[-lag]
+                    value += drawn_columns[1 + term_position] * source[index[cause]]
             value += np.tile(noise_values[name][:, step], n_candidates)
             current[position] = value
             apply_forcing(current, position, step)

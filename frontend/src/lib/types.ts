@@ -406,6 +406,11 @@ export interface RiskUpdate {
     true_risk_within_horizon: number | null;
     /** Step at which true_risk_within_horizon was computed. */
     true_risk_step: number | null;
+    /** Whether that ground truth is inside the twin's 90% interval at the same step (null before the first check). */
+    inside_twin_interval?: boolean | null;
+    /** This session's running count of such checks, and how many were inside. */
+    interval_checks?: number;
+    interval_hits?: number;
   };
 }
 
@@ -447,7 +452,13 @@ export interface DemoBeatResult {
   narration?: string;
   step?: number;
   twin_risk?: RiskEstimate | null;
-  validation?: { label: string; true_risk_within_horizon: number | null };
+  validation?: {
+    label: string;
+    true_risk_within_horizon: number | null;
+    inside_twin_interval?: boolean | null;
+    interval_checks?: number;
+    interval_hits?: number;
+  };
   recommendation?: Recommendation;
   baseline_action?: BaselineAction | null;
   baseline_actions?: Partial<Record<BaselineMethod, BaselineAction>>;

@@ -62,6 +62,29 @@ interface RiskSettings {
   rollouts: number;
 }
 
+/** Is the ground truth inside the twin's 90% interval, and how often has it been this session (validation only)? */
+function IntervalCheck() {
+  const validation = useLiveStore((state) => state.latestRisk?.validation);
+  const inside = validation?.inside_twin_interval ?? null;
+  const checks = validation?.interval_checks ?? 0;
+  const hits = validation?.interval_hits ?? 0;
+  return (
+    <div data-testid="interval-check" className="mt-1.5 flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-0.5 text-[11px]">
+      <span className="text-muted-foreground">
+        Inside the twin&apos;s 90% interval:{" "}
+        <span className={cn("font-medium", inside === null ? "text-slate-300" : inside ? "text-good" : "text-warn")}>
+          {inside === null ? "not checked yet" : inside ? "yes" : "no"}
+        </span>
+      </span>
+      {checks > 0 && (
+        <span className="tabular text-muted-foreground">
+          this session: inside in {hits} of {checks} checks
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** The twin's current risk estimate: the last streamed update, or the last point of the risk history. */
 function useCurrentRisk(): { known: boolean; risk: RiskEstimate | null; truth: number | null } {
   const latestRisk = useLiveStore((state) => state.latestRisk);
@@ -297,6 +320,8 @@ function RiskPanel({ settings }: { settings: RiskSettings }) {
                 <GroundTruthBadge />
                 <span className="tabular text-sm text-emerald-200">{formatPercent(truth)}</span>
               </div>
+              <IntervalCheck />
+
               <p className="mt-1 text-[11px] text-muted-foreground">
                 Shown only to check the twin; it comes from forks of the simulator, which the twin never sees.
               </p>

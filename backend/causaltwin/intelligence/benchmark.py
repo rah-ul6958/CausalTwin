@@ -308,11 +308,15 @@ def _calibration_pair(
     covered = [lower <= value <= upper for (lower, upper), value in zip(intervals, true, strict=True)]
     correlation = float(np.corrcoef(predicted_array, true_array)[0, 1]) if len(true) > 2 else None
     return {
+        "n_cases": len(true),
         "mean_predicted": float(predicted_array.mean()),
         "mean_true": float(true_array.mean()),
         "mean_error": float((predicted_array - true_array).mean()),
         "mean_absolute_error": float(np.abs(predicted_array - true_array).mean()),
         "interval_coverage": float(np.mean(covered)),
+        # Where the misses fall: true risk below the interval's lower end, or above its upper end.
+        "n_below_interval": sum(value < lower for (lower, _), value in zip(intervals, true, strict=True)),
+        "n_above_interval": sum(value > upper for (_, upper), value in zip(intervals, true, strict=True)),
         "correlation": correlation,
     }
 
@@ -340,6 +344,19 @@ def calibration_summary(cases: list[BenchmarkCase]) -> dict[str, Any]:
         )
         if acted
         else {},
+        # The same check split by the kind of action CausalTwin took.
+        "after_action_by_kind": {
+            kind: _calibration_pair(
+                [case.causaltwin.predicted_risk_after or 0.0 for case in group],
+                [case.causaltwin.predicted_risk_after_interval or (0.0, 1.0) for case in group],
+                [case.causaltwin.true_risk_after for case in group],
+            )
+            for kind, group in (
+                ("tool_change", [case for case in acted if "tool change" in case.causaltwin.action]),
+                ("levers", [case for case in acted if "tool change" not in case.causaltwin.action]),
+            )
+            if group
+        },
     }
 
 

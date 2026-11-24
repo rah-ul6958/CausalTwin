@@ -283,17 +283,25 @@ def benchmark_block(results: dict[str, dict[str, Any]]) -> str:
             "",
             "Calibration: the twin's predicted risk against the simulator's true risk in the same cases.",
             "",
-            "| Twin prediction | Mean predicted | Mean true | Mean absolute error | Truth inside the 90% interval "
-            "| Correlation |",
-            "|---|---|---|---|---|---|",
+            "| Twin prediction | Cases | Mean predicted | Mean true | Mean absolute error | Truth inside the 90% "
+            "interval | Truth below / above it | Correlation |",
+            "|---|---|---|---|---|---|---|---|",
         ]
-        for key, label in (("no_action", "Risk with no action"), ("after_action", "Risk after its own action")):
-            row = calibration.get(key) or {}
+        by_kind = calibration.get("after_action_by_kind") or {}
+        rows = [
+            ("Risk with no action", calibration.get("no_action") or {}),
+            ("Risk after its own action", calibration.get("after_action") or {}),
+            ("... after a lever change", by_kind.get("levers") or {}),
+            ("... after a tool change", by_kind.get("tool_change") or {}),
+        ]
+        for label, row in rows:
             if row:
+                correlation = "-" if row.get("correlation") is None else f"{row['correlation']:.2f}"
                 lines.append(
-                    f"| {label} | {_percent(row['mean_predicted'], 1)} | {_percent(row['mean_true'], 1)} | "
-                    f"{row['mean_absolute_error'] * 100:.1f} points | {_percent(row['interval_coverage'])} | "
-                    f"{row['correlation']:.2f} |"
+                    f"| {label} | {row.get('n_cases', '-')} | {_percent(row['mean_predicted'], 1)} | "
+                    f"{_percent(row['mean_true'], 1)} | {row['mean_absolute_error'] * 100:.1f} points | "
+                    f"{_percent(row['interval_coverage'])} | {row.get('n_below_interval', '-')} / "
+                    f"{row.get('n_above_interval', '-')} | {correlation} |"
                 )
         lines.append("")
     lines.append(

@@ -37,6 +37,8 @@ class LinearEquation:
     n_train: int
     n_holdout: int
     n_jumps: int = 0  # rare unexplained jumps left out of the fit (kept in `residuals`)
+    # Approximate covariance of (intercept, coefficients...) of the fit; None if it could not be estimated.
+    covariance: np.ndarray | None = None
 
     def self_coefficient_sum(self) -> float:
         """Sum of the coefficients on the target's own lags (persistence)."""
@@ -116,6 +118,36 @@ def _equation_terms(graph: CausalGraph, target: str, time_structure: bool) -> li
     return terms
 
 
+def ridge_covariance(design: np.ndarray, residuals: np.ndarray, penalty: float) -> np.ndarray | None:
+    """Approximate covariance of (intercept, coefficients...) of a Ridge fit with an intercept.
+
+    scikit-learn's Ridge centres the columns and does not penalise the intercept. With the centred
+    design Xc (n rows, p columns), A = Xc'Xc + penalty * I and the residual variance
+    s2 = RSS / (n - p - 1), the standard approximation is
+        Var(coefficients)               = s2 * A^-1 (Xc'Xc) A^-1
+    and, because intercept = mean(y) - mean(x)' coefficients,
+        Var(intercept)                  = s2 / n + mean(x)' Var(coefficients) mean(x)
+        Cov(intercept, coefficients)    = -Var(coefficients) mean(x).
+    It treats the rows as independent; with autocorrelated residuals the true sampling spread is
+    larger, so this is, if anything, too narrow.
+    """
+    n_rows, n_terms = design.shape
+    if n_terms == 0 or n_rows <= n_terms + 1:
+        return None
+    column_means = design.mean(axis=0)
+    centred = design - column_means
+    gram = centred.T @ centred
+    inverse = np.linalg.inv(gram + penalty * np.eye(n_terms))
+    residual_variance = float(residuals @ residuals) / (n_rows - n_terms - 1)
+    coefficient_covariance = residual_variance * inverse @ gram @ inverse
+    covariance = np.empty((n_terms + 1, n_terms + 1))
+    covariance[1:, 1:] = coefficient_covariance
+    covariance[0, 1:] = covariance[1:, 0] = -(coefficient_covariance @ column_means)
+    covariance[0, 0] = residual_variance / n_rows + column_means @ coefficient_covariance @ column_means
+    covariance = (covariance + covariance.T) / 2.0  # exact symmetry for the multivariate normal draw
+    return covariance if np.all(np.isfinite(covariance)) else None
+
+
 def _fit_linear(
     window: PreparedData,
     target: str,
@@ -145,10 +177,12 @@ def _fit_linear(
         train_keep = keep[:n_train]
         holdout_model = Ridge(alpha=penalty).fit(design[:n_train][train_keep], target_values[:n_train][train_keep])
         r_squared = float(r2_score(target_values[n_train:], holdout_model.predict(design[n_train:])))
+    covariance = None
     if terms:
         model = Ridge(alpha=penalty).fit(design[keep], target_values[keep])
         coefficients, intercept = np.asarray(model.coef_, dtype=float), float(model.intercept_)
         residuals = target_values - model.predict(design)  # every row: jumps remain part of the noise
+        covariance = ridge_covariance(design[keep], residuals[keep], penalty)
     else:
         coefficients, intercept = np.zeros(0), float(target_values.mean())
         residuals = target_values - intercept
@@ -165,6 +199,7 @@ def _fit_linear(
         n_train=n_train,
         n_holdout=target_values.size - n_train,
         n_jumps=int((~keep).sum()),
+        covariance=covariance,
     )
 
 
@@ -424,6 +459,13 @@ def _fit_with_constant_causes(
     for index, coefficient in fixed.items():
         coefficients[index] = coefficient
     residuals = values - (design @ coefficients + intercept)
+    # Covariance of the free coefficients and the intercept; the fixed offsets are treated as known.
+    covariance = None
+    free_covariance = ridge_covariance(design[:, free], residuals, penalty) if free else None
+    if free_covariance is not None:
+        positions = [0] + [1 + index for index in free]  # intercept, then the free terms
+        covariance = np.zeros((len(terms) + 1, len(terms) + 1))
+        covariance[np.ix_(positions, positions)] = free_covariance
     if residuals.size > residual_limit:
         residuals = rng.choice(residuals, size=residual_limit, replace=False)
     return LinearEquation(
@@ -436,4 +478,5 @@ def _fit_with_constant_causes(
         r_squared_holdout=previous.r_squared_holdout if previous else None,
         n_train=values.size,
         n_holdout=0,
+        covariance=covariance,
     )

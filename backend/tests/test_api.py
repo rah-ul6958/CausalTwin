@@ -237,6 +237,10 @@ def test_scripted_demo_through_the_api(client: TestClient) -> None:
     assert by_name["drift_alert"]["alert"]["status"] == "confirmed"
     assert "coolant_flow" in by_name["drift_alert"]["narration"]
     assert by_name["new_recommendation"]["recommendation"]["action_type"] != "none"
+    # Beats 2 and 5 say whether the ground truth is inside the twin's 90% interval.
+    for name in ("risk_rises", "risk_drops"):
+        assert "the twin's 90% interval" in by_name[name]["narration"]
+        assert isinstance(by_name[name]["validation"]["inside_twin_interval"], bool)
     # The recommendation beats open with the computed headline sentence.
     for name in ("recommendation", "new_recommendation"):
         headline = by_name[name]["recommendation"]["headline"]
@@ -279,3 +283,26 @@ def test_information_endpoints(client: TestClient) -> None:
     assert routine and all(entry["routine"] and entry["step_name"] == "what_if" for entry in routine)
     main = client.get("/logs", params={"limit": 500, "routine": "exclude"}).json()
     assert main and not any(entry["routine"] for entry in main)
+
+
+def test_interval_check_counts_ground_truth_inside_the_twins_interval(client: TestClient) -> None:
+    """The live loop counts how often the ground truth falls inside the twin's 90% interval."""
+    from causaltwin.engine.schemas import RiskEstimate
+
+    live = client.app.state.causaltwin.live  # type: ignore[attr-defined]
+    checks, hits = live.interval_checks, live.interval_hits
+    live.latest_risk = RiskEstimate(probability=0.2, lower=0.1, upper=0.3)
+    live.latest_true_risk, live.latest_true_risk_step = 0.25, 10_000
+    live._check_interval(10_000)
+    assert live.interval_summary() == {
+        "inside_twin_interval": True,
+        "interval_checks": checks + 1,
+        "interval_hits": hits + 1,
+    }
+    assert "inside the twin's 90% interval (10.0%-30.0%)" in live.interval_text()
+    live.latest_true_risk, live.latest_true_risk_step = 0.45, 10_001
+    live._check_interval(10_001)
+    assert live.interval_summary()["inside_twin_interval"] is False
+    assert (live.interval_checks, live.interval_hits) == (checks + 2, hits + 1)
+    live._check_interval(10_002)  # no ground truth at this step: nothing is counted
+    assert live.interval_checks == checks + 2

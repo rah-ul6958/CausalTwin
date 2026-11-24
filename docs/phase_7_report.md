@@ -204,3 +204,58 @@ by looking at those two cases would be tuned on the benchmark.
 
 **Checks after A2.** Backend: 104 passed, ruff and ruff format clean, mypy clean. Frontend: lint clean,
 `tsc --noEmit` clean, build succeeded. Benchmark 13.2 s, recommendation search 118 ms median (budgets 60 s and 1 s).
+
+## A3. Honest calibration: coefficient uncertainty, and the check on screen
+
+**What changed.**
+
+- `engine/causal_model.py`: every linear equation stores the approximate covariance of its
+  (intercept, coefficients) at fit time (`ridge_covariance`; the formula is in its docstring:
+  s2 A^-1 Xc'Xc A^-1 with A = Xc'Xc + penalty I on the centred design, the intercept's variance and
+  covariance from the column means). The drift refit stores it too, for the coefficients it re-estimates.
+- `engine/whatif.py`: every rollout draws each equation's intercept and coefficients from that
+  covariance (`_equation_parameters`), on a random stream of its own (`WHATIF_EQUATION_PARAMETER_STREAM`),
+  so the noise and failure-model draws are unchanged; switch `WHATIF_EQUATION_PARAMETER_UNCERTAINTY`
+  (on). Both the single what-if and the optimizer's batched evaluator use it. The assumption text shown
+  in the "How was this computed?" drawers says so.
+- `intelligence/benchmark.py`: the calibration summary also records how many true risks fall below and
+  above the interval, and the after-action check split by action kind (lever change or tool change);
+  the README's calibration table shows both.
+- Control Room: next to the ground-truth box, "Inside the twin's 90% interval: yes / no" and this
+  session's running count ("this session: inside in N of M checks"), computed by the live loop each
+  time the ground truth and the twin's risk are computed at the same step. The guided demo panel shows
+  the interval and the result, and beats 2 and 5 say it in the narration, for example (beat 2):
+  "Simulator ground truth (validation only): 48.7%, inside the twin's 90% interval (20.7%-50.7%)".
+- Docs: the README limitation, the judge Q&A (how intervals are computed, and the limitations list)
+  describe the new state.
+- Tests (4 new, 1 extended): the covariance formula equals statsmodels' OLS covariance without a
+  penalty; every fitted equation has a symmetric positive semi-definite covariance; with all covariances
+  set to zero the rollouts equal the switched-off engine's exactly (the new stream leaves the others
+  untouched); the live interval check counts correctly; demo beats 2 and 5 state the check.
+
+**Result: the 80% after-action coverage target was not reached.** Benchmark calibration (30 cases):
+
+| Twin prediction | Before A3: inside the 90% interval | After A3 | Mean absolute error before / after |
+|---|---|---|---|
+| Risk with no action | 87% | 90% (misses: 3 below, 0 above) | 4.1 / 4.0 points |
+| Risk after its own action | 43% | 43% (misses: 16 below, 1 above) | 1.1 / 1.1 points |
+| ... after a lever change (11 cases) | - | 91% (1 above: case 28) | 1.8 points |
+| ... after a tool change (19 cases) | - | 16% (16 below) | 0.7 points |
+
+The equation coefficients are estimated from thousands of rows, so their uncertainty is small and
+drawing them hardly widens the intervals. The split shows where the after-action misses come from:
+after a lever change the interval covers the truth in 10 of 11 cases; after a tool change the twin
+predicts a small risk (mean 1.1%) and the truth is smaller still (mean 0.5%), below the interval in
+16 of 19 cases. That is a limit of the logistic failure model (it cannot go as low as the real hazard
+of a fresh tool), not of the coefficient uncertainty, and the misses are all far below the 10% target.
+As the task asked, no factor was fitted on the benchmark cases to widen the intervals; the measured
+values are reported.
+
+**Selection rules re-measured after A3** (`data/selection_rule_comparison.json`): margin 28 / 30,
+confidence 23 / 30 (one fewer than before A3). The margin rule stays active.
+
+**Latency** (`scripts/measure_timings.py`): what-if 7 ms median (budget 200 ms), recommendation search
+142 ms median, 176 ms slowest (was 118 ms; budget 1 s), benchmark 14.5 s (budget 60 s).
+
+**Checks after A3.** Backend: 108 passed, ruff and ruff format clean, mypy clean. Frontend: lint clean,
+`tsc --noEmit` clean, build succeeded.
