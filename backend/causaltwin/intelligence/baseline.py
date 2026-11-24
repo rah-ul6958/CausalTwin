@@ -162,22 +162,37 @@ class BaselineModel:
         return {name: float(value) for name, value in zip(self.features, values, strict=True)}
 
     def recommend(
-        self, row: pd.Series, magnitude_pct: float, contributions: dict[str, float] | None = None
+        self,
+        row: pd.Series,
+        magnitude_pct: float,
+        contributions: dict[str, float] | None = None,
+        target_risk: float = OPTIMIZER_TARGET_RISK,
+        low_risk_rule: bool = True,
     ) -> BaselineAction:
         """B1, naive SHAP: blame the top SHAP feature and map it to the engineer's action.
 
         `contributions` may pass SHAP values already computed for this row (they are the same for B1 and B2).
+        With `low_risk_rule`, no action when the model's own predicted risk is at or below `target_risk`.
         """
         contributions = contributions if contributions is not None else self.shap_values(row)
-        return self._blame_and_act(row, contributions, contributions, magnitude_pct, "naive_shap")
+        return self._blame_and_act(
+            row, contributions, contributions, magnitude_pct, "naive_shap", target_risk, low_risk_rule
+        )
 
     def recommend_actionable(
-        self, row: pd.Series, magnitude_pct: float, contributions: dict[str, float] | None = None
+        self,
+        row: pd.Series,
+        magnitude_pct: float,
+        contributions: dict[str, float] | None = None,
+        target_risk: float = OPTIMIZER_TARGET_RISK,
+        low_risk_rule: bool = True,
     ) -> BaselineAction:
         """B2, actionable SHAP: blame the top SHAP feature among the levers and tool wear, then act on it."""
         contributions = contributions if contributions is not None else self.shap_values(row)
         actionable = {name: contributions[name] for name in BASELINE_ACTIONABLE_FEATURES if name in contributions}
-        return self._blame_and_act(row, actionable, contributions, magnitude_pct, "actionable_shap")
+        return self._blame_and_act(
+            row, actionable, contributions, magnitude_pct, "actionable_shap", target_risk, low_risk_rule
+        )
 
     def _blame_and_act(
         self,
@@ -186,10 +201,28 @@ class BaselineModel:
         contributions: dict[str, float],
         magnitude_pct: float,
         method: Literal["naive_shap", "actionable_shap"],
+        target_risk: float = OPTIMIZER_TARGET_RISK,
+        low_risk_rule: bool = True,
     ) -> BaselineAction:
-        """Blame the eligible feature with the largest positive SHAP value and map it to an action."""
+        """Blame the eligible feature with the largest positive SHAP value and map it to an action.
+
+        When the model's own predicted risk is already at or below the target, there is nothing to fix:
+        no action (the same rule as B3 and as CausalTwin's optimizer).
+        """
         blamed, blamed_value = max(eligible.items(), key=lambda item: item[1])
         risk = self.predict_risk(row)
+        if low_risk_rule and risk <= target_risk:
+            return BaselineAction(
+                method=method,
+                blamed_feature="none",
+                blamed_shap=None,
+                kind="none",
+                cost=0.0,
+                description=low_risk_description(risk, target_risk),
+                shap_values=contributions,
+                predicted_risk=risk,
+                predicted_risk_after=risk,
+            )
         if blamed_value <= 0:
             return BaselineAction(
                 method=method,
@@ -268,10 +301,10 @@ class BaselineModel:
         risk_after = float(predicted_risks[chosen])
         shap_values = contributions if contributions is not None else {}
         if risk_before <= target_risk or risk_after >= risk_before:
-            reason = (
-                f"XGBoost predicts {risk_before:.1%} failure risk, at or below the {target_risk:.0%} target"
+            description = (
+                low_risk_description(risk_before, target_risk)
                 if risk_before <= target_risk
-                else f"no evaluated change lowers XGBoost's predicted risk ({risk_before:.1%})"
+                else f"No action: no evaluated change lowers XGBoost's predicted risk ({risk_before:.1%})."
             )
             return BaselineAction(
                 method="counterfactual",
@@ -280,7 +313,7 @@ class BaselineModel:
                 blamed_feature="none",
                 kind="none",
                 cost=0.0,
-                description=f"No action: {reason}.",
+                description=description,
                 predicted_risk=risk_before,
                 predicted_risk_after=risk_before,
             )
@@ -313,13 +346,24 @@ class BaselineModel:
         )
 
     def recommend_all(
-        self, row: pd.Series, magnitude_pct: float, target_risk: float = OPTIMIZER_TARGET_RISK
+        self,
+        row: pd.Series,
+        magnitude_pct: float,
+        target_risk: float = OPTIMIZER_TARGET_RISK,
+        shap_low_risk_rule: bool = True,
     ) -> dict[str, BaselineAction]:
-        """All three baselines for one state (SHAP values computed once), keyed by method name."""
+        """All three baselines for one state (SHAP values computed once), keyed by method name.
+
+        `shap_low_risk_rule`: B1 and B2 do nothing when the model's own risk is at or below the target
+        (on in the API and UI). The benchmark turns it off, so B1 and B2 always act as defined in Phase 7
+        task A1, which is the more favourable choice for them there. B3 always has this rule by design.
+        """
         contributions = self.shap_values(row)
         return {
-            "naive_shap": self.recommend(row, magnitude_pct, contributions),
-            "actionable_shap": self.recommend_actionable(row, magnitude_pct, contributions),
+            "naive_shap": self.recommend(row, magnitude_pct, contributions, target_risk, shap_low_risk_rule),
+            "actionable_shap": self.recommend_actionable(
+                row, magnitude_pct, contributions, target_risk, shap_low_risk_rule
+            ),
             "counterfactual": self.recommend_counterfactual(row, target_risk, contributions),
         }
 
@@ -355,6 +399,14 @@ class BaselineModel:
             "predicted_risk_after": risk_after,
         }
         return action, risk_after
+
+
+def low_risk_description(predicted_risk: float, target_risk: float) -> str:
+    """The shared wording when a baseline's own model predicts a risk at or below the target."""
+    return (
+        f"No action (its model predicts low risk): XGBoost predicts {predicted_risk:.1%} failure risk, "
+        f"at or below the {target_risk:.0%} target."
+    )
 
 
 def _best_f1_threshold(labels: np.ndarray, probabilities: np.ndarray) -> float:

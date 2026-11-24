@@ -9,6 +9,7 @@ import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAx
 import { PageHeader } from "@/components/common/page-header";
 import { Takeaway } from "@/components/common/takeaway";
 import { Panel } from "@/components/common/panel";
+import { BelowTargetFold, isBelowTarget } from "@/components/common/below-target";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { CausalGraphView, edgeKey, type EdgeState, type GraphMode } from "@/components/graph/causal-graph";
 import { ConfidenceBar, HowComputed, DataSourceBadge } from "@/components/transparency/transparency";
@@ -197,6 +198,9 @@ export function GraphExplorer() {
   const history = useApi(() => api.graphHistory(), `history-${runId}`, 5000);
   const cards = useApi(() => api.modelCards(), "cards");
   const rootCause = useApi(() => api.rootCause().catch(() => null), "root-cause", ROOT_CAUSE_REFRESH_MS);
+  const config = useApi(() => api.config(), "config");
+  // Below the target risk there is nothing to explain, so no path is highlighted on the graph.
+  const belowTarget = isBelowTarget(rootCause.data?.result.risk?.probability, config.data?.optimizer.target_risk);
   const [mode, setMode] = useState<GraphMode>("causal");
   const [selectedEdge, setSelectedEdge] = useState<SelectedEdge | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -243,7 +247,7 @@ export function GraphExplorer() {
   }, []);
 
   const graph = (liveGraph?.runId === runId ? liveGraph.graph : null) ?? causal.data?.graph ?? null;
-  const topPath = rootCause.data?.result.paths[0];
+  const topPath = belowTarget ? undefined : rootCause.data?.result.paths[0];
   const pathNodes = useMemo(() => new Set(topPath ? [...topPath.nodes.map((node) => node.variable), "failure"] : []), [topPath]);
   const pathEdges = useMemo(() => {
     const keys = new Set<string>();
@@ -326,7 +330,9 @@ export function GraphExplorer() {
               <EmptyState title="No root-cause analysis right now" hint={`It needs recent running data; it refreshes every ${ROOT_CAUSE_REFRESH_MS / 1000} s.`} />
             ) : (
               <div className="space-y-2 text-xs">
-                <p className="leading-relaxed text-slate-200">{topPath?.description ?? "No risk-increasing path."}</p>
+                <BelowTargetFold risk={rootCause.data.result.risk?.probability} target={config.data?.optimizer.target_risk}>
+                  <p className="leading-relaxed text-slate-200">{rootCause.data.result.paths[0]?.description ?? "No risk-increasing path."}</p>
+                </BelowTargetFold>
                 <div>
                   <p className="mb-1 text-muted-foreground">Symptoms, not causes</p>
                   {rootCause.data.result.symptoms.length === 0 ? (

@@ -227,6 +227,7 @@ def evaluate_situation(
     seeds: list[int],
     horizon: int,
     selection_rule: str | None = None,
+    baseline_low_risk_rule: bool = False,
 ) -> BenchmarkCase:
     """Both methods' actions on one situation, judged in the real simulator."""
     engine, baseline = models.engine, models.baseline
@@ -236,7 +237,9 @@ def evaluate_situation(
     root_cause = engine.root_cause(situation.history[engine.model.variables])
     blamed_ct = " -> ".join(node.variable for node in root_cause.paths[0].nodes) if root_cause.paths else "none"
     magnitude = max((abs(c.change_pct) for c in recommendation.changes), default=BASELINE_DEFAULT_MAGNITUDE_PCT)
-    actions = baseline.recommend_all(situation.history.iloc[-1], magnitude, OPTIMIZER_TARGET_RISK)
+    actions = baseline.recommend_all(
+        situation.history.iloc[-1], magnitude, OPTIMIZER_TARGET_RISK, shap_low_risk_rule=baseline_low_risk_rule
+    )
 
     # True outcomes, simulated once per distinct action (forks with the same seeds are deterministic).
     outcomes: dict[ActionKey, tuple[float, float]] = {}
@@ -407,6 +410,7 @@ def run_benchmark(
     seeds_per_situation: int = BENCHMARK_SEEDS_PER_SITUATION,
     horizon: int = WHATIF_HORIZON,
     selection_rule: str | None = None,
+    baseline_low_risk_rule: bool = False,
 ) -> dict[str, Any]:
     """Run the whole benchmark, report every case, and cache the results as JSON."""
     with timed_step("benchmark", "Ran the Correlation Trap benchmark") as timer:
@@ -417,7 +421,9 @@ def run_benchmark(
         search_seconds = time.perf_counter() - start_time
         cases = []
         for case_id, situation in enumerate(situations):
-            cases.append(evaluate_situation(case_id, situation, models, seeds, horizon, selection_rule))
+            cases.append(
+                evaluate_situation(case_id, situation, models, seeds, horizon, selection_rule, baseline_low_risk_rule)
+            )
             if progress:
                 progress(case_id + 1, len(situations), f"Evaluated case {case_id + 1} ({situation.scenario})")
         validation = json.loads(VALIDATION_RESULTS_PATH.read_text()) if VALIDATION_RESULTS_PATH.exists() else {}
@@ -430,6 +436,8 @@ def run_benchmark(
                 "target_risk": OPTIMIZER_TARGET_RISK,
                 "selection_rule": selection_rule or OPTIMIZER_SELECTION_RULE,
                 "required_confidence": OPTIMIZER_REQUIRED_CONFIDENCE,
+                # B1 and B2 always act in the benchmark (see BaselineModel.recommend_all).
+                "baseline_low_risk_rule": baseline_low_risk_rule,
                 "min_true_risk": BENCHMARK_MIN_TRUE_RISK,
                 "success": "true risk after the action <= target",
             },

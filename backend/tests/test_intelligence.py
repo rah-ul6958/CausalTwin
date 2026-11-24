@@ -200,6 +200,7 @@ def test_benchmark_runs_end_to_end(models: TrainedModels, tmp_path: Path) -> Non
             expected = outcome_flags(result["true_risk_after"], case["true_risk_no_action"], result["no_action"])
             assert {name: result[name] for name in expected} == expected
     summary = saved["summary"]
+    assert saved["settings"]["baseline_low_risk_rule"] is False  # B1 and B2 always act in the benchmark
     assert set(summary) >= {"causaltwin", "baselines", "wins", "cases_where_causaltwin_is_worse", "main_baseline"}
     assert set(summary["baselines"]) == methods and summary["main_baseline"] == MAIN_BASELINE
     for method in ["causaltwin", *methods]:
@@ -302,6 +303,22 @@ def test_counterfactual_baseline_does_nothing_when_predicted_risk_is_low(models:
     action = models.baseline.recommend_counterfactual(row)
     assert action.predicted_risk <= OPTIMIZER_TARGET_RISK
     assert action.kind == "none" and action.cost == 0.0 and action.description.startswith("No action")
+
+
+def test_every_baseline_does_nothing_when_its_own_model_predicts_low_risk(models: TrainedModels) -> None:
+    """Below the target, B1, B2 and B3 all say "no action (its model predicts low risk)", with no blamed feature."""
+    data = models.training_data
+    calm = data[(data["machine_running"] == 1) & (data["tool_wear"] < data["tool_wear"].quantile(0.2))]
+    row = calm.iloc[len(calm) // 2]
+    assert models.baseline.predict_risk(row) <= OPTIMIZER_TARGET_RISK
+    for method, action in models.baseline.recommend_all(row, 20.0).items():
+        assert action.kind == "none" and action.cost == 0.0, method
+        assert action.blamed_feature == "none" and action.blamed_shap is None, method
+        assert action.description.startswith("No action (its model predicts low risk)"), method
+    # Above the target the SHAP baselines still act.
+    risky = max(_rows_before_failures(models), key=models.baseline.predict_risk)
+    assert models.baseline.predict_risk(risky) > OPTIMIZER_TARGET_RISK
+    assert models.baseline.recommend(risky, 20.0).kind != "none"
 
 
 def test_recommend_all_returns_every_baseline(models: TrainedModels) -> None:

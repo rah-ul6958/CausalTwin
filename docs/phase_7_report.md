@@ -259,3 +259,47 @@ confidence 23 / 30 (one fewer than before A3). The margin rule stays active.
 
 **Checks after A3.** Backend: 108 passed, ruff and ruff format clean, mypy clean. Frontend: lint clean,
 `tsc --noEmit` clean, build succeeded.
+
+## A4. No misleading screens when the risk is low
+
+**What changed.**
+
+- Root cause (Advisor and Graph Explorer): below the target risk the panel says "Risk is below the
+  target; nothing to explain right now" and folds the current contributions behind "Show what
+  contributes most anyway". The Graph Explorer then also stops highlighting a path on the graph.
+  (Shared component `components/common/below-target.tsx`.)
+- Ineffective levers (Advisor): shown only when the predicted risk is above the target; otherwise the
+  panel explains that every lever would look ineffective only because the risk is already low.
+  Symptoms are still listed: they are structural, not risk-dependent.
+- Baselines: B1 and B2 now return "No action (its model predicts low risk): XGBoost predicts X%
+  failure risk, at or below the 10% target." when their own predicted risk is at or below the target,
+  in the API and the UI; B3 uses the same wording. The Advisor's baseline card shows "Would do:
+  Nothing" in that case, and B3's note about frozen temperatures only appears when B3 acts.
+- SHAP chart: always includes the blamed feature (outlined), red bars push the risk up and green bars
+  push it down, sorted by signed value, with the axis labelled "pushes risk up / down (log-odds)".
+- Tests: backend, all three baselines do nothing at a calm state and B1 still acts at a high-risk
+  one, and the benchmark records that B1 and B2 always act there. Playwright, a new test opens the
+  Advisor and the Graph Explorer at low risk and checks the new messages, the hidden ineffective-lever
+  list, the baselines' "no action" and the folded contributions.
+
+**The benchmark is not unaffected, contrary to the task's expectation, so B1 and B2 keep acting there.**
+The benchmark's moments have a high true risk, but XGBoost's own prediction is at or below 10% at
+several of them (B3's eight "no action" cases). Applying the low-risk rule to B1 and B2 in the
+benchmark was measured with `run_benchmark(models, baseline_low_risk_rule=True)`: B1 would go from
+1 / 30 to 0 / 30 (11 "no action" at high risk instead of 6), and B2 from 17 / 30 to 15 / 30 (8 "no
+action" at high risk, 4 instead of 6 cases worse than doing nothing). Changing the baselines after
+the fact in a way that lowers B2's success would undercut A1, so the benchmark keeps B1 and B2 as
+defined in A1 (`baseline_low_risk_rule=False`, recorded in the results' settings), which is the more
+favourable choice for them; the rule applies in the API and UI only. B3 always had the rule by design.
+All benchmark numbers are unchanged by A4.
+
+**End-to-end tests now run.** Playwright's Chromium was installed on this computer and the whole
+Chromium suite was run against the backend (Docker) and the production frontend build: 25 of 25
+passed, including the new low-risk test, the A1 Advisor and Benchmark checks (one A1 test used the
+wrong ARIA role for the selector and was fixed), the accessibility (axe) checks on every page and the
+full guided demo story. Firefox and WebKit were not run (not installed). The run refreshed the
+documentation screenshots in `docs/screenshots/`, which now show the Phase 7 pages.
+
+**Checks after A4.** Backend: 109 passed, ruff and ruff format clean, mypy clean. Frontend: lint clean,
+`tsc --noEmit` clean, build succeeded; Playwright (Chromium) 25 passed. Timings: what-if 7 ms,
+recommendation search 152 ms, benchmark 12.9 s (budgets 200 ms, 1 s, 60 s).

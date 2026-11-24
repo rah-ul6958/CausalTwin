@@ -6,11 +6,12 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ArrowUpDown, ChevronDown, CircleCheck, Lightbulb, RefreshCw, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { Bar, BarChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, Cell, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { PageHeader } from "@/components/common/page-header";
 import { Takeaway } from "@/components/common/takeaway";
 import { Panel } from "@/components/common/panel";
+import { BelowTargetFold, isBelowTarget } from "@/components/common/below-target";
 import { EmptyState, ErrorState, LoadingOrError, PanelSkeleton } from "@/components/common/states";
 import { ConfidenceBar, DataSourceBadge, GroundTruthBadge, HowComputed, InfoTip, TimingChip } from "@/components/transparency/transparency";
 import { Button } from "@/components/ui/button";
@@ -253,14 +254,17 @@ function BaselineCard({ actions, labels, main }: {
   const methods = (["counterfactual", "actionable_shap", "naive_shap"] as const).filter((method) => actions[method]);
   const action = actions[selected] ?? actions[main] ?? null;
   const labelOf = (method: BaselineMethod) => labels[method] ?? BASELINE_FALLBACK_LABELS[method];
-  const data = useMemo(
-    () =>
-      Object.entries(action?.shap_values ?? {})
-        .map(([name, value]) => ({ name: humanize(name), value }))
-        .sort((first, second) => Math.abs(second.value) - Math.abs(first.value))
-        .slice(0, 6),
-    [action],
-  );
+  // The six largest contributions by size, always including the blamed feature, then sorted by signed
+  // value: features that push risk up at the top, those that push it down at the bottom.
+  const data = useMemo(() => {
+    const entries = Object.entries(action?.shap_values ?? {});
+    const largest = [...entries].sort((first, second) => Math.abs(second[1]) - Math.abs(first[1])).slice(0, 6);
+    const blamed = entries.find(([name]) => name === action?.blamed_feature);
+    if (blamed && !largest.some(([name]) => name === blamed[0])) largest[largest.length - 1] = blamed;
+    return largest
+      .sort((first, second) => second[1] - first[1])
+      .map(([name, value]) => ({ name: humanize(name), value, blamed: name === action?.blamed_feature }));
+  }, [action]);
   const searches = action?.method === "counterfactual";
   return (
     <Panel index={1} title="Predictive baselines for the same moment" subtitle={action ? labelOf(action.method) : "XGBoost failure predictor"} icon={<TriangleAlert className="size-4 text-warn" />}
@@ -280,9 +284,15 @@ function BaselineCard({ actions, labels, main }: {
       ) : (
         <div className="space-y-3 text-sm">
           <div className="rounded-lg border border-warn/30 bg-warn/5 p-3">
-            <p className="text-xs text-muted-foreground">{searches ? "Would do" : "Blames"}</p>
+            <p className="text-xs text-muted-foreground">{searches || action.kind === "none" ? "Would do" : "Blames"}</p>
             <p className="font-heading text-lg text-amber-100">
-              {searches ? (action.kind === "none" ? "Nothing" : action.kind === "tool_change" ? "Tool change" : action.changes.map((change) => `${humanize(change.lever)} ${formatSigned(change.change_pct, 0)}%`).join(", ")) : humanize(action.blamed_feature)}
+              {action.kind === "none"
+                ? "Nothing"
+                : searches
+                  ? action.kind === "tool_change"
+                    ? "Tool change"
+                    : action.changes.map((change) => `${humanize(change.lever)} ${formatSigned(change.change_pct, 0)}%`).join(", ")
+                  : humanize(action.blamed_feature)}
             </p>
             <p className="mt-1 text-xs text-slate-300">{action.description}</p>
           </div>
@@ -295,24 +305,39 @@ function BaselineCard({ actions, labels, main }: {
             )}{" "}
             - cost <span className="tabular text-slate-200">{formatNumber(action.cost, 1)}</span>
           </p>
-          {searches && (
+          {searches && action.kind !== "none" && (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
               This prediction holds bearing and coolant temperature, vibration and motor current at their current readings while a lever moves, so it is not
               what the machine would do. The Benchmark page shows how often that difference matters.
             </p>
           )}
           <p className="text-[11px] text-muted-foreground">SHAP values of the same model at this moment (what B1 and B2 rank):</p>
-          <div className="h-44">
+          <div className="h-48" data-testid="shap-chart">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 20 }}>
-                <XAxis type="number" tick={{ fontSize: 9, fill: "#64748b" }} />
+              <BarChart data={data} layout="vertical" margin={{ top: 0, right: 8, bottom: 14, left: 20 }}>
+                <XAxis
+                  type="number"
+                  tick={{ fontSize: 9, fill: "#64748b" }}
+                  label={{ value: "pushes risk up / down (log-odds)", position: "insideBottom", offset: -10, fontSize: 10, fill: "#94a3b8" }}
+                />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#cbd5e1" }} width={90} />
-                <Tooltip contentStyle={{ background: "#0b1120", border: "1px solid rgb(148 163 184 / 0.2)", fontSize: 11 }} formatter={(value) => [formatNumber(Number(value), 3), "SHAP (log-odds)"]} />
+                <Tooltip
+                  contentStyle={{ background: "#0b1120", border: "1px solid rgb(148 163 184 / 0.2)", fontSize: 11 }}
+                  formatter={(value) => [`${formatNumber(Number(value), 3)} (${Number(value) >= 0 ? "pushes risk up" : "pushes risk down"})`, "SHAP (log-odds)"]}
+                />
                 <ReferenceLine x={0} stroke="#475569" />
-                <Bar dataKey="value" fill="#fbbf24" isAnimationActive={false} />
+                <Bar dataKey="value" isAnimationActive={false}>
+                  {data.map((entry) => (
+                    <Cell key={entry.name} fill={entry.value >= 0 ? "#fb7185" : "#34d399"} stroke={entry.blamed ? "#fde68a" : undefined} strokeWidth={entry.blamed ? 1.5 : 0} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <p className="text-[10px] text-muted-foreground">
+            <span className="text-rose-300">Red</span>: pushes predicted risk up. <span className="text-emerald-300">Green</span>: pushes it down.
+            {action.blamed_feature !== "none" && !searches ? " The outlined bar is the blamed feature." : ""}
+          </p>
         </div>
       )}
     </Panel>
@@ -487,6 +512,7 @@ export function Advisor() {
   const rootCause = useApi(() => api.rootCause(), `root-cause-${runId}`);
   const config = useApi(() => api.config(), "config");
   const horizon = Number(config.data?.engine.whatif_horizon ?? 0) || null;
+  const targetRisk = recommendation.data?.recommendation.target_risk ?? config.data?.optimizer.target_risk;
   const setStatus = useLiveStore((state) => state.setStatus);
   const [applying, setApplying] = useState(false);
   const [applyMessage, setApplyMessage] = useState<string | null>(null);
@@ -557,11 +583,13 @@ export function Advisor() {
           ) : rootCause.data.result.paths.length === 0 ? (
             <EmptyState title="No risk-increasing causal path right now" />
           ) : (
-            <div className="space-y-2">
-              {rootCause.data.result.paths.map((path) => (
-                <PathChain key={path.description} path={path} />
-              ))}
-            </div>
+            <BelowTargetFold risk={rootCause.data.result.risk?.probability} target={targetRisk}>
+              <div className="space-y-2">
+                {rootCause.data.result.paths.map((path) => (
+                  <PathChain key={path.description} path={path} />
+                ))}
+              </div>
+            </BelowTargetFold>
           )}
         </Panel>
         <Panel index={3} title="Symptoms, not causes, and ineffective levers" subtitle="Acting on these does not change the risk">
@@ -574,12 +602,20 @@ export function Advisor() {
                 <p className="mt-0.5 leading-relaxed text-slate-300">{symptom.explanation}</p>
               </div>
             ))}
-            {(data?.recommendation.ineffective ?? []).map((item) => (
-              <div key={item.variable} className="rounded-lg border border-line p-2.5">
-                <p className="font-medium text-slate-200">{humanize(item.variable)}</p>
-                <p className="mt-0.5 leading-relaxed text-muted-foreground">{item.reason}</p>
-              </div>
-            ))}
+            {data && isBelowTarget(data.recommendation.risk_before.probability, data.recommendation.target_risk) ? (
+              <p data-testid="ineffective-hidden" className="rounded-lg border border-line p-2.5 leading-relaxed text-muted-foreground">
+                Ineffective levers are assessed only when the predicted risk is above the {formatPercent(data.recommendation.target_risk, 0)} target. It is{" "}
+                {formatPercent(data.recommendation.risk_before.probability)} now, so no change can lower it by much and every lever would look
+                &quot;ineffective&quot; for that reason alone.
+              </p>
+            ) : (
+              (data?.recommendation.ineffective ?? []).map((item) => (
+                <div key={item.variable} className="rounded-lg border border-line p-2.5">
+                  <p className="font-medium text-slate-200">{humanize(item.variable)}</p>
+                  <p className="mt-0.5 leading-relaxed text-muted-foreground">{item.reason}</p>
+                </div>
+              ))
+            )}
           </div>
         </Panel>
         <VerificationPanel recommendation={data?.recommendation} horizon={horizon} truthEvery={config.data?.live.truth_every_steps ?? null} />

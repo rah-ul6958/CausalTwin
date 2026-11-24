@@ -77,10 +77,10 @@ test("advisor shows a recommendation and the baseline", async ({ page }) => {
   await expect(card.getByText("Predicted risk after")).toBeVisible();
   await expect(page.getByText("Predictive baselines for the same moment")).toBeVisible();
   // The baseline selector defaults to the main baseline (B3) and can switch to B1.
-  const selector = page.getByRole("group", { name: "Baseline method" });
+  const selector = page.getByRole("radiogroup", { name: "Baseline method" });
   await expect(selector.getByRole("radio", { name: /B3/ })).toHaveAttribute("aria-checked", "true");
   await selector.getByRole("radio", { name: /B1/ }).click();
-  await expect(page.getByText("Blames")).toBeVisible();
+  await expect(page.getByText("B1: naive SHAP", { exact: true })).toBeVisible();
   await expect(page.getByText(/Every evaluated option/)).toBeVisible();
   await capture(page, "05-advisor");
   expect(errors).toEqual([]);
@@ -126,4 +126,21 @@ test("every page fits a 1280 px laptop screen without horizontal scrolling", asy
   await page.goto("/control");
   await page.waitForTimeout(1500);
   await page.screenshot({ path: `${SCREENSHOTS}/14-control-room-1280.png` });
+});
+
+test("low risk: the Advisor and the Graph Explorer have nothing to explain", async ({ page }) => {
+  // A new page gets its own fresh simulation in normal operation, where the predicted risk is low.
+  const errors = await open(page, "/advisor");
+  await expect(page.getByTestId("recommendation-headline")).toContainText("No change is needed");
+  const message = page.getByTestId("below-target-message").first();
+  await expect(message).toContainText("Risk is below the target; nothing to explain right now");
+  await expect(page.getByTestId("ineffective-hidden")).toBeVisible();
+  await expect(page.getByText(/No action \(its model predicts low risk\)/).first()).toBeVisible();
+  // The contributions are still available, folded.
+  await page.getByRole("button", { name: "Show what contributes most anyway" }).first().click();
+  await expect(page.getByRole("button", { name: "Show what contributes most anyway" }).first()).toHaveAttribute("aria-expanded", "true");
+  await page.goto("/graph");
+  await expect(page.getByRole("status").filter({ hasText: "Live" })).toBeVisible();
+  await expect(page.getByTestId("below-target-message").first()).toContainText("nothing to explain right now");
+  expect(errors).toEqual([]);
 });
