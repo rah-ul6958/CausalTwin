@@ -30,6 +30,7 @@ backend/data/*
 !backend/data/external/
 !backend/data/ai4i_results.json
 !backend/data/load_test.json
+!backend/data/selection_rule_comparison.json
 
 # Editors / OS
 .vscode/

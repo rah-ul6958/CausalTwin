@@ -1,0 +1,189 @@
+{
+  "active_rule": "margin",
+  "required_confidence": 0.8,
+  "rules": {
+    "confidence": {
+      "n_cases": 30,
+      "n_success": 23,
+      "success_rate": 0.7666666666666667,
+      "mean_cost": 6.131670946214794,
+      "mean_true_risk_after": 0.05154435449111493,
+      "mean_failure_rate_after": 0.0,
+      "n_worse_than_no_action": 0,
+      "calibration_after_action": {
+        "n_cases": 30,
+        "mean_predicted": 0.04734504118068721,
+        "mean_true": 0.05154435449111493,
+        "mean_error": -0.004199313310427717,
+        "mean_absolute_error": 0.01196884867779013,
+        "interval_coverage": 0.5333333333333333,
+        "n_below_interval": 13,
+        "n_above_interval": 1,
+        "correlation": 0.9656072883072533
+      },
+      "missed_cases": [
+        7,
+        8,
+        19,
+        21,
+        27,
+        28,
+        29
+      ],
+      "seconds": 15.002184946999932
+    },
+    "margin": {
+      "n_cases": 30,
+      "n_success": 28,
+      "success_rate": 0.9333333333333333,
+      "mean_cost": 6.593333333333334,
+      "mean_true_risk_after": 0.037548351198736105,
+      "mean_failure_rate_after": 0.0,
+      "n_worse_than_no_action": 0,
+      "calibration_after_action": {
+        "n_cases": 30,
+        "mean_predicted": 0.035226782894998775,
+        "mean_true": 0.037548351198736105,
+        "mean_error": -0.0023215683037373365,
+        "mean_absolute_error": 0.010605020699319151,
+        "interval_coverage": 0.43333333333333335,
+        "n_below_interval": 16,
+        "n_above_interval": 1,
+        "correlation": 0.9679483654493047
+      },
+      "missed_cases": [
+        28,
+        29
+      ],
+      "seconds": 14.834699234000027
+    }
+  },
+  "cases_with_different_actions": [
+    {
+      "case_id": 0,
+      "confidence_action": "coolant_flow +25%, lube_rate +25%",
+      "margin_action": "coolant_flow +30%, lube_rate +30%",
+      "confidence_true_risk_after": 0.09774402836277434,
+      "margin_true_risk_after": 0.08453259604353772,
+      "confidence_cost": 3.25,
+      "margin_cost": 3.9000000000000012
+    },
+    {
+      "case_id": 5,
+      "confidence_action": "coolant_flow +20%, lube_rate +15%",
+      "margin_action": "coolant_flow +30%, lube_rate +15%",
+      "confidence_true_risk_after": 0.08810591263089244,
+      "margin_true_risk_after": 0.07760938388423934,
+      "confidence_cost": 2.1999999999999993,
+      "margin_cost": 2.6999999999999993
+    },
+    {
+      "case_id": 6,
+      "confidence_action": "coolant_flow +30%, lube_rate +15%",
+      "margin_action": "coolant_flow +25%, lube_rate +25%",
+      "confidence_true_risk_after": 0.0894778522283969,
+      "margin_true_risk_after": 0.07865132006001722,
+      "confidence_cost": 2.6999999999999993,
+      "margin_cost": 3.25
+    },
+    {
+      "case_id": 7,
+      "confidence_action": "coolant_flow +25%, lube_rate +20%",
+      "margin_action": "coolant_flow +30%, lube_rate +25%",
+      "confidence_true_risk_after": 0.1151452502449496,
+      "margin_true_risk_after": 0.09932316118342087,
+      "confidence_cost": 2.85,
+      "margin_cost": 3.5
+    },
+    {
+      "case_id": 8,
+      "confidence_action": "coolant_flow +17%, lube_rate +5%",
+      "margin_action": "coolant_flow +15%, lube_rate +15%",
+      "confidence_true_risk_after": 0.10251933019280059,
+      "margin_true_risk_after": 0.09130167598628453,
+      "confidence_cost": 1.2462851815005618,
+      "margin_cost": 1.9499999999999993
+    },
+    {
+      "case_id": 9,
+      "confidence_action": "spindle_speed -10%, lube_rate +30%",
+      "margin_action": "tool change",
+      "confidence_true_risk_after": 0.08182457891905313,
+      "margin_true_risk_after": 0.001174421629743183,
+      "confidence_cost": 7.399999999999996,
+      "margin_cost": 8.0
+    },
+    {
+      "case_id": 12,
+      "confidence_action": "spindle_speed -10%, lube_rate +20%",
+      "margin_action": "spindle_speed -10%, lube_rate +25%",
+      "confidence_true_risk_after": 0.09201320088238162,
+      "margin_true_risk_after": 0.08265885988364523,
+      "confidence_cost": 6.6,
+      "margin_cost": 7.0
+    },
+    {
+      "case_id": 14,
+      "confidence_action": "spindle_speed -10%, lube_rate +30%",
+      "margin_action": "tool change",
+      "confidence_true_risk_after": 0.0955271922415778,
+      "margin_true_risk_after": 0.001506049610761312,
+      "confidence_cost": 7.399999999999997,
+      "margin_cost": 8.0
+    },
+    {
+      "case_id": 16,
+      "confidence_action": "spindle_speed -10%, lube_rate +30%",
+      "margin_action": "tool change",
+      "confidence_true_risk_after": 0.09189839428947828,
+      "margin_true_risk_after": 0.0023901855210677198,
+      "confidence_cost": 7.4,
+      "margin_cost": 8.0
+    },
+    {
+      "case_id": 19,
+      "confidence_action": "coolant_flow +30%, lube_rate +25%",
+      "margin_action": "spindle_speed -10%, coolant_flow +25%",
+      "confidence_true_risk_after": 0.12336418006306456,
+      "margin_true_risk_after": 0.08751085258961519,
+      "confidence_cost": 3.5,
+      "margin_cost": 6.249999999999999
+    },
+    {
+      "case_id": 21,
+      "confidence_action": "coolant_flow +30%, lube_rate +30%",
+      "margin_action": "spindle_speed -10%, coolant_flow +30%",
+      "confidence_true_risk_after": 0.1129918424996031,
+      "margin_true_risk_after": 0.09443936991457096,
+      "confidence_cost": 3.900000000000001,
+      "margin_cost": 6.500000000000002
+    },
+    {
+      "case_id": 27,
+      "confidence_action": "coolant_flow +20%, lube_rate +20%",
+      "margin_action": "coolant_flow +25%, lube_rate +20%",
+      "confidence_true_risk_after": 0.10146077846030163,
+      "margin_true_risk_after": 0.09425191879250447,
+      "confidence_cost": 2.6,
+      "margin_cost": 2.8500000000000005
+    },
+    {
+      "case_id": 28,
+      "confidence_action": "coolant_flow +5%, lube_rate +20%",
+      "margin_action": "coolant_flow +5%, lube_rate +30%",
+      "confidence_true_risk_after": 0.15690394192619492,
+      "margin_true_risk_after": 0.13372641048751518,
+      "confidence_cost": 1.8499999999999999,
+      "margin_cost": 2.6500000000000012
+    },
+    {
+      "case_id": 29,
+      "confidence_action": "spindle_speed -5%, lube_rate +7%",
+      "margin_action": "spindle_speed -10%, coolant_flow +5%",
+      "confidence_true_risk_after": 0.1122817886033422,
+      "margin_true_risk_after": 0.11230196718652348,
+      "confidence_cost": 3.0538432049432713,
+      "margin_cost": 5.250000000000001
+    }
+  ]
+}
