@@ -315,6 +315,14 @@ OPTIMIZER_FINAL_SEED = 22  # finalists are re-checked with independent noise (av
 # The search aims below target * margin: picking the cheapest of ~900 noisy estimates that pass a
 # threshold favours optimistic estimates; the margin absorbs that (success is still judged at the target).
 OPTIMIZER_PLANNING_MARGIN = 0.8
+# How an option qualifies as reaching the target:
+#   "confidence": at least OPTIMIZER_REQUIRED_CONFIDENCE of its rollouts end at or below the target risk;
+#   "margin": its mean predicted risk is at or below target * OPTIMIZER_PLANNING_MARGIN (the Phase 3 rule).
+# Phase 7 kept "margin" because the confidence rule reached the target less often in the benchmark; the measured
+# comparison is in data/selection_rule_comparison.json (scripts/compare_selection_rules.py) and docs/phase_7_report.md.
+OPTIMIZER_SELECTION_RULE = "margin"
+OPTIMIZER_SELECTION_RULES = ("confidence", "margin")
+OPTIMIZER_REQUIRED_CONFIDENCE = 0.8  # chosen before any benchmark run; not tuned on the benchmark cases
 INEFFECTIVE_RISK_REDUCTION = 0.01  # best risk reduction below this: the lever is "ineffective"
 
 # Baseline (standard ML, for the Correlation Trap)

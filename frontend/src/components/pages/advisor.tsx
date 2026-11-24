@@ -109,6 +109,44 @@ function ActionHero({ recommendation }: { recommendation: Recommendation }) {
   );
 }
 
+/** The minimum effective single-lever change and the lever that helps least, as the brief asks for. */
+function SmallestChanges({ recommendation }: { recommendation: Recommendation }) {
+  const minimum = recommendation.minimum_effective_change;
+  const least = recommendation.least_effective_lever;
+  if (recommendation.action_type === "none" || (!minimum && !least)) return null;
+  const rule =
+    recommendation.selection_rule === "confidence"
+      ? "enough simulated futures at or below the target"
+      : "mean predicted risk at or below the target with the planning margin";
+  return (
+    <dl className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+      <div className="rounded-lg border border-line p-2">
+        <dt className="text-muted-foreground">Minimum effective change (one lever)</dt>
+        {minimum ? (
+          <>
+            <dd className="text-sm text-slate-100">
+              {minimum.change.change_pct > 0 ? "Increase" : "Reduce"} {humanize(minimum.change.lever)} by {formatNumber(Math.abs(minimum.change.change_pct), 0)}%
+            </dd>
+            <dd className="text-[10px] text-muted-foreground">
+              predicted risk {formatPercent(minimum.risk.probability)} ({formatPercent(minimum.risk.lower)}-{formatPercent(minimum.risk.upper)}), cost {formatNumber(minimum.cost, 1)}
+              {minimum.meets_target ? "" : "; fell short when re-checked with fresh noise"}
+            </dd>
+          </>
+        ) : (
+          <dd className="text-slate-300">No single lever reaches the target ({rule}).</dd>
+        )}
+      </div>
+      {least && (
+        <div className="rounded-lg border border-line p-2">
+          <dt className="text-muted-foreground">Lever with the least effect</dt>
+          <dd className="text-sm text-slate-100">{humanize(least.variable)}</dd>
+          <dd className="text-[10px] text-muted-foreground">best single change: {formatSigned(-least.best_risk_reduction * 100, 1)} points of risk</dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
 function RecommendationCard({ recommendation, provenanceNode, onApply, applying }: {
   recommendation: Recommendation;
   provenanceNode: React.ReactNode;
@@ -121,6 +159,11 @@ function RecommendationCard({ recommendation, provenanceNode, onApply, applying 
   return (
     <Panel index={0} demo="recommendation" testId="recommendation-card" title="CausalTwin recommendation" subtitle="Cheapest evaluated change that brings predicted risk below the target" icon={<Lightbulb className="size-4" />} actions={<>{provenanceNode}<TimingChip ms={recommendation.search_ms} label="search" /></>}>
       <div className="space-y-4 text-sm">
+        {recommendation.headline && (
+          <p data-testid="recommendation-headline" className="rounded-lg border border-causal/30 bg-causal/[0.06] p-3 text-sm leading-relaxed text-cyan-50">
+            {recommendation.headline}
+          </p>
+        )}
         <ActionHero key={actionText(recommendation)} recommendation={recommendation} />
         <div className="space-y-3">
           <RiskBar label="Predicted risk before" risk={recommendation.risk_before} target={recommendation.target_risk} tone="before" />
@@ -146,6 +189,7 @@ function RecommendationCard({ recommendation, provenanceNode, onApply, applying 
         {recommendation.side_effects.length > 0 && (
           <p className="text-xs text-amber-200">Side effects: {recommendation.side_effects.join("; ")}</p>
         )}
+        <SmallestChanges recommendation={recommendation} />
         <div>
           <button type="button" className="flex w-full items-center justify-between gap-2" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>
             <ConfidenceBar className="flex-1" label="Confidence" value={confidence.combined} />

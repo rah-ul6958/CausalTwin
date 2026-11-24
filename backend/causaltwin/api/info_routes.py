@@ -29,7 +29,9 @@ from causaltwin.config import (
     LIVE_TRUTH_EVERY,
     MAIN_BASELINE,
     OPTIMIZER_PLANNING_MARGIN,
+    OPTIMIZER_REQUIRED_CONFIDENCE,
     OPTIMIZER_SEARCH_ROLLOUTS,
+    OPTIMIZER_SELECTION_RULE,
     OPTIMIZER_TARGET_RISK,
     PERFORMANCE_BUDGETS_MS,
     ROOT_CAUSE_RISK_THRESHOLD,
@@ -94,6 +96,8 @@ def configuration(request: Request) -> dict[str, Any]:
         "optimizer": {
             "target_risk": OPTIMIZER_TARGET_RISK,
             "planning_margin": OPTIMIZER_PLANNING_MARGIN,
+            "selection_rule": OPTIMIZER_SELECTION_RULE,
+            "required_confidence": OPTIMIZER_REQUIRED_CONFIDENCE,
             "search_rollouts": OPTIMIZER_SEARCH_ROLLOUTS,
             "tool_change_cost": TOOL_CHANGE_COST,
         },

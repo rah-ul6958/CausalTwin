@@ -152,3 +152,55 @@ than the original laptop's; the note under the table says where they were measur
 
 **Checks after A1.** Backend: 101 passed (96 before), ruff clean, ruff format clean, mypy clean.
 Frontend: lint clean, `tsc --noEmit` clean, build succeeded.
+
+## A2. Recommendations: uncertainty-aware selection, and the brief's wording
+
+**What changed.**
+
+- `optimizer.py` has two selection rules behind `OPTIMIZER_SELECTION_RULE` (config), and `recommend()`
+  takes a `selection_rule` argument for comparisons:
+  - **confidence** (new): an option qualifies only if at least `OPTIMIZER_REQUIRED_CONFIDENCE` = 0.8
+    of its rollouts end at or below the target risk (the share is computed from each rollout's risk,
+    which `batch_failure_risk` now returns as `per_rollout_risk`);
+  - **margin** (Phase 3): the mean risk is at or below target x 0.8.
+  The finalist re-check with independent noise uses the same rule. 0.8 was set before any run and was
+  not tuned.
+- Every recommendation also returns the **minimum effective change** (the smallest single-lever change
+  that qualifies under the active rule, re-checked with the finalists' independent rollouts; `None`
+  when no single lever qualifies) and the **least effective lever** (the lever whose best single
+  change lowers the predicted risk least, flagged negligible below 1 point).
+- Every recommendation has a computed **headline** in the brief's form, shown at the top of the
+  Advisor card and as the first sentence of the guided demo's recommendation beats. In the demo
+  (beat 3): "Reducing spindle_speed by 25% and increasing lube_rate by 25% is predicted to cut failure
+  risk from 35% to 8% within 5 minutes; changing coolant_flow helps least (best case -7.8 points)." No
+  single lever reaches the target at that moment, so the card says so instead of showing a minimum
+  change. At low risk the headline reads "No change is needed: failure risk is predicted at ..."
+- The Advisor card shows the minimum effective change and the least effective lever under the action.
+- New script `scripts/compare_selection_rules.py` runs the benchmark once per rule on the same cases
+  and seeds and writes `data/selection_rule_comparison.json`.
+- Tests (3 new, 3 extended): both rules' qualification; the headline's form and numbers; the minimum
+  effective change is the smallest qualifying single-lever change in the candidate table; the least
+  effective lever matches the table; the optimizer runs under either rule and rejects an unknown one;
+  the API returns the headline; the demo narration starts with it.
+
+**Comparison of the two rules** (`data/selection_rule_comparison.json`; same 30 cases and seeds):
+
+| Rule | Reached the target | Mean cost | Mean true risk after | After-action: mean predicted / true | MAE | Truth inside the 90% interval | Missed cases |
+|---|---|---|---|---|---|---|---|
+| margin (kept) | 28 / 30 | 6.58 | 3.8% | 3.5% / 3.8% | 1.1 points | 43% | 28, 29 |
+| confidence, 0.8 | 24 / 30 | 6.14 | 5.1% | 4.7% / 5.1% | 1.2 points | 53% | 7, 19, 21, 27, 28, 29 |
+
+**Decision: the margin rule stays active**, because success dropped with the confidence rule (the
+task's condition). The confidence rule picked cheaper, smaller changes in 14 cases; 4 of them then
+ended just above the target (true risk 10.1% to 12.3%), and it did not fix cases 28 and 29 either (it
+chose an even cheaper lever pair in case 28, 15.7% true risk). The measured reason is the one A3
+addresses: the rollouts are too narrow (the true risk after the action falls inside the 90% interval
+in only 43% of cases), so "80% of rollouts at or below 10%" is a weaker requirement than it sounds.
+The rule stays in the code and is re-measured after A3 (below).
+
+**Problem 1 is therefore not solved by this task.** Cases 28 and 29 still miss the target with the
+active rule (13.4% and 11.2% true risk). No other change was tried for them, because any rule picked
+by looking at those two cases would be tuned on the benchmark.
+
+**Checks after A2.** Backend: 104 passed, ruff and ruff format clean, mypy clean. Frontend: lint clean,
+`tsc --noEmit` clean, build succeeded. Benchmark 13.2 s, recommendation search 118 ms median (budgets 60 s and 1 s).

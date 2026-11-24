@@ -29,6 +29,18 @@ class CandidateResult(BaseModel):
     risk_reduction: float
     cost: float
     meets_target: bool
+    # Share of the search rollouts whose risk ends at or below the target (the confidence rule's measure).
+    share_below_target: float | None = None
+
+
+class MinimumEffectiveChange(BaseModel):
+    """The smallest single-lever change that reaches the target under the optimizer's selection rule."""
+
+    change: LeverChange
+    risk: RiskEstimate  # re-checked with the finalists' independent rollouts
+    share_below_target: float
+    cost: float
+    meets_target: bool  # still qualifies after the re-check
 
 
 class IneffectiveLever(BaseModel):
@@ -70,6 +82,13 @@ class Recommendation(BaseModel):
     ineffective: list[IneffectiveLever]
     n_candidates: int
     search_ms: float
+    # One computed sentence in the brief's format: the action, its predicted effect, and the lever that helps least.
+    headline: str = ""
+    selection_rule: str = "margin"
+    # Share of the re-check rollouts whose risk after the chosen action is at or below the target.
+    share_below_target: float | None = None
+    minimum_effective_change: MinimumEffectiveChange | None = None
+    least_effective_lever: IneffectiveLever | None = None
 
 
 BaselineMethod = Literal["naive_shap", "actionable_shap", "counterfactual"]

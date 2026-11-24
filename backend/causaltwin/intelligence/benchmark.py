@@ -41,6 +41,8 @@ from causaltwin.config import (
     BENCHMARK_SITUATIONS_PER_SCENARIO,
     BENCHMARK_WORSE_MARGIN,
     MAIN_BASELINE,
+    OPTIMIZER_REQUIRED_CONFIDENCE,
+    OPTIMIZER_SELECTION_RULE,
     OPTIMIZER_TARGET_RISK,
     TAU_MAX,
     VALIDATION_RESULTS_PATH,
@@ -219,13 +221,18 @@ def _describe(recommendation: Recommendation) -> str:
 
 
 def evaluate_situation(
-    case_id: int, situation: Situation, models: TrainedModels, seeds: list[int], horizon: int
+    case_id: int,
+    situation: Situation,
+    models: TrainedModels,
+    seeds: list[int],
+    horizon: int,
+    selection_rule: str | None = None,
 ) -> BenchmarkCase:
     """Both methods' actions on one situation, judged in the real simulator."""
     engine, baseline = models.engine, models.baseline
     assert engine.model is not None
     history = situation.history[engine.model.variables].to_numpy(dtype=float)
-    recommendation = recommend(engine, history, horizon=horizon)
+    recommendation = recommend(engine, history, horizon=horizon, selection_rule=selection_rule)
     root_cause = engine.root_cause(situation.history[engine.model.variables])
     blamed_ct = " -> ".join(node.variable for node in root_cause.paths[0].nodes) if root_cause.paths else "none"
     magnitude = max((abs(c.change_pct) for c in recommendation.changes), default=BASELINE_DEFAULT_MAGNITUDE_PCT)
@@ -382,6 +389,7 @@ def run_benchmark(
     per_scenario: int = BENCHMARK_SITUATIONS_PER_SCENARIO,
     seeds_per_situation: int = BENCHMARK_SEEDS_PER_SITUATION,
     horizon: int = WHATIF_HORIZON,
+    selection_rule: str | None = None,
 ) -> dict[str, Any]:
     """Run the whole benchmark, report every case, and cache the results as JSON."""
     with timed_step("benchmark", "Ran the Correlation Trap benchmark") as timer:
@@ -392,7 +400,7 @@ def run_benchmark(
         search_seconds = time.perf_counter() - start_time
         cases = []
         for case_id, situation in enumerate(situations):
-            cases.append(evaluate_situation(case_id, situation, models, seeds, horizon))
+            cases.append(evaluate_situation(case_id, situation, models, seeds, horizon, selection_rule))
             if progress:
                 progress(case_id + 1, len(situations), f"Evaluated case {case_id + 1} ({situation.scenario})")
         validation = json.loads(VALIDATION_RESULTS_PATH.read_text()) if VALIDATION_RESULTS_PATH.exists() else {}
@@ -403,6 +411,8 @@ def run_benchmark(
                 "seeds_per_situation": seeds_per_situation,
                 "horizon_steps": horizon,
                 "target_risk": OPTIMIZER_TARGET_RISK,
+                "selection_rule": selection_rule or OPTIMIZER_SELECTION_RULE,
+                "required_confidence": OPTIMIZER_REQUIRED_CONFIDENCE,
                 "min_true_risk": BENCHMARK_MIN_TRUE_RISK,
                 "success": "true risk after the action <= target",
             },

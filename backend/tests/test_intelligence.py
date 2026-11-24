@@ -17,6 +17,7 @@ from causaltwin.config import (
     LEVER_NAMES,
     MAIN_BASELINE,
     OPTIMIZER_PLANNING_MARGIN,
+    OPTIMIZER_REQUIRED_CONFIDENCE,
     OPTIMIZER_TARGET_RISK,
     TOOL_CHANGE_COST,
     WHATIF_INTERVAL_PERCENTILES,
@@ -25,7 +26,7 @@ from causaltwin.engine import Intervention
 from causaltwin.engine.whatif import batch_failure_risk, run_what_if
 from causaltwin.intelligence.benchmark import outcome_flags, run_benchmark
 from causaltwin.intelligence.drift import count_false_alarms, evaluate_fault
-from causaltwin.intelligence.optimizer import build_candidates, recommend
+from causaltwin.intelligence.optimizer import build_candidates, qualifies, recommend
 from causaltwin.intelligence.training import TrainedModels, train_models
 
 warnings.filterwarnings("ignore")
@@ -107,6 +108,60 @@ def test_optimizer_recommends_nothing_when_risk_is_low(models: TrainedModels) ->
     recommendation = recommend(models.engine, history)
     assert recommendation.action_type == "none" and recommendation.cost == 0.0
     assert recommendation.explanation.startswith("No action needed")
+    assert recommendation.headline.startswith("No change is needed: failure risk is predicted at")
+
+
+def test_selection_rules() -> None:
+    """Confidence rule: share of rollouts at or below the target; margin rule: mean below target * margin."""
+    target = OPTIMIZER_TARGET_RISK
+    assert qualifies(0.09, OPTIMIZER_REQUIRED_CONFIDENCE, target, "confidence")
+    assert not qualifies(0.02, OPTIMIZER_REQUIRED_CONFIDENCE - 0.01, target, "confidence")
+    assert qualifies(target * OPTIMIZER_PLANNING_MARGIN, 0.0, target, "margin")
+    assert not qualifies(target * OPTIMIZER_PLANNING_MARGIN + 0.001, 1.0, target, "margin")
+
+
+def test_recommendation_headline_minimum_change_and_least_effective_lever(models: TrainedModels) -> None:
+    """The brief's sentence, the smallest qualifying single-lever change, and the lever that helps least."""
+    history = _highest_risk_state(models)
+    recommendation = recommend(models.engine, history)
+    headline = recommendation.headline
+    print(headline)
+    assert headline.split(" ")[0] in {"Increasing", "Reducing", "Changing"}
+    assert "is predicted to cut failure risk from" in headline and "within 5 minutes" in headline
+    assert f"from {recommendation.risk_before.probability:.0%}" in headline
+    rule = recommendation.selection_rule
+    singles = [c for c in recommendation.candidates if len(c.changes) == 1 and not c.tool_change]
+    qualifying = [
+        c for c in singles if qualifies(c.risk, c.share_below_target or 0.0, recommendation.target_risk, rule)
+    ]
+    minimum = recommendation.minimum_effective_change
+    if qualifying:
+        assert minimum is not None
+        smallest = min(abs(c.changes[0].change_pct) for c in qualifying)
+        assert abs(minimum.change.change_pct) == pytest.approx(smallest)
+    else:
+        assert minimum is None
+    least = recommendation.least_effective_lever
+    assert least is not None
+    best_by_lever: dict[str, float] = {}
+    for candidate in singles:
+        lever = candidate.changes[0].lever
+        best_by_lever[lever] = max(best_by_lever.get(lever, -1.0), candidate.risk_reduction)
+    assert least.variable == min(best_by_lever, key=lambda lever: best_by_lever[lever])
+    assert least.best_risk_reduction == pytest.approx(best_by_lever[least.variable])
+
+
+def test_optimizer_runs_with_either_selection_rule(models: TrainedModels) -> None:
+    """Both rules work; under the confidence rule the chosen option's rollouts mostly end below the target."""
+    history = _highest_risk_state(models)
+    by_confidence = recommend(models.engine, history, selection_rule="confidence")
+    by_margin = recommend(models.engine, history, selection_rule="margin")
+    assert by_confidence.selection_rule == "confidence" and by_margin.selection_rule == "margin"
+    assert by_confidence.share_below_target is not None
+    if by_confidence.meets_target:
+        assert by_confidence.share_below_target >= OPTIMIZER_REQUIRED_CONFIDENCE
+    with pytest.raises(ValueError, match="selection rule"):
+        recommend(models.engine, history, selection_rule="cheapest")
 
 
 def test_baseline_is_competent_but_falls_into_the_trap(models: TrainedModels) -> None:

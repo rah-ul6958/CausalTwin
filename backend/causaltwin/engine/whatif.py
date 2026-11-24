@@ -295,6 +295,8 @@ def batch_failure_risk(
 
     Returns per-candidate arrays: "risk", "risk_lower", "risk_upper" (shape C) and
     "end_values" (shape C x rollouts x variables, the state at the end of the horizon).
+    Also "per_rollout_risk" (shape C x rollouts): each rollout's probability of a failure
+    within the horizon, used by the optimizer's confidence rule.
     """
     if model.failure is None:
         raise ValueError("The model has no failure equation, so risk cannot be evaluated")
@@ -384,4 +386,5 @@ def batch_failure_risk(
         "risk_lower": lower,
         "risk_upper": upper,
         "end_values": recent[-1].T.reshape(n_candidates, n_rollouts, n_variables),
+        "per_rollout_risk": per_rollout_risk,
     }

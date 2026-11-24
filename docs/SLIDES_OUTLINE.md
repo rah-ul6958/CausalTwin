@@ -41,13 +41,13 @@ copy them from here rather than typing them. Label anything from the simulator a
 <!-- results:timings:start -->
 | Operation | Median | Slowest run | Budget | Within budget |
 |---|---|---|---|---|
-| Simulate 20,000 steps | 316 ms | 378 ms | 2.00 s | yes |
-| Causal discovery on one 3,000-step window | 769 ms | 829 ms | 3.00 s | yes |
-| Fit the causal model | 77 ms | 78 ms | 1.00 s | yes |
-| One what-if simulation (200 rollouts) | 7 ms | 11 ms | 200 ms | yes |
-| Recommendation search | 122 ms | 164 ms | 1.00 s | yes |
-| Baseline XGBoost training | 282 ms | 284 ms | 10.00 s | yes |
-| Full benchmark (30 cases) | 12.61 s | 12.61 s | 60.00 s | yes |
+| Simulate 20,000 steps | 309 ms | 333 ms | 2.00 s | yes |
+| Causal discovery on one 3,000-step window | 750 ms | 889 ms | 3.00 s | yes |
+| Fit the causal model | 73 ms | 108 ms | 1.00 s | yes |
+| One what-if simulation (200 rollouts) | 7 ms | 9 ms | 200 ms | yes |
+| Recommendation search | 118 ms | 161 ms | 1.00 s | yes |
+| Baseline XGBoost training | 284 ms | 286 ms | 10.00 s | yes |
+| Full benchmark (30 cases) | 13.20 s | 13.20 s | 60.00 s | yes |
 
 Measured 2026-11-24 on Linux (16 logical CPUs, Python 3.11.18) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
 <!-- results:timings:end -->
@@ -108,7 +108,7 @@ Calibration: the twin's predicted risk against the simulator's true risk in the 
 | Risk with no action | 30.8% | 30.4% | 4.1 points | 87% | 0.96 |
 | Risk after its own action | 3.5% | 3.8% | 1.1 points | 43% | 0.97 |
 
-Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 13 s.
+Settings: 6 situations per scenario, 8 seeds each, 30-step horizon; benchmark run took 15 s.
 <!-- results:benchmark:end -->
 
 <!-- results:graph:start -->

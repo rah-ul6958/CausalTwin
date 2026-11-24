@@ -1,6 +1,6 @@
 {
   "source": "scripts/measure_timings.py",
-  "measured_at": "2026-11-24T06:16:13+00:00",
+  "measured_at": "2026-11-24T06:35:06+00:00",
   "machine": {
     "system": "Linux",
     "processor": "x86_64",
@@ -13,8 +13,8 @@
       "key": "simulate",
       "operation": "Simulate 20,000 steps",
       "runs": 3,
-      "median_ms": 316.5,
-      "max_ms": 378.0,
+      "median_ms": 309.2,
+      "max_ms": 332.7,
       "budget_ms": 2000.0,
       "within_budget": true,
       "note": "normal scenario, sensors, events and ground truth"
@@ -23,8 +23,8 @@
       "key": "discovery",
       "operation": "Causal discovery on one 3,000-step window",
       "runs": 3,
-      "median_ms": 768.7,
-      "max_ms": 828.7,
+      "median_ms": 750.3,
+      "max_ms": 888.8,
       "budget_ms": 3000.0,
       "within_budget": true,
       "note": "PCMCI on the window plus the failure-cause screen; warm worker processes"
@@ -33,8 +33,8 @@
       "key": "fit_model",
       "operation": "Fit the causal model",
       "runs": 3,
-      "median_ms": 76.9,
-      "max_ms": 78.3,
+      "median_ms": 72.9,
+      "max_ms": 107.6,
       "budget_ms": 1000.0,
       "within_budget": true,
       "note": "Ridge and logistic equations"
@@ -43,8 +43,8 @@
       "key": "what_if",
       "operation": "One what-if simulation (200 rollouts)",
       "runs": 20,
-      "median_ms": 6.9,
-      "max_ms": 10.7,
+      "median_ms": 7.0,
+      "max_ms": 9.2,
       "budget_ms": 200.0,
       "within_budget": true,
       "note": "30-step horizon, with the paired no-intervention baseline"
@@ -53,8 +53,8 @@
       "key": "recommend",
       "operation": "Recommendation search",
       "runs": 5,
-      "median_ms": 122.1,
-      "max_ms": 164.3,
+      "median_ms": 118.3,
+      "max_ms": 160.8,
       "budget_ms": 1000.0,
       "within_budget": true,
       "note": "about 870 candidates plus the top-5 re-check, at the demo's high-risk state"
@@ -63,8 +63,8 @@
       "key": "baseline_fit",
       "operation": "Baseline XGBoost training",
       "runs": 2,
-      "median_ms": 281.7,
-      "max_ms": 284.0,
+      "median_ms": 283.7,
+      "max_ms": 285.7,
       "budget_ms": 10000.0,
       "within_budget": true,
       "note": "evaluation fit plus final fit, 60,000 rows"
@@ -73,8 +73,8 @@
       "key": "benchmark",
       "operation": "Full benchmark (30 cases)",
       "runs": 1,
-      "median_ms": 12612.7,
-      "max_ms": 12612.7,
+      "median_ms": 13204.3,
+      "max_ms": 13204.3,
       "budget_ms": 60000.0,
       "within_budget": true,
       "note": "cached models; results are cached afterwards"

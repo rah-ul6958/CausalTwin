@@ -85,6 +85,7 @@ def test_recommend_and_apply(client: TestClient) -> None:
     assert body["main_baseline"] == "counterfactual"
     assert body["baseline_action"] == body["baseline_actions"]["counterfactual"]
     assert body["baseline_labels"]["counterfactual"].startswith("B3")
+    assert recommendation["headline"] and recommendation["selection_rule"] in ("confidence", "margin")
     applied = client.post("/apply").json()
     assert applied["ok"] and applied["details"]["action_type"] == recommendation["action_type"]
 
@@ -236,6 +237,11 @@ def test_scripted_demo_through_the_api(client: TestClient) -> None:
     assert by_name["drift_alert"]["alert"]["status"] == "confirmed"
     assert "coolant_flow" in by_name["drift_alert"]["narration"]
     assert by_name["new_recommendation"]["recommendation"]["action_type"] != "none"
+    # The recommendation beats open with the computed headline sentence.
+    for name in ("recommendation", "new_recommendation"):
+        headline = by_name[name]["recommendation"]["headline"]
+        assert headline and headline in by_name[name]["narration"]
+    assert by_name["recommendation"]["narration"].startswith(by_name["recommendation"]["recommendation"]["headline"])
     assert client.post("/demo/next").json()["finished"]
 
 

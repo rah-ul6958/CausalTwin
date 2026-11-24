@@ -11,6 +11,14 @@ Planning margin: the search ranks against target * OPTIMIZER_PLANNING_MARGIN. Ch
 cheapest of about 900 noisy estimates that pass a threshold favours estimates that came
 out too low (the winner's curse); without the margin, 40% of benchmark recommendations
 predicted to meet the 10% target ended at 10.7-15% true risk. Costs are illustrative units.
+
+Selection rule (Phase 7, OPTIMIZER_SELECTION_RULE): with "confidence", an option qualifies only if
+at least OPTIMIZER_REQUIRED_CONFIDENCE of its rollouts end at or below the target, so an option
+whose average looks good but whose spread reaches well above the target is not chosen. "margin" is
+the rule described above, kept for comparison. Besides the cheapest qualifying option, the result
+names the smallest single-lever change that qualifies (the minimum effective change), the lever
+whose best single change helps least, and a one-sentence headline in the form "Reducing X by 7% is
+predicted to cut failure risk from A to B within 5 minutes; changing Z gives negligible improvement."
 """
 
 import heapq
@@ -29,8 +37,11 @@ from causaltwin.config import (
     OPTIMIZER_FINAL_SEED,
     OPTIMIZER_PAIR_STEP_PCT,
     OPTIMIZER_PLANNING_MARGIN,
+    OPTIMIZER_REQUIRED_CONFIDENCE,
     OPTIMIZER_SEARCH_ROLLOUTS,
     OPTIMIZER_SEED,
+    OPTIMIZER_SELECTION_RULE,
+    OPTIMIZER_SELECTION_RULES,
     OPTIMIZER_SINGLE_STEP_PCT,
     OPTIMIZER_TARGET_RISK,
     OPTIMIZER_TOP_K,
@@ -47,6 +58,7 @@ from causaltwin.intelligence.schemas import (
     CandidateResult,
     IneffectiveLever,
     LeverChange,
+    MinimumEffectiveChange,
     Recommendation,
     RecommendationConfidence,
 )
@@ -122,6 +134,26 @@ def build_candidates(current: dict[str, float], levers: list[str]) -> list[_Cand
 def _ranking_key(risk: float, cost: float, target: float) -> tuple[int, float, float]:
     """Options that reach the target first (cheapest first), then the rest by risk."""
     if risk <= target:
+        return (0, cost, risk)
+    return (1, risk, cost)
+
+
+def qualifies(risk: float, share_below_target: float, target_risk: float, rule: str) -> bool:
+    """Whether an option counts as reaching the target under a selection rule.
+
+    "confidence": at least OPTIMIZER_REQUIRED_CONFIDENCE of the rollouts end at or below the target.
+    "margin": the mean risk is at or below target * OPTIMIZER_PLANNING_MARGIN.
+    """
+    if rule == "confidence":
+        return share_below_target >= OPTIMIZER_REQUIRED_CONFIDENCE
+    return risk <= target_risk * OPTIMIZER_PLANNING_MARGIN
+
+
+def _selection_key(
+    risk: float, share_below_target: float, cost: float, target_risk: float, rule: str
+) -> tuple[int, float, float]:
+    """Qualifying options first (cheapest first), then the rest by mean risk."""
+    if qualifies(risk, share_below_target, target_risk, rule):
         return (0, cost, risk)
     return (1, risk, cost)
 
@@ -207,11 +239,18 @@ def recommend(
     target_risk: float = OPTIMIZER_TARGET_RISK,
     horizon: int | None = None,
     levers: list[str] | None = None,
+    selection_rule: str | None = None,
 ) -> Recommendation:
-    """Search all candidate interventions and return the recommendation with the full table."""
+    """Search all candidate interventions and return the recommendation with the full table.
+
+    `selection_rule` ("confidence" or "margin") overrides OPTIMIZER_SELECTION_RULE, for comparisons.
+    """
     model = engine._require_fitted()
     if model.failure is None:
         raise ValueError("No failure model is available, so no risk-based recommendation can be made")
+    rule = selection_rule or OPTIMIZER_SELECTION_RULE
+    if rule not in OPTIMIZER_SELECTION_RULES:
+        raise ValueError(f"Unknown selection rule {rule!r}; use one of {OPTIMIZER_SELECTION_RULES}")
     horizon = horizon or engine.settings.whatif_horizon
     lever_names = [lever for lever in (levers or list(LEVER_NAMES)) if lever in model.variables]
     with timed_step("recommend", "Searched candidate interventions") as timer:
@@ -238,34 +277,54 @@ def recommend(
             engine.settings.whatif_exogenous_mode,
         )
         risks = evaluation["risk"]
+        n_candidates = len(candidates)
+        shares = (evaluation["per_rollout_risk"][:n_candidates] <= target_risk).mean(axis=1)
         baseline_risk = float(risks[0])
-        planning_target = target_risk * OPTIMIZER_PLANNING_MARGIN
         order = sorted(
-            range(len(candidates)), key=lambda i: _ranking_key(float(risks[i]), candidates[i].cost, planning_target)
+            range(n_candidates),
+            key=lambda i: _selection_key(float(risks[i]), float(shares[i]), candidates[i].cost, target_risk, rule),
         )
 
-        # Re-evaluate the top candidates with more rollouts and INDEPENDENT noise, and choose among them.
+        # Minimum effective change: the smallest single-lever change that qualifies in the search.
+        single_lever = [i for i, c in enumerate(candidates) if len(c.changes) == 1 and not c.tool_change]
+        qualifying_singles = [
+            i for i in single_lever if qualifies(float(risks[i]), float(shares[i]), target_risk, rule)
+        ]
+        smallest = (
+            min(qualifying_singles, key=lambda i: (abs(candidates[i].changes[0].change_pct), float(risks[i])))
+            if qualifying_singles
+            else None
+        )
+
+        # Re-evaluate the top candidates (and the minimum effective change) with more rollouts and
+        # INDEPENDENT noise, and choose among the top candidates.
         finalists = [i for i in order if i != 0][:OPTIMIZER_TOP_K]
+        rechecked = finalists + ([smallest] if smallest is not None and smallest not in finalists else [])
         final = batch_failure_risk(
             model,
             history,
-            [[]] + [candidates[i].interventions for i in finalists],
+            [[]] + [candidates[i].interventions for i in rechecked],
             horizon,
             OPTIMIZER_FINAL_ROLLOUTS,
             OPTIMIZER_FINAL_SEED,
             WHATIF_INTERVAL_PERCENTILES,
             engine.settings.whatif_exogenous_mode,
         )
+        final_shares = (final["per_rollout_risk"] <= target_risk).mean(axis=1)
         final_risk = {
             i: RiskEstimate(
                 probability=float(final["risk"][k + 1]),
                 lower=float(final["risk_lower"][k + 1]),
                 upper=float(final["risk_upper"][k + 1]),
             )
-            for k, i in enumerate(finalists)
+            for k, i in enumerate(rechecked)
         }
+        final_share = {i: float(final_shares[k + 1]) for k, i in enumerate(rechecked)}
         chosen = min(
-            finalists, key=lambda i: _ranking_key(final_risk[i].probability, candidates[i].cost, planning_target)
+            finalists,
+            key=lambda i: _selection_key(
+                final_risk[i].probability, final_share[i], candidates[i].cost, target_risk, rule
+            ),
         )
         risk_before = RiskEstimate(
             probability=float(final["risk"][0]),
@@ -291,10 +350,23 @@ def recommend(
                 risk_reduction=baseline_risk - float(risks[i]),
                 cost=candidates[i].cost,
                 meets_target=bool(risks[i] <= target_risk),
+                share_below_target=float(shares[i]),
             )
             for rank, i in enumerate(order)
         ]
         ineffective = _ineffective(candidates, risks, baseline_risk, lever_names, symptoms, risks[len(candidates) :])
+        least_effective = _least_effective_lever(candidates, risks, baseline_risk, lever_names)
+        minimum_change = (
+            None
+            if smallest is None
+            else MinimumEffectiveChange(
+                change=candidates[smallest].changes[0],
+                risk=final_risk[smallest],
+                share_below_target=final_share[smallest],
+                cost=candidates[smallest].cost,
+                meets_target=qualifies(final_risk[smallest].probability, final_share[smallest], target_risk, rule),
+            )
+        )
 
         sources = [c.lever for c in chosen_candidate.changes] + ([TOOL_STATE] if chosen_candidate.tool_change else [])
         found_paths = [p for p in (shortest_lag_path(engine.get_graph(), source) for source in sources) if p]
@@ -306,6 +378,16 @@ def recommend(
         confidence = _confidence(engine, paths, risk_before, risk_after)
         explanation = _explanation(
             chosen_candidate, risk_before, risk_after, target_risk, meets_target, action_needed, paths, time_to_effect
+        )
+        headline = _headline(
+            chosen_candidate,
+            risk_before,
+            risk_after,
+            target_risk,
+            meets_target,
+            action_needed,
+            horizon,
+            least_effective,
         )
         elapsed_ms = (time.perf_counter() - start_time) * 1000.0
         timer.details.update({"candidates": len(candidates), "chosen": chosen_candidate.label})
@@ -328,6 +410,91 @@ def recommend(
         ineffective=ineffective,
         n_candidates=len(candidates),
         search_ms=elapsed_ms,
+        headline=headline,
+        selection_rule=rule,
+        share_below_target=final_share[chosen] if action_needed else None,
+        minimum_effective_change=minimum_change,
+        least_effective_lever=least_effective,
+    )
+
+
+def _least_effective_lever(
+    candidates: list[_Candidate], risks: np.ndarray, baseline_risk: float, levers: list[str]
+) -> IneffectiveLever | None:
+    """The lever whose best single change lowers the predicted risk least."""
+    best: dict[str, float] = {}
+    for i, candidate in enumerate(candidates):
+        if len(candidate.changes) == 1 and not candidate.tool_change:
+            lever = candidate.changes[0].lever
+            best[lever] = max(best.get(lever, -math.inf), baseline_risk - float(risks[i]))
+    usable = {lever: value for lever, value in best.items() if lever in levers}
+    if not usable:
+        return None
+    lever, reduction = min(usable.items(), key=lambda item: item[1])
+    negligible = reduction < INEFFECTIVE_RISK_REDUCTION
+    return IneffectiveLever(
+        variable=lever,
+        best_risk_reduction=reduction,
+        reason=(
+            f"The best single change of {lever} lowers predicted risk by {reduction * 100:.1f} points"
+            + (", a negligible improvement." if negligible else "; it is the lever that helps least.")
+        ),
+    )
+
+
+def _percent_text(value: float) -> str:
+    """0.343 -> "34%", 0.004 -> "under 1%"."""
+    return "under 1%" if 0 < value < 0.005 else f"{value:.0%}"
+
+
+def _action_phrase(candidate: _Candidate) -> str:
+    """ "Reducing spindle_speed by 25% and increasing lube_rate by 25%", or "Changing the tool"."""
+    parts = [
+        f"{'increasing' if change.change_pct > 0 else 'reducing'} {change.lever} by {abs(change.change_pct):.0f}%"
+        for change in candidate.changes
+    ]
+    if candidate.tool_change:
+        parts.append("changing the tool")
+    text = " and ".join(parts)
+    return text[:1].upper() + text[1:]
+
+
+def _headline(
+    candidate: _Candidate,
+    risk_before: RiskEstimate,
+    risk_after: RiskEstimate,
+    target: float,
+    meets_target: bool,
+    action_needed: bool,
+    horizon: int,
+    least_effective: IneffectiveLever | None,
+) -> str:
+    """The recommendation in one sentence, in the brief's form, with every number computed."""
+    minutes = horizon * SECONDS_PER_STEP / 60.0
+    window = f"within {minutes:g} minutes"
+    before, after = _percent_text(risk_before.probability), _percent_text(risk_after.probability)
+    if not action_needed:
+        if risk_before.probability <= target:
+            return (
+                f"No change is needed: failure risk is predicted at {before} {window}, "
+                f"at or below the {target:.0%} target."
+            )
+        return f"No evaluated change lowers the predicted failure risk ({before} {window}); consider maintenance."
+    least = ""
+    acted_on = {change.lever for change in candidate.changes}
+    if least_effective is not None and least_effective.variable not in acted_on:
+        best_case = f"best case {-least_effective.best_risk_reduction * 100:+.1f} points"
+        least = (
+            f"; changing {least_effective.variable} ({best_case}) gives negligible improvement"
+            if least_effective.best_risk_reduction < INEFFECTIVE_RISK_REDUCTION
+            else f"; changing {least_effective.variable} helps least ({best_case})"
+        )
+    action = _action_phrase(candidate)
+    if meets_target:
+        return f"{action} is predicted to cut failure risk from {before} to {after} {window}{least}."
+    return (
+        f"{action}, the largest reduction found, is predicted to cut failure risk from {before} to {after} {window}, "
+        f"still above the {target:.0%} target{least}."
     )
 
 

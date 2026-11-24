@@ -5,6 +5,8 @@
     "seeds_per_situation": 8,
     "horizon_steps": 30,
     "target_risk": 0.1,
+    "selection_rule": "margin",
+    "required_confidence": 0.8,
     "min_true_risk": 0.15,
     "success": "true risk after the action <= target"
   },
@@ -2646,7 +2648,7 @@
     "precision": 0.3007380073800738,
     "recall": 0.3196078431372549,
     "f1": 0.30988593155893535,
-    "training_seconds": 0.3333195909999631
+    "training_seconds": 0.3102662819999864
   },
   "graph_recovery": {
     "graph_recovery_with_failure": {
@@ -2677,7 +2679,7 @@
     }
   },
   "timing_seconds": {
-    "situation_search": 4.662233241999957,
-    "total": 13.093882163999979
+    "situation_search": 5.730350457000014,
+    "total": 14.588591794000024
   }
 }

@@ -191,6 +191,17 @@ export interface CandidateResult {
   risk_reduction: number;
   cost: number;
   meets_target: boolean;
+  /** share of the search rollouts whose risk ends at or below the target */
+  share_below_target?: number | null;
+}
+
+/** The smallest single-lever change that reaches the target under the optimizer's selection rule. */
+export interface MinimumEffectiveChange {
+  change: LeverChange;
+  risk: RiskEstimate;
+  share_below_target: number;
+  cost: number;
+  meets_target: boolean;
 }
 
 export interface IneffectiveLever {
@@ -226,6 +237,12 @@ export interface Recommendation {
   ineffective: IneffectiveLever[];
   n_candidates: number;
   search_ms: number;
+  /** one computed sentence in the brief's format */
+  headline?: string;
+  selection_rule?: string;
+  share_below_target?: number | null;
+  minimum_effective_change?: MinimumEffectiveChange | null;
+  least_effective_lever?: IneffectiveLever | null;
 }
 
 /** The three predictive baselines: B1 naive SHAP, B2 actionable SHAP, B3 predict-then-optimize (the main one). */
@@ -463,7 +480,7 @@ export interface AppConfig {
   faults: string[];
   scenarios: { name: string; description: string }[];
   budgets_ms: Record<string, number>;
-  optimizer: Record<string, number>;
+  optimizer: { target_risk: number; [key: string]: number | string };
   drift: Record<string, number>;
   live: Record<string, number>;
   baseline_model: {

@@ -621,7 +621,8 @@ class DemoScript:
             )
         )
         return {
-            "narration": recommendation.explanation + contrast,
+            "narration": " ".join(part for part in (recommendation.headline, recommendation.explanation) if part)
+            + contrast,
             "recommendation": recommendation.model_dump(exclude={"candidates"}),
             "baseline_action": None if baseline is None else baseline.model_dump(),
             "baseline_actions": {
@@ -705,7 +706,7 @@ class DemoScript:
             "narration": "The aggressive job resumes on the changed machine."
             + previous
             + " With the rewired model: "
-            + recommendation.explanation,
+            + " ".join(part for part in (recommendation.headline, recommendation.explanation) if part),
             "recommendation": recommendation.model_dump(exclude={"candidates"}),
             "invalidated_recommendations": invalid,
         }
