@@ -5,6 +5,7 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Database, Download, RefreshCw, TriangleAlert, Upload } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { PageHeader } from "@/components/common/page-header";
 import { Takeaway } from "@/components/common/takeaway";
@@ -15,8 +16,8 @@ import { HowComputed, DataSourceBadge } from "@/components/transparency/transpar
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
-import { formatNumber, humanize } from "@/lib/format";
-import type { ByodResponse, ColumnQuality, SensorRow } from "@/lib/types";
+import { formatNumber, formatPercent, humanize } from "@/lib/format";
+import type { ByodResponse, ColumnQuality, EquationCard, FailureModelKind, SensorRow } from "@/lib/types";
 import { useApi } from "@/lib/use-api";
 import { useDataSource } from "@/lib/data-source";
 import { useSessionId } from "@/lib/use-session";
@@ -109,11 +110,38 @@ function guessRole(column: string): Role {
   return "sensor";
 }
 
+/** A spline failure model's "how risk depends on this cause" curves, one small chart per cause. */
+function FailureCurves({ card }: { card: EquationCard }) {
+  return (
+    <div className="mt-2">
+      <p className="mb-1 text-[11px] text-muted-foreground">
+        How the predicted failure probability depends on each cause (the other causes at their mean):
+      </p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {(card.curves ?? []).map((curve) => (
+          <div key={curve.variable} className="h-32" data-testid="failure-curve">
+            <p className="text-center text-[10px] text-slate-300">{humanize(curve.variable)}</p>
+            <ResponsiveContainer width="100%" height="85%">
+              <LineChart data={curve.values.map((value, index) => ({ value, probability: curve.probability[index] }))} margin={{ top: 2, right: 6, bottom: 0, left: -18 }}>
+                <XAxis dataKey="value" type="number" domain={["dataMin", "dataMax"]} tick={{ fontSize: 8, fill: "#64748b" }} tickFormatter={(value) => formatNumber(Number(value), 0)} />
+                <YAxis tick={{ fontSize: 8, fill: "#64748b" }} tickFormatter={(value) => formatPercent(Number(value), 0)} />
+                <Tooltip contentStyle={{ background: "#0b1120", border: "1px solid rgb(148 163 184 / 0.2)", fontSize: 11 }} formatter={(value) => [formatPercent(Number(value), 1), "failure probability"]} labelFormatter={(value) => formatNumber(Number(value), 1)} />
+                <Line dataKey="probability" stroke="#fb7185" dot={false} strokeWidth={1.5} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ByodPanel() {
   const [file, setFile] = useState<File | null>(null);
   const [columns, setColumns] = useState<string[]>([]);
   const [roles, setRoles] = useState<Record<string, Role>>({});
   const [timeColumn, setTimeColumn] = useState<string>("none");
+  const [failureModel, setFailureModel] = useState<FailureModelKind>("linear");
   const [result, setResult] = useState<ByodResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -137,7 +165,7 @@ function ByodPanel() {
     setError(null);
     try {
       const assigned = Object.fromEntries(Object.entries(roles).filter(([name]) => name !== timeColumn));
-      setResult(await api.byodUpload(file, assigned, timeColumn === "none" ? undefined : timeColumn));
+      setResult(await api.byodUpload(file, assigned, timeColumn === "none" ? undefined : timeColumn, failureModel));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
@@ -179,6 +207,18 @@ function ByodPanel() {
                         {name}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">Failure model on the discovered causes</span>
+                <Select value={failureModel} onValueChange={(value) => setFailureModel(value as FailureModelKind)}>
+                  <SelectTrigger className="w-44" aria-label="Failure model">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="linear">Linear (default)</SelectItem>
+                    <SelectItem value="spline">Spline (thresholds, windows)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -243,12 +283,13 @@ function ByodPanel() {
               <QualityTable columns={result.quality} />
               <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                 {result.model_cards.map((card) => (
-                  <p key={card.variable} className="rounded-lg border border-line p-2 font-mono text-[11px] text-cyan-100">
-                    {card.equation}
-                    <span className="mt-1 block font-sans text-muted-foreground">
+                  <div key={card.variable} className={cn("rounded-lg border border-line p-2", card.curves?.length && "lg:col-span-2")}>
+                    <p className="font-mono text-[11px] text-cyan-100">{card.equation}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
                       {card.kind === "logistic" ? `AUC ${formatNumber(card.auc_holdout, 3)}` : `held-out R squared ${formatNumber(card.r_squared_holdout, 3)}`}
-                    </span>
-                  </p>
+                    </p>
+                    {card.curves?.length ? <FailureCurves card={card} /> : null}
+                  </div>
                 ))}
               </div>
             </>

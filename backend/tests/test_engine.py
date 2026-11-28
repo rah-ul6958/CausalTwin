@@ -317,3 +317,43 @@ def test_equation_parameter_draws_leave_the_other_random_streams_unchanged(
     monkeypatch.setattr(whatif, "WHATIF_EQUATION_PARAMETER_UNCERTAINTY", True)
     with_draws = whatif.run_what_if(model, state, interventions, 30, 100, 4, (5.0, 95.0))
     assert with_draws.risk is not None and with_draws.risk.probability != switched_off.risk.probability
+
+
+def test_spline_failure_model_runs_through_what_if_and_the_optimizer(fitted_engine: CausalTwinEngine) -> None:
+    """The spline failure model uses the same interface as the linear one in both what-if paths and the optimizer."""
+    from causaltwin.engine.causal_model import SplineFailureModel
+    from causaltwin.engine.whatif import batch_failure_risk, run_what_if
+    from causaltwin.intelligence.optimizer import recommend
+
+    spline_engine = fitted_engine.with_failure_model("spline")
+    model = spline_engine.model
+    assert model is not None and isinstance(model.failure, SplineFailureModel)
+    assert fitted_engine.model is not None and fitted_engine.model.failure is not None
+    assert fitted_engine.model.failure.kind == "linear"  # the original engine is unchanged
+    history = spline_engine._history_array(None)
+    interventions = [Intervention(variable="coolant_flow", change_type="set", value=30.0)]
+    single = run_what_if(model, history, interventions, 30, 100, 5, (5.0, 95.0))
+    batch = batch_failure_risk(model, history, [[], interventions], 30, 100, 5, (5.0, 95.0))
+    assert single.risk is not None and single.baseline_risk is not None
+    assert batch["risk"][1] == pytest.approx(single.risk.probability, abs=1e-4)
+    assert batch["risk"][0] == pytest.approx(single.baseline_risk.probability, abs=1e-4)
+    assert 0.0 <= single.risk.lower <= single.risk.probability <= single.risk.upper <= 1.0
+    recommendation = recommend(spline_engine, history)
+    assert recommendation.risk_after.probability <= recommendation.risk_before.probability + 1e-9
+    with pytest.raises(ValueError, match="failure model"):
+        fitted_engine.with_failure_model("forest")
+
+
+def test_linear_failure_interface_keeps_the_logistic_arithmetic(fitted_engine: CausalTwinEngine) -> None:
+    """The linear model's logit through the shared interface is intercept + sum(coefficient * value)."""
+    model = fitted_engine.model
+    assert model is not None and model.failure is not None
+    failure = model.failure
+    rng = np.random.default_rng(0)
+    columns = [rng.normal(50.0, 10.0, size=5) for _ in failure.terms]
+    expected = failure.intercept + sum(c * values for c, values in zip(failure.coefficients, columns, strict=True))
+    actual = failure.logit(columns, np.tile(failure.point_parameters(), (5, 1)))
+    np.testing.assert_allclose(actual, expected, rtol=1e-12)
+    np.testing.assert_array_equal(
+        failure.local_coefficients(np.zeros(len(columns)), np.ones(len(columns))), failure.coefficients
+    )

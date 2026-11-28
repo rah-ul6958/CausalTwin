@@ -1,0 +1,137 @@
+{
+  "default_failure_model": "linear",
+  "variants": {
+    "linear": {
+      "n_cases": 30,
+      "n_success": 28,
+      "success_rate": 0.9333333333333333,
+      "mean_true_risk_after": 0.037548351198736105,
+      "mean_failure_rate_after": 0.0,
+      "mean_cost": 6.593333333333334,
+      "n_worse_than_no_action": 0,
+      "n_false_reassurance": 0,
+      "missed_cases": [
+        28,
+        29
+      ],
+      "calibration": {
+        "no_action": {
+          "n_cases": 30,
+          "mean_predicted": 0.3081217087224547,
+          "mean_true": 0.3041404116551862,
+          "mean_error": 0.003981297067268328,
+          "mean_absolute_error": 0.0404551377294138,
+          "interval_coverage": 0.9,
+          "n_below_interval": 3,
+          "n_above_interval": 0,
+          "correlation": 0.9562808659817956
+        },
+        "after_action": {
+          "n_cases": 30,
+          "mean_predicted": 0.035226782894998775,
+          "mean_true": 0.037548351198736105,
+          "mean_error": -0.0023215683037373365,
+          "mean_absolute_error": 0.010605020699319151,
+          "interval_coverage": 0.43333333333333335,
+          "n_below_interval": 16,
+          "n_above_interval": 1,
+          "correlation": 0.9679483654493047
+        }
+      },
+      "failure_auc_holdout": 0.9606402861793846,
+      "recommend_ms": {
+        "median": 140.18851950000055,
+        "max": 197.49013899999568
+      },
+      "seconds": 14.49889545500001
+    },
+    "spline": {
+      "n_cases": 30,
+      "n_success": 28,
+      "success_rate": 0.9333333333333333,
+      "mean_true_risk_after": 0.015071449571667332,
+      "mean_failure_rate_after": 0.0,
+      "mean_cost": 7.459876172716686,
+      "n_worse_than_no_action": 0,
+      "n_false_reassurance": 0,
+      "missed_cases": [
+        13,
+        27
+      ],
+      "calibration": {
+        "no_action": {
+          "n_cases": 30,
+          "mean_predicted": 0.3165035120257211,
+          "mean_true": 0.3041404116551862,
+          "mean_error": 0.012363100370534735,
+          "mean_absolute_error": 0.07908686907294801,
+          "interval_coverage": 0.5,
+          "n_below_interval": 10,
+          "n_above_interval": 5,
+          "correlation": 0.8205368559173196
+        },
+        "after_action": {
+          "n_cases": 30,
+          "mean_predicted": 0.03772574780880991,
+          "mean_true": 0.015071449571667332,
+          "mean_error": 0.022654298237142583,
+          "mean_absolute_error": 0.029633611130177994,
+          "interval_coverage": 0.03333333333333333,
+          "n_below_interval": 27,
+          "n_above_interval": 2,
+          "correlation": 0.7148069714252724
+        }
+      },
+      "failure_auc_holdout": 0.9212403786249723,
+      "recommend_ms": {
+        "median": 476.46791849999204,
+        "max": 642.0947249999926
+      },
+      "seconds": 30.048870343999994
+    },
+    "spline_products": {
+      "n_cases": 30,
+      "n_success": 28,
+      "success_rate": 0.9333333333333333,
+      "mean_true_risk_after": 0.014138501166965316,
+      "mean_failure_rate_after": 0.0,
+      "mean_cost": 7.625,
+      "n_worse_than_no_action": 0,
+      "n_false_reassurance": 0,
+      "missed_cases": [
+        13,
+        27
+      ],
+      "calibration": {
+        "no_action": {
+          "n_cases": 30,
+          "mean_predicted": 0.3254246430980563,
+          "mean_true": 0.3041404116551862,
+          "mean_error": 0.02128423144286993,
+          "mean_absolute_error": 0.07675480233133049,
+          "interval_coverage": 0.5333333333333333,
+          "n_below_interval": 10,
+          "n_above_interval": 4,
+          "correlation": 0.8433127318002895
+        },
+        "after_action": {
+          "n_cases": 30,
+          "mean_predicted": 0.03364812323318256,
+          "mean_true": 0.014138501166965316,
+          "mean_error": 0.01950962206621724,
+          "mean_absolute_error": 0.02460022108765567,
+          "interval_coverage": 0.06666666666666667,
+          "n_below_interval": 27,
+          "n_above_interval": 1,
+          "correlation": 0.8361210436744317
+        }
+      },
+      "failure_auc_holdout": 0.9199491549267469,
+      "recommend_ms": {
+        "median": 555.5972800000006,
+        "max": 703.2350489999999
+      },
+      "seconds": 32.03677510599999
+    }
+  }
+}

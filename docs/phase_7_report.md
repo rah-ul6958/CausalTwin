@@ -351,3 +351,115 @@ date). Checks: backend 109 passed, ruff, ruff format and mypy clean; frontend li
 and build pass; Playwright (Chromium) 25 of 25 passed against the backend in Docker and the production
 frontend build, which also refreshed `docs/screenshots/`. All timings are within budget (benchmark 13.9 s,
 recommendation search 145 ms median, what-if 9 ms median).
+
+# Part B - A non-linear failure model
+
+## B1 diagnosis (before any code change)
+
+Measured with the new `scripts/diagnose_ai4i.py` (`data/ai4i_diagnosis.json`), on the current code: the
+same fit and the same action search as `scripts/run_ai4i.py`, judged by the documented rules.
+
+**What the failure screen can see.** Only variables with the role "sensor" are screened as direct causes
+of failure (`FAILURE_CANDIDATE_ROLES`; levers and environment are assumed to act through sensors). In
+the AI4I mapping speed, torque and tool wear are levers, so the screen tests only four variables:
+temperature difference (p = 2.7e-25, cause), power (p = 5.8e-29, cause), wear x torque (p = 1.4e-29,
+cause) and process temperature (p = 0.67, not a cause). **Neither speed nor tool wear is ever a
+candidate cause**; they reach the failure model only through power (torque x speed) and wear x torque.
+The linear failure model is logit = -0.691 x temperature difference + 0.00071 x power + 0.00023 x wear
+x torque - 2.77: risk rises steadily with power and with wear x torque.
+
+| Failure mode | Rows | Removed | Median predicted risk with no action | What CausalTwin chose | Why it fails |
+|---|---|---|---|---|---|
+| HDF (heat dissipation) | 115 | 0 | 13.6% | torque down 89, speed down 25, no action 18, tool change 9 | The rule needs speed raised above 1,380 rpm. Speed enters only through power, whose coefficient is positive, so every action lowers speed or torque; 0 of 115 raised speed to the limit. HDF is still present after every action. |
+| PWF, power below 3,500 W | 31 | 0 | 0.09% | no action in all 31 | A linear model says lower power is always safer, so low-power rows look very safe (100% predicted below the 5% target) and nothing is done. |
+| PWF, power above 9,000 W | 64 | 45 | 22.5% | torque down 45, speed down 16, tool change 11, no action 8 | Lowering power is right; in 16 rows the predicted risk fell below the target before power fell below 9,000 W. |
+| OSF (overstrain) | 98 | 83 | 25.3% | torque down 68, tool change 34, speed down 20 | Mostly right. Of the 15 misses, cutting torque or speed caused HDF (6) or low-power PWF (5), which the model cannot see; 3 kept OSF. |
+| TWF (tool wear) | 46 | 4 | 3.4% | no action 30, torque down 12, tool change 4, speed down 2 | Only a tool change removes it. Tool wear is not a candidate cause and wear x torque is near the healthy level for these rows (65% predicted below the target), so a tool change was chosen in 4 of 46. |
+
+**What a non-linear model on the same causes can and cannot fix.** A spline on power can express the
+3,500-9,000 W window, so the low-power PWF rows (31) and the late stop in high-power rows (16) are
+reachable, and the HDF/PWF side effects of OSF actions may shrink. HDF needs speed itself and TWF needs
+tool wear itself; neither is a discovered cause (they are not even candidates), so a failure model that
+uses only the discovered causes cannot fix them, linear or not. Changing which roles are screened would
+change discovery, which this task does not allow; it is reported as the next step instead.
+
+## B1 result: a spline failure model on the discovered causes
+
+**What changed.**
+
+- `engine/causal_model.py`: `SplineFailureModel`, a logistic regression on cubic B-spline features of
+  each discovered failure cause (`SplineTransformer`, 5 knots at quantiles, the basis that duplicates
+  the intercept dropped), optionally with the standardised product of every pair of causes; L2 penalty
+  `FAILURE_SPLINE_C` = 1.0, intercept unpenalised. The parameter covariance is the inverse of the
+  penalised Fisher information (formula in the docstring), so each what-if rollout draws its own
+  parameters exactly as for the linear model. Each basis is tabulated on a 256-point grid over the
+  training range and interpolated (constant beyond the range), which keeps it fast. Settings are in
+  `config.py`; they were set before any run and not tuned on anything judged.
+- **One interface for both failure models**: `logit(columns, parameters)`, `point_parameters()` and
+  `local_coefficients(current, reference)`. `whatif.py` (single what-if and the optimizer's batched
+  evaluator), the optimizer, root cause (slope between the normal level and the current value) and the
+  AI4I search all go through it. The linear model keeps exactly its previous arithmetic (tested), and
+  every simulator result reproduced unchanged with it.
+- `EngineSettings.failure_model` ("linear" default, or "spline") and
+  `CausalTwinEngine.with_failure_model(kind)`, a copy with only the failure model refitted on the same
+  discovered causes, so comparisons are like for like.
+- Explainable: the spline model's card carries one "how risk depends on this cause" curve per cause;
+  `POST /byod/upload` takes `failure_model`, and the Data page has a "Failure model" choice and draws
+  the curves for uploaded data.
+- Scripts: `scripts/diagnose_ai4i.py` (the diagnosis above), `scripts/compare_failure_models.py`
+  (simulator benchmark per failure model, `data/failure_model_comparison.json`); `run_ai4i.py` now
+  scores the linear, spline and spline-with-products models; the README's AI4I table shows all of them.
+- Tests (4 new, 1 extended): the spline model learns the AI4I power window (risk higher at both ends of
+  the power range than at its safest point) and has a higher held-out AUC than the linear model on the
+  same causes, with one curve per cause on its card; the spline model runs through both what-if paths
+  (batched equal to single) and the optimizer; an unknown failure model is rejected; the linear model's
+  logit through the interface is the plain logistic arithmetic; an upload with the spline model returns
+  curves exactly when failure causes were discovered, and an invalid choice is a 400.
+
+**AI4I 2020, per failure mode** (`data/ai4i_results.json`; 330 scored rows; judged by the documented
+rules; fitted on the data only):
+
+| Failed rows whose failure the action removes | Linear | Spline | Spline + products | XGBoost + SHAP |
+|---|---|---|---|---|
+| All scored rows | 123 (37%) | 184 (56%) | 179 (54%) | 213 (65%) |
+| Heat dissipation (115) | 0% | 21% | 17% | 22% |
+| Power (95) | 47% | 87% | 88% | 77% |
+| Overstrain (98) | 85% | 93% | 94% | 82% |
+| Tool wear (46) | 9% | 2% | 0% | 93% |
+| Held-out AUC of the failure model | 0.814 | 0.909 | 0.931 | 0.964 (XGBoost) |
+
+Wins and losses against XGBoost + SHAP with the spline model: it wins on power (87% against 77%) and
+overstrain (93% against 82%), ties on heat dissipation (21% against 22%), and loses badly on tool wear
+(2% against 93%), so it still loses overall (56% against 65%). Against the linear model it wins on
+every mode except tool wear (2% against 9%). The diagnosis predicted the pattern: the power window is
+now expressible; heat dissipation improved only partly, through power, because speed itself is not a
+discovered cause; tool-wear failures need tool wear itself, which is not even a candidate cause. The
+pairwise products raised the AUC but did not remove more failures.
+
+**Simulator benchmark, per failure model** (`data/failure_model_comparison.json`; same engine, same
+30 cases and seeds):
+
+| | Linear | Spline | Spline + products |
+|---|---|---|---|
+| Reached the 10% target | 28 / 30 (missed 28, 29) | 28 / 30 (missed 13, 27) | 28 / 30 (missed 13, 27) |
+| Mean true risk after the action | 3.8% | 1.5% | 1.4% |
+| Mean cost | 6.59 | 7.46 | 7.62 |
+| Held-out AUC of the failure model | 0.961 | 0.921 | 0.920 |
+| No action: mean absolute error / truth inside the 90% interval | 4.1 points / 90% | 7.9 points / 50% | 7.7 points / 53% |
+| After the action: truth inside the 90% interval | 43% | 3% | 7% |
+| Recommendation search, median | 140 ms | 476 ms | 556 ms |
+
+**Decision: the linear model stays the simulator's default.** The spline model reaches the target
+equally often and leaves a lower risk, but it pays more for it, predicts less accurately (AUC, error)
+and is much worse calibrated; the task's condition ("at least as good there") is not met. The simulator's
+failure mechanism is close to logistic-linear in its causes, which is why the linear model fits it
+better. The spline model is kept as an option for data with threshold-type failures (AI4I, uploads).
+All timings stay within budget with either model.
+
+**Not done, and why.** Making HDF and TWF fixable would need speed and tool wear as candidate direct
+causes of failure, which changes discovery (`FAILURE_CANDIDATE_ROLES`). The task allows only the
+discovered causes, so this is left as the next step, not attempted.
+
+**Checks after Part B.** Backend: 112 passed, ruff, ruff format and mypy (`causaltwin scripts tests`,
+79 files) clean; every result regenerated and the README blocks up to date. Frontend: lint,
+`npm run typecheck` and build pass; Playwright (Chromium) 25 of 25 passed.

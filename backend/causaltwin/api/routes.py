@@ -46,6 +46,8 @@ from causaltwin.config import (
     BYOD_MAX_UPLOAD_BYTES,
     BYOD_REQUEST_TIMEOUT_SECONDS,
     DEFAULT_CONFIG,
+    FAILURE_MODEL_KIND,
+    FAILURE_MODEL_KINDS,
     FAULT_NAMES,
     HEAVY_REQUEST_TIMEOUT_SECONDS,
     LIVE_SEED,
@@ -598,10 +600,19 @@ def data_quality(request: Request) -> dict[str, Any]:
 
 @router.post("/byod/upload", response_model=ByodResponse)
 async def byod_upload(
-    request: Request, file: UploadFile = File(...), roles: str = Form(...), time_column: str | None = Form(None)
+    request: Request,
+    file: UploadFile = File(...),
+    roles: str = Form(...),
+    time_column: str | None = Form(None),
+    failure_model: str = Form(FAILURE_MODEL_KIND),
 ) -> ByodResponse:
-    """Bring Your Own Data: run discovery and fitting on an uploaded CSV."""
+    """Bring Your Own Data: run discovery and fitting on an uploaded CSV.
+
+    `failure_model` is "linear" (default) or "spline" (a curve per discovered cause, for threshold-type failures).
+    """
     state = _state(request)
+    if failure_model not in FAILURE_MODEL_KINDS:
+        raise HTTPException(status_code=400, detail=f"failure_model must be one of {list(FAILURE_MODEL_KINDS)}")
     try:
         column_roles = json.loads(roles)
         assert isinstance(column_roles, dict)
@@ -632,7 +643,9 @@ async def byod_upload(
     time_series = report.time_column is not None
     used_roles = {column: role for column, role in report.column_roles.items()}
     quality = [item.model_dump() for item in data_quality_report(data, [c for c in used_roles if c in data])]
-    engine = CausalTwinEngine(EngineSettings(discovery_backend="numpy", bootstrap_resamples=BOOTSTRAP_RESAMPLES))
+    engine = CausalTwinEngine(
+        EngineSettings(discovery_backend="numpy", bootstrap_resamples=BOOTSTRAP_RESAMPLES, failure_model=failure_model)
+    )
     notes = [UPLOADED_NOTE]
     graph, cards = None, []
     try:

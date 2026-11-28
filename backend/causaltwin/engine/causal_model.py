@@ -9,17 +9,28 @@ what-if engine can sample realistic noise (including non-Gaussian jumps such as 
 chipping) instead of assuming a normal distribution.
 """
 
+import itertools
 import warnings
 from dataclasses import dataclass, field
 
 import numpy as np
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.metrics import r2_score, roc_auc_score
+from sklearn.preprocessing import SplineTransformer
 from statsmodels.discrete.discrete_model import Logit
 
+from causaltwin.config import (
+    FAILURE_MODEL_KIND,
+    FAILURE_MODEL_KINDS,
+    FAILURE_SPLINE_C,
+    FAILURE_SPLINE_DEGREE,
+    FAILURE_SPLINE_GRID_POINTS,
+    FAILURE_SPLINE_INTERACTIONS,
+    FAILURE_SPLINE_KNOTS,
+)
 from causaltwin.engine.preprocessing import PreparedData, lagged_design
 from causaltwin.engine.robust import robust_outliers
-from causaltwin.engine.schemas import CausalGraph, EquationCard, EquationTerm
+from causaltwin.engine.schemas import CausalGraph, EquationCard, EquationTerm, FailureCurve
 from causaltwin.utils.timing import timed_step
 
 
@@ -63,6 +74,116 @@ class LogisticEquation:
     event_rate: float
     # Covariance of (intercept, coefficients...) from the fit; None if it could not be estimated.
     covariance: np.ndarray | None = None
+    kind: str = "linear"
+
+    # The failure-model interface shared with SplineFailureModel (used by what-if, optimizer, root cause).
+    def point_parameters(self) -> np.ndarray:
+        """(intercept, coefficients...) as one vector."""
+        return np.concatenate([[self.intercept], self.coefficients])
+
+    def logit(self, columns: list[np.ndarray], parameters: np.ndarray) -> np.ndarray:
+        """Log-odds for rows of cause values (one array per term) with per-row parameters (rows, 1 + terms)."""
+        logit = parameters[:, 0].copy()
+        for position, values in enumerate(columns):
+            logit += parameters[:, 1 + position] * values
+        return logit
+
+    def local_coefficients(self, current: np.ndarray, reference: np.ndarray) -> np.ndarray:
+        """Change in log-odds per unit of each cause; for a linear model simply the coefficients."""
+        return np.asarray(self.coefficients, dtype=float)
+
+
+def _interpolate_basis(grid: np.ndarray, basis: np.ndarray, values: np.ndarray) -> np.ndarray:
+    """Basis functions tabulated on `grid` (G, n_basis), linearly interpolated at `values` (rows,).
+
+    Values outside the grid take the value at the nearest end (constant extrapolation).
+    """
+    position = (np.asarray(values, dtype=float) - grid[0]) / (grid[-1] - grid[0]) * (grid.size - 1)
+    position = np.clip(position, 0.0, grid.size - 1.0)
+    lower = np.minimum(position.astype(int), grid.size - 2)
+    weight = (position - lower)[:, None]
+    return basis[lower] * (1.0 - weight) + basis[lower + 1] * weight
+
+
+@dataclass
+class SplineFailureModel:
+    """logit P(failure(t)) = intercept + sum of one smooth curve per cause (+ optional pairwise products).
+
+    Each curve is a cubic B-spline in that cause (knots at quantiles of the data), so the model can
+    express thresholds and windows a straight line cannot, such as "risky below 3,500 W and above
+    9,000 W". It uses only the discovered causes, like the linear model, and is fitted on the data
+    alone. Each basis function is tabulated on a fine grid over the cause's training range and
+    interpolated, which keeps evaluation fast inside the what-if engine and the optimizer; outside
+    the training range a curve stays at its end value.
+    """
+
+    target: str
+    terms: list[tuple[str, int]]
+    coefficients: np.ndarray  # one per design column: the spline bases of every cause, then the products
+    intercept: float
+    auc_holdout: float | None
+    n_train: int
+    n_holdout: int
+    event_rate: float
+    grids: list[np.ndarray]  # per cause: evaluation grid over its training range
+    bases: list[np.ndarray]  # per cause: basis values on the grid (G, n_basis)
+    interactions: list[tuple[int, int]]  # pairs of cause positions whose standardised product is a column
+    means: np.ndarray  # per cause, for the standardised products
+    scales: np.ndarray
+    n_knots: int
+    covariance: np.ndarray | None = None
+    kind: str = "spline"
+
+    def point_parameters(self) -> np.ndarray:
+        """(intercept, coefficients...) as one vector."""
+        return np.concatenate([[self.intercept], self.coefficients])
+
+    def design(self, columns: list[np.ndarray]) -> np.ndarray:
+        """Design matrix (rows, coefficients) for rows of cause values, one array per term."""
+        parts = [
+            _interpolate_basis(grid, basis, values)
+            for values, grid, basis in zip(columns, self.grids, self.bases, strict=True)
+        ]
+        for first, second in self.interactions:
+            first_z = (np.asarray(columns[first], dtype=float) - self.means[first]) / self.scales[first]
+            second_z = (np.asarray(columns[second], dtype=float) - self.means[second]) / self.scales[second]
+            parts.append((first_z * second_z)[:, None])
+        return np.hstack(parts)
+
+    def logit(self, columns: list[np.ndarray], parameters: np.ndarray) -> np.ndarray:
+        """Log-odds for rows of cause values (one array per term) with per-row parameters (rows, 1 + coefficients)."""
+        design = self.design(columns)
+        return parameters[:, 0] + np.einsum("ij,ij->i", design, parameters[:, 1:])
+
+    def local_coefficients(self, current: np.ndarray, reference: np.ndarray) -> np.ndarray:
+        """Change in log-odds per unit of each cause between `reference` and `current` (a secant slope).
+
+        Where the two values (almost) coincide, the slope at `current` is used instead.
+        """
+        point = np.repeat(self.point_parameters()[None, :], 2, axis=0)
+        slopes = np.zeros(len(self.terms))
+        for position in range(len(self.terms)):
+            width = float(self.grids[position][-1] - self.grids[position][0]) or 1.0
+            start = np.array(current, dtype=float)
+            step = float(current[position] - reference[position])
+            if abs(step) < 1e-6 * width:
+                step = width / 100.0  # no deviation: the slope at the current value
+            else:
+                start[position] = reference[position]  # the secant from the reference to the current value
+            end = start.copy()
+            end[position] += step
+            logits = self.logit([np.array([start[k], end[k]]) for k in range(len(self.terms))], point)
+            slopes[position] = float((logits[1] - logits[0]) / step)
+        return slopes
+
+    def curve(self, position: int, n_points: int = 60) -> tuple[np.ndarray, np.ndarray]:
+        """How the log-odds depend on one cause across its range, the others held at their means."""
+        values = np.linspace(self.grids[position][0], self.grids[position][-1], n_points)
+        columns = [values if k == position else np.full(n_points, self.means[k]) for k in range(len(self.terms))]
+        return values, self.logit(columns, np.repeat(self.point_parameters()[None, :], n_points, axis=0))
+
+
+FailureModel = LogisticEquation | SplineFailureModel
 
 
 @dataclass
@@ -73,7 +194,7 @@ class CausalModel:
     exogenous: set[str]
     units: dict[str, str | None]
     equations: dict[str, LinearEquation]
-    failure: LogisticEquation | None
+    failure: FailureModel | None
     baseline: dict[str, float]  # median of each variable over usable rows ("normal level")
     time_structure: bool
     notes: list[str] = field(default_factory=list)
@@ -203,10 +324,8 @@ def _fit_linear(
     )
 
 
-def _fit_logistic(
-    failure_history: PreparedData, terms: list[tuple[str, int]], holdout_fraction: float
-) -> LogisticEquation | None:
-    """Fit the failure equation on the failure history (stopped rows excluded)."""
+def _failure_rows(failure_history: PreparedData, terms: list[tuple[str, int]]) -> np.ndarray | None:
+    """Rows usable for the failure fit: running, with every lagged cause available (None: no outcome)."""
     if failure_history.outcome is None or failure_history.outcome_values is None:
         return None
     first_row = max([lag for _, lag in terms], default=1)
@@ -214,7 +333,16 @@ def _fit_logistic(
     usable = ~failure_history.row_mask[rows]
     for _, lag in terms:
         usable &= ~failure_history.row_mask[rows - lag]
-    rows = rows[usable]
+    return rows[usable]
+
+
+def _fit_logistic(
+    failure_history: PreparedData, terms: list[tuple[str, int]], holdout_fraction: float
+) -> LogisticEquation | None:
+    """Fit the failure equation on the failure history (stopped rows excluded)."""
+    rows = _failure_rows(failure_history, terms)
+    if rows is None or failure_history.outcome is None or failure_history.outcome_values is None:
+        return None
     outcome = failure_history.outcome_values[rows]
     if outcome.sum() == 0:
         return None
@@ -245,6 +373,116 @@ def _fit_logistic(
     )
 
 
+def _spline_bases(values: np.ndarray, n_knots: int, grid_points: int) -> tuple[np.ndarray, np.ndarray]:
+    """A grid over the values' range and cubic B-spline basis values on it (G, n_basis).
+
+    Knots sit at quantiles of the values (uniform spacing if the quantiles coincide). The basis that
+    would duplicate the intercept is dropped.
+    """
+    grid = np.linspace(float(values.min()), float(values.max()), grid_points)
+    if grid[-1] == grid[0]:
+        grid = grid[0] + np.linspace(-0.5, 0.5, grid_points)
+    for knots in ("quantile", "uniform"):
+        try:
+            transformer = SplineTransformer(
+                n_knots=n_knots,
+                degree=FAILURE_SPLINE_DEGREE,
+                knots=knots,
+                extrapolation="constant",
+                include_bias=False,
+            ).fit(values[:, None])
+            return grid, transformer.transform(grid[:, None])
+        except ValueError:
+            continue
+    raise ValueError("Could not place spline knots")
+
+
+def _fit_spline_logistic(
+    failure_history: PreparedData,
+    terms: list[tuple[str, int]],
+    holdout_fraction: float,
+    interactions: bool,
+) -> SplineFailureModel | None:
+    """Fit a logistic model on spline features of the discovered failure causes (stopped rows excluded).
+
+    L2-penalised (FAILURE_SPLINE_C), the intercept unpenalised. The covariance of the parameters is the
+    inverse of the penalised Fisher information, X'WX + I / C (W = p(1 - p) at the fit), the usual
+    approximation for a penalised logistic fit; the what-if engine draws each rollout's parameters from it.
+    """
+    rows = _failure_rows(failure_history, terms)
+    if not terms or rows is None or failure_history.outcome is None or failure_history.outcome_values is None:
+        return None
+    outcome = failure_history.outcome_values[rows]
+    if outcome.sum() == 0:
+        return None
+    columns = [failure_history.values[rows - lag, failure_history.index_of(name)] for name, lag in terms]
+    grids, bases = zip(
+        *(_spline_bases(values, FAILURE_SPLINE_KNOTS, FAILURE_SPLINE_GRID_POINTS) for values in columns),
+        strict=True,
+    )
+    model = SplineFailureModel(
+        target=failure_history.outcome,
+        terms=terms,
+        coefficients=np.zeros(0),
+        intercept=0.0,
+        auc_holdout=None,
+        n_train=0,
+        n_holdout=0,
+        event_rate=float(outcome.mean()),
+        grids=list(grids),
+        bases=list(bases),
+        interactions=list(itertools.combinations(range(len(terms)), 2)) if interactions else [],
+        means=np.array([values.mean() for values in columns]),
+        scales=np.array([values.std() or 1.0 for values in columns]),
+        n_knots=FAILURE_SPLINE_KNOTS,
+    )
+    design = model.design(columns)
+    n_train = int(rows.size * (1.0 - holdout_fraction))
+
+    def classifier() -> LogisticRegression:
+        return LogisticRegression(C=FAILURE_SPLINE_C, max_iter=2000)
+
+    auc = None
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if outcome[:n_train].sum() > 0 and 0 < outcome[n_train:].sum() < outcome[n_train:].size:
+            holdout_fit = classifier().fit(design[:n_train], outcome[:n_train])
+            auc = float(roc_auc_score(outcome[n_train:], holdout_fit.predict_proba(design[n_train:])[:, 1]))
+        fit = classifier().fit(design, outcome)
+    model.coefficients = np.asarray(fit.coef_[0], dtype=float)
+    model.intercept = float(fit.intercept_[0])
+    model.auc_holdout, model.n_train, model.n_holdout = auc, n_train, rows.size - n_train
+    probability = fit.predict_proba(design)[:, 1]
+    with_intercept = np.column_stack([np.ones(rows.size), design])
+    information = with_intercept.T @ (with_intercept * (probability * (1.0 - probability))[:, None])
+    information += np.diag([0.0] + [1.0 / FAILURE_SPLINE_C] * design.shape[1])
+    try:
+        covariance = np.linalg.inv(information)
+        model.covariance = (covariance + covariance.T) / 2.0 if np.all(np.isfinite(covariance)) else None
+    except np.linalg.LinAlgError:
+        model.covariance = None
+    return model
+
+
+def fit_failure_model(
+    failure_history: PreparedData,
+    terms: list[tuple[str, int]],
+    holdout_fraction: float,
+    kind: str = FAILURE_MODEL_KIND,
+    interactions: bool = FAILURE_SPLINE_INTERACTIONS,
+) -> FailureModel | None:
+    """The failure model on the discovered causes: "linear" (logistic) or "spline" (logistic on splines).
+
+    Without discovered causes there is nothing to bend, so the linear model (the constant event rate)
+    is used whatever the kind.
+    """
+    if kind not in FAILURE_MODEL_KINDS:
+        raise ValueError(f"Unknown failure model {kind!r}; use one of {FAILURE_MODEL_KINDS}")
+    if kind == "spline" and terms:
+        return _fit_spline_logistic(failure_history, terms, holdout_fraction, interactions)
+    return _fit_logistic(failure_history, terms, holdout_fraction)
+
+
 def _exogenous_dynamics(
     window: PreparedData, limit: int, rng: np.random.Generator
 ) -> tuple[dict[str, np.ndarray], dict[str, tuple[float, float]]]:
@@ -273,8 +511,10 @@ def fit_causal_model(
     holdout_fraction: float,
     residual_limit: int,
     seed: int,
+    failure_model_kind: str = FAILURE_MODEL_KIND,
+    failure_interactions: bool = FAILURE_SPLINE_INTERACTIONS,
 ) -> CausalModel:
-    """Fit every equation of the causal model."""
+    """Fit every equation of the causal model (the failure model of the given kind)."""
     with timed_step("fit_model", "Fitted causal model") as timer:
         rng = np.random.default_rng(seed)
         equations: dict[str, LinearEquation] = {}
@@ -296,7 +536,9 @@ def fit_causal_model(
         failure = None
         if window.outcome is not None:
             failure_terms = [(edge.cause, edge.lag) for edge in graph.parents_of(window.outcome)]
-            failure = _fit_logistic(failure_history, failure_terms, holdout_fraction)
+            failure = fit_failure_model(
+                failure_history, failure_terms, holdout_fraction, failure_model_kind, failure_interactions
+            )
             if failure is not None and not failure_terms:
                 notes.append("No failure causes were found; the failure model is the constant event rate.")
         usable = ~window.row_mask
@@ -350,7 +592,45 @@ def model_cards(model: CausalModel) -> list[EquationCard]:
                 ),
             )
         )
-    if model.failure is not None:
+    if isinstance(model.failure, SplineFailureModel):
+        spline = model.failure
+        # A spline has no single coefficient per cause: the card shows each curve's average slope
+        # (log-odds per unit) between the 25th and 75th percentile of its grid, and explains the form.
+        low = np.array([float(np.percentile(grid, 25)) for grid in spline.grids])
+        high = np.array([float(np.percentile(grid, 75)) for grid in spline.grids])
+        slopes = spline.local_coefficients(high, low)
+        causes = " + ".join(f"s({name}(t{'' if lag == 0 else f'-{lag}'}))" for name, lag in spline.terms)
+        products = " + products of each pair of causes" if spline.interactions else ""
+        cards.append(
+            EquationCard(
+                variable=spline.target,
+                kind="logistic",
+                terms=[
+                    EquationTerm(variable=name, lag=lag, coefficient=float(slope))
+                    for (name, lag), slope in zip(spline.terms, slopes, strict=True)
+                ],
+                intercept=spline.intercept,
+                equation=f"logit P({spline.target}(t)) = {causes}{products} + {spline.intercept:.3g}",
+                auc_holdout=spline.auc_holdout,
+                n_train=spline.n_train,
+                n_holdout=spline.n_holdout,
+                notes=[
+                    f"Observed failure rate {spline.event_rate:.2%} per step on running rows.",
+                    f"Spline failure model: s(x) is a cubic B-spline with {spline.n_knots} knots, fitted on the data; "
+                    "the coefficients shown are each curve's average slope over the middle half of its range.",
+                ],
+                curves=[
+                    FailureCurve(
+                        variable=name,
+                        values=values.tolist(),
+                        probability=(1.0 / (1.0 + np.exp(-np.clip(logit, -50, 50)))).tolist(),
+                    )
+                    for position, (name, _) in enumerate(spline.terms)
+                    for values, logit in [spline.curve(position)]
+                ],
+            )
+        )
+    elif model.failure is not None:
         failure = model.failure
         cards.append(
             EquationCard(

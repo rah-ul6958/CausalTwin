@@ -182,8 +182,8 @@ def failure_probability(engine: CausalTwinEngine, row: pd.Series) -> float:
     failure = engine._require_fitted().failure
     if failure is None:
         return float("nan")
-    terms = zip(failure.terms, failure.coefficients, strict=True)
-    logit = failure.intercept + sum(coefficient * float(row[name]) for (name, _), coefficient in terms)
+    causes = [np.array([float(row[name])]) for name, _ in failure.terms]
+    logit = float(failure.logit(causes, failure.point_parameters()[None, :])[0])
     return float(1.0 / (1.0 + np.exp(-np.clip(logit, -50, 50))))
 
 
@@ -221,9 +221,8 @@ def causaltwin_action(
     if failure is None:
         return Action(), float("nan")
     columns = _candidate_columns(row, actions)
-    logit = np.full(len(actions), failure.intercept)
-    for (name, _), coefficient in zip(failure.terms, failure.coefficients, strict=True):
-        logit += coefficient * columns[name]
+    parameters = np.tile(failure.point_parameters(), (len(actions), 1))
+    logit = failure.logit([columns[name] for name, _ in failure.terms], parameters)  # linear or spline
     probability = 1.0 / (1.0 + np.exp(-np.clip(logit, -50, 50)))
     inside = np.ones(len(actions), dtype=bool)
     for lever in LEVERS:
@@ -307,12 +306,23 @@ def _mode_summary(cases: list[dict[str, Any]], method: str) -> dict[str, Any]:
     return summary
 
 
+def _failure_card(engine: CausalTwinEngine) -> dict[str, Any] | None:
+    """The failure model's card (equation, held-out AUC, notes) as a plain dict."""
+    card = next((card for card in engine.get_model_cards() if card.kind == "logistic"), None)
+    return None if card is None else card.model_dump()
+
+
 def run_ai4i_check(path: Path = AI4I_DATA_PATH) -> dict[str, Any]:
     """Fit both methods, act on every scored failed row, judge with the documented rules."""
     with timed_step("ai4i_check", "AI4I 2020 check (tabular mode, documented failure rules)") as timer:
         start = time.perf_counter()
         data = load_ai4i(path)
         engine = fit_causaltwin(data)
+        # The same discovery and causes, with the non-linear failure model (Phase 7, task B1).
+        spline_engines = {
+            "causaltwin_spline": engine.with_failure_model("spline"),
+            "causaltwin_spline_products": engine.with_failure_model("spline", interactions=True),
+        }
         baseline = Ai4iBaseline(data)
         ranges = {lever: (float(data[lever].min()), float(data[lever].max())) for lever in LEVERS}
         actions = candidate_actions()
@@ -325,10 +335,22 @@ def run_ai4i_check(path: Path = AI4I_DATA_PATH) -> dict[str, Any]:
             blamed, bl_action = baseline.action(row, magnitude or BASELINE_DEFAULT_MAGNITUDE_PCT)
             ct_after = rule_failures(apply_action(row, ct_action), twf)
             bl_after = rule_failures(apply_action(row, bl_action), twf)
+            spline_results = {}
+            for name, spline_engine in spline_engines.items():
+                spline_action, spline_probability = causaltwin_action(spline_engine, row, actions, ranges)
+                spline_after = rule_failures(apply_action(row, spline_action), twf)
+                spline_results[name] = {
+                    "action": spline_action.describe(),
+                    "cost": spline_action.cost(),
+                    "predicted_probability": spline_probability,
+                    "failures_after": spline_after,
+                    "success": not spline_after,
+                }
             cases.append(
                 {
                     "row": int(row.name) + 1,
                     "modes": modes,
+                    **spline_results,
                     "causaltwin": {
                         "action": ct_action.describe(),
                         "cost": ct_action.cost(),
@@ -367,10 +389,14 @@ def run_ai4i_check(path: Path = AI4I_DATA_PATH) -> dict[str, Any]:
                 for edge in graph.edges
             ],
             "failure_model": None if failure_card is None else failure_card.model_dump(),
+            "spline_failure_models": {
+                name: _failure_card(spline_engine) for name, spline_engine in spline_engines.items()
+            },
             "baseline_auc": baseline.auc,
             "baseline_blamed": dict(Counter(case["baseline"]["blamed"] for case in cases).most_common()),
             "summary": {
                 "causaltwin": _mode_summary(cases, "causaltwin"),
+                **{name: _mode_summary(cases, name) for name in spline_engines},
                 "baseline": _mode_summary(cases, "baseline"),
             },
             "cases": cases,

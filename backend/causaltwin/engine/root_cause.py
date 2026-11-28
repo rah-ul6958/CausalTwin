@@ -109,7 +109,14 @@ def trace_root_causes(
             notes.append("No failure causes in the model, so no causal paths can be traced.")
         else:
             failure_coefficients: dict[str, float] = {}
-            for (cause, _), coefficient in zip(model.failure.terms, model.failure.coefficients, strict=True):
+            # Log-odds per unit of each cause: the coefficients of a linear failure model, or the slope of a
+            # spline failure model between the normal level and the current value.
+            positions = [model.variables.index(cause) for cause, _ in model.failure.terms]
+            local = model.failure.local_coefficients(
+                np.array([float(current[position]) for position in positions]),
+                np.array([model.baseline[cause] for cause, _ in model.failure.terms]),
+            )
+            for (cause, _), coefficient in zip(model.failure.terms, local, strict=True):
                 failure_coefficients[cause] = failure_coefficients.get(cause, 0.0) + float(coefficient)
 
             def walk(path: list[str], gain_product: float) -> None:

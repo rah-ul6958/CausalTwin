@@ -7,6 +7,7 @@ import type {
   AppConfig,
   BenchmarkResults,
   ByodResponse,
+  FailureModelKind,
   ColumnQuality,
   DemoBeatResult,
   DriftResults,
@@ -124,11 +125,12 @@ export const api = {
   dataQuality: () => request<{ simulated: boolean; rows: number; columns: ColumnQuality[] }>("/data/quality"),
   /** A plain link cannot send headers, so the session id goes in the query string. */
   exportUrl: () => withSession(`${API_URL}/data/export`),
-  byodUpload: (file: File, roles: Record<string, string>, timeColumn?: string) => {
+  byodUpload: (file: File, roles: Record<string, string>, timeColumn?: string, failureModel: FailureModelKind = "linear") => {
     const form = new FormData();
     form.append("file", file);
     form.append("roles", JSON.stringify(roles));
     if (timeColumn) form.append("time_column", timeColumn);
+    form.append("failure_model", failureModel);
     return request<ByodResponse>("/byod/upload", { method: "POST", body: form }, UPLOAD_TIMEOUT_MS);
   },
 };

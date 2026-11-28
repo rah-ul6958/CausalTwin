@@ -41,15 +41,15 @@ copy them from here rather than typing them. Label anything from the simulator a
 <!-- results:timings:start -->
 | Operation | Median | Slowest run | Budget | Within budget |
 |---|---|---|---|---|
-| Simulate 20,000 steps | 282 ms | 348 ms | 2.00 s | yes |
-| Causal discovery on one 3,000-step window | 709 ms | 746 ms | 3.00 s | yes |
-| Fit the causal model | 68 ms | 88 ms | 1.00 s | yes |
-| One what-if simulation (200 rollouts) | 9 ms | 16 ms | 200 ms | yes |
-| Recommendation search | 145 ms | 192 ms | 1.00 s | yes |
-| Baseline XGBoost training | 342 ms | 350 ms | 10.00 s | yes |
-| Full benchmark (30 cases) | 13.86 s | 13.86 s | 60.00 s | yes |
+| Simulate 20,000 steps | 274 ms | 285 ms | 2.00 s | yes |
+| Causal discovery on one 3,000-step window | 683 ms | 688 ms | 3.00 s | yes |
+| Fit the causal model | 66 ms | 73 ms | 1.00 s | yes |
+| One what-if simulation (200 rollouts) | 6 ms | 8 ms | 200 ms | yes |
+| Recommendation search | 138 ms | 184 ms | 1.00 s | yes |
+| Baseline XGBoost training | 261 ms | 267 ms | 10.00 s | yes |
+| Full benchmark (30 cases) | 12.90 s | 12.90 s | 60.00 s | yes |
 
-Measured 2026-11-24 on Linux (16 logical CPUs, Python 3.11.18) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
+Measured 2026-11-28 on Linux (16 logical CPUs, Python 3.11.18) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
 <!-- results:timings:end -->
 
 ## Slide 4. Live demo

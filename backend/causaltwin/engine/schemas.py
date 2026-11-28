@@ -77,6 +77,14 @@ class EquationTerm(BaseModel):
     coefficient: float
 
 
+class FailureCurve(BaseModel):
+    """One "how risk depends on this cause" curve of a spline failure model."""
+
+    variable: str
+    values: list[float]
+    probability: list[float]
+
+
 class EquationCard(BaseModel):
     """A fitted structural equation, as shown on a UI model card."""
 
@@ -91,6 +99,9 @@ class EquationCard(BaseModel):
     n_train: int
     n_holdout: int
     notes: list[str] = Field(default_factory=list)
+    # Spline failure model only: how the failure probability depends on each cause across its range,
+    # with the other causes at their mean.
+    curves: list[FailureCurve] | None = None
 
 
 class Intervention(BaseModel):

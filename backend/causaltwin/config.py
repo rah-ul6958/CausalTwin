@@ -116,6 +116,16 @@ ROBUST_MAX_OUTLIER_SHARE = 0.05
 # 3,000-step window holds too few failures (measured in the Phase 1 report).
 FAILURE_HISTORY_MAX_STEPS = 100_000
 FAILURE_MIN_EVENTS = 15  # below this the failure model is not fitted (reported, not guessed)
+# Failure model on the discovered causes (Phase 7, task B1): "linear" (logistic) or "spline" (logistic
+# on cubic B-spline features of each cause, optionally with pairwise products). The spline settings
+# were chosen before any run and are not tuned on any judged result.
+FAILURE_MODEL_KIND = "linear"
+FAILURE_MODEL_KINDS: tuple[str, ...] = ("linear", "spline")
+FAILURE_SPLINE_KNOTS = 5  # knots per cause, at quantiles of the data
+FAILURE_SPLINE_DEGREE = 3
+FAILURE_SPLINE_INTERACTIONS = False  # add the standardised product of every pair of causes
+FAILURE_SPLINE_C = 1.0  # inverse L2 penalty strength of the spline logistic fit
+FAILURE_SPLINE_GRID_POINTS = 256  # each basis is tabulated on this many points and interpolated
 # Only measured sensors are screened as direct failure causes: levers and environment are
 # assumed to act on failure through sensors. Fewer parameters keep the test powered.
 FAILURE_CANDIDATE_ROLES: tuple[str, ...] = ("sensor",)

@@ -172,6 +172,27 @@ def test_byod_time_series_and_tabular(client: TestClient) -> None:
     assert body["mode"] == "time_series" and body["graph"] is not None
     assert body["provenance"]["data_source"] == "uploaded" and body["provenance"]["ground_truth_available"] is False
     assert any("no simulator ground truth" in note for note in body["notes"])
+    # The same upload with the spline failure model: its card has one curve per failure cause, and no
+    # curves when no cause was discovered (then the failure model is the constant event rate).
+    spline = client.post(
+        "/byod/upload",
+        files={"file": ("factory.csv", io.BytesIO(upload), "text/csv")},
+        data={"roles": json.dumps(roles), "failure_model": "spline"},
+    )
+    assert spline.status_code == 200
+    failure_cards = [card for card in spline.json()["model_cards"] if card["kind"] == "logistic"]
+    assert failure_cards
+    for card in failure_cards:
+        assert (card["curves"] is not None) == bool(card["terms"])
+        assert card["curves"] is None or {curve["variable"] for curve in card["curves"]} == {
+            term["variable"] for term in card["terms"]
+        }
+    invalid = client.post(
+        "/byod/upload",
+        files={"file": ("factory.csv", io.BytesIO(upload), "text/csv")},
+        data={"roles": json.dumps(roles), "failure_model": "forest"},
+    )
+    assert invalid.status_code == 400
 
     rng = np.random.default_rng(1)
     setting = rng.normal(size=2000)

@@ -72,7 +72,8 @@ Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test
   - On the third-party AI4I 2020 dataset, discovery found the documented failure mechanism.
 - **Gaps:**
   - not validated on a real machine;
-  - on AI4I, the linear failure model's advice lost to XGBoost + SHAP (threshold-type failures);
+  - on AI4I, CausalTwin's advice still loses to XGBoost + SHAP overall: the optional spline failure model
+    wins on power and overstrain failures but not on tool-wear failures (Phase 7 report, Part B);
   - no industry impact figures are given: the README states no downtime statistic without a linked source.
 
 ## User Experience (15%)
@@ -165,8 +166,10 @@ Phase 5); see `docs/phase_5_report.md` and `docs/phase_6_report.md` for the test
 
 - Not deployed (by request); `render.yaml`, Dockerfiles and docs/DEPLOYMENT.md are ready.
 - No validation on a real machine (none available); the connector is tested against a stand-in agent.
-- The failure model is linear in its causes: threshold-type failures (AI4I) are advised poorly. A
-  non-linear failure model is the next engineering step.
+- The default failure model is linear in its causes: threshold-type failures (AI4I) are advised poorly.
+  An optional spline failure model (Phase 7) handles thresholds in each discovered cause; failures driven
+  directly by a lever (tool wear, speed) remain out of reach, because only sensors are screened as direct
+  failure causes.
 - The twin can under-predict risk in extreme states at the edge of its training data (visible in the demo
   next to the ground truth); intervals after an action are too narrow.
 - Private simulations are limited by CPU (4 by default, 2 on Render's free plan); viewers beyond the

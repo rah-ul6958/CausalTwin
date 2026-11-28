@@ -1,0 +1,142 @@
+{
+  "failure_screen": [
+    {
+      "variable": "process_temp_k",
+      "coefficient_per_sd": 0.026956730048554842,
+      "p_value": 0.6701086280122188,
+      "significant": false
+    },
+    {
+      "variable": "temperature_difference_k",
+      "coefficient_per_sd": -0.682989890862943,
+      "p_value": 2.7336186848478074e-25,
+      "significant": true
+    },
+    {
+      "variable": "power_w",
+      "coefficient_per_sd": 0.7590150777804038,
+      "p_value": 5.821895095404899e-29,
+      "significant": true
+    },
+    {
+      "variable": "wear_torque",
+      "coefficient_per_sd": 0.6623363033244835,
+      "p_value": 1.3940568787689478e-29,
+      "significant": true
+    }
+  ],
+  "failure_model_terms": [
+    "temperature_difference_k",
+    "power_w",
+    "wear_torque"
+  ],
+  "failure_model_coefficients": [
+    -0.6907711425939095,
+    0.0007106289135894725,
+    0.0002343932196184701
+  ],
+  "healthy_rows_predicted_median": 0.013883134677217458,
+  "target_probability": 0.05,
+  "per_mode": {
+    "HDF": {
+      "n": 115,
+      "success": 0,
+      "predicted_no_action_median": 0.13610129680239996,
+      "share_predicted_below_target_with_no_action": 0.1565217391304348,
+      "actions": {
+        "torque down": 89,
+        "speed down": 25,
+        "no action": 18,
+        "tool change": 9
+      },
+      "failures_after": {
+        "HDF": 115
+      },
+      "share_speed_raised_to_limit": 0.0
+    },
+    "PWF": {
+      "n": 95,
+      "success": 45,
+      "predicted_no_action_median": 0.08324261037988281,
+      "share_predicted_below_target_with_no_action": 0.4105263157894737,
+      "actions": {
+        "torque down": 45,
+        "no action": 39,
+        "speed down": 16,
+        "tool change": 11
+      },
+      "failures_after": {
+        "PWF": 47,
+        "HDF": 3
+      },
+      "share_power_moved_into_window": 0.5052631578947369,
+      "share_power_raised": 0.0
+    },
+    "OSF": {
+      "n": 98,
+      "success": 83,
+      "predicted_no_action_median": 0.2529551085570181,
+      "share_predicted_below_target_with_no_action": 0.01020408163265306,
+      "actions": {
+        "torque down": 68,
+        "tool change": 34,
+        "speed down": 20,
+        "no action": 1
+      },
+      "failures_after": {
+        "HDF": 6,
+        "PWF": 5,
+        "OSF": 3,
+        "TWF": 1
+      }
+    },
+    "TWF": {
+      "n": 46,
+      "success": 4,
+      "predicted_no_action_median": 0.034491121128257606,
+      "share_predicted_below_target_with_no_action": 0.6521739130434783,
+      "actions": {
+        "no action": 30,
+        "torque down": 12,
+        "tool change": 4,
+        "speed down": 2
+      },
+      "failures_after": {
+        "TWF": 42
+      },
+      "share_tool_change": 0.08695652173913043
+    },
+    "PWF low power": {
+      "n": 31,
+      "success": 0,
+      "predicted_no_action_median": 0.0008691775624460221,
+      "share_predicted_below_target_with_no_action": 1.0,
+      "actions": {
+        "no action": 31
+      },
+      "failures_after": {
+        "PWF": 31
+      },
+      "share_power_moved_into_window": 0.0,
+      "share_power_raised": 0.0
+    },
+    "PWF high power": {
+      "n": 64,
+      "success": 45,
+      "predicted_no_action_median": 0.22533372442532357,
+      "share_predicted_below_target_with_no_action": 0.125,
+      "actions": {
+        "torque down": 45,
+        "speed down": 16,
+        "tool change": 11,
+        "no action": 8
+      },
+      "failures_after": {
+        "PWF": 16,
+        "HDF": 3
+      },
+      "share_power_moved_into_window": 0.75,
+      "share_power_raised": 0.0
+    }
+  }
+}

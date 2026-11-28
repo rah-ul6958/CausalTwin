@@ -288,13 +288,13 @@ def benchmark_block(results: dict[str, dict[str, Any]]) -> str:
             "|---|---|---|---|---|---|---|---|",
         ]
         by_kind = calibration.get("after_action_by_kind") or {}
-        rows = [
+        calibration_rows = [
             ("Risk with no action", calibration.get("no_action") or {}),
             ("Risk after its own action", calibration.get("after_action") or {}),
             ("... after a lever change", by_kind.get("levers") or {}),
             ("... after a tool change", by_kind.get("tool_change") or {}),
         ]
-        for label, row in rows:
+        for label, row in calibration_rows:
             if row:
                 correlation = "-" if row.get("correlation") is None else f"{row['correlation']:.2f}"
                 lines.append(
@@ -502,29 +502,46 @@ def ai4i_block(results: dict[str, dict[str, Any]]) -> str:
         rate = summary[method]["success_rate"]
         return f"{_count(rate, total)} / {total} ({_percent(rate)})"
 
+    # CausalTwin with each failure model on the same discovered causes, then the baseline.
+    columns = [
+        ("causaltwin", "CausalTwin, linear failure model"),
+        ("causaltwin_spline", "CausalTwin, spline failure model"),
+        ("causaltwin_spline_products", "CausalTwin, spline + pairwise products"),
+        ("baseline", "XGBoost + SHAP"),
+    ]
+    columns = [(key, label) for key, label in columns if key in summary]
     lines = [
-        "| Failed rows whose failure the action removes | CausalTwin | XGBoost + SHAP |",
-        "|---|---|---|",
-        f"| All scored rows | **{share('causaltwin')}** | **{share('baseline')}** |",
+        "| Failed rows whose failure the action removes | " + " | ".join(label for _, label in columns) + " |",
+        "|" + "---|" * (len(columns) + 1),
+        "| All scored rows | " + " | ".join(share(key) for key, _ in columns) + " |",
     ]
     for mode, name in names.items():
-        ours, theirs = summary["causaltwin"][mode], summary["baseline"][mode]
-        if ours["n"]:
+        first = summary["causaltwin"][mode]
+        if first["n"]:
             lines.append(
-                f"| {name} failures ({ours['n']} rows) | {_percent(ours['success_rate'])} | "
-                f"{_percent(theirs['success_rate'])} |"
+                f"| {name} failures ({first['n']} rows) | "
+                + " | ".join(_percent(summary[key][mode]["success_rate"]) for key, _ in columns)
+                + " |"
             )
-    ours_cost, theirs_cost = summary["causaltwin"]["mean_cost"], summary["baseline"]["mean_cost"]
-    lines.append(f"| Mean cost (illustrative) | {ours_cost:.1f} | {theirs_cost:.1f} |")
+    lines.append(
+        "| Mean cost (illustrative) | " + " | ".join(f"{summary[key]['mean_cost']:.1f}" for key, _ in columns) + " |"
+    )
     failure = ai4i["failure_model"]
     blamed = ", ".join(f"{name} {count}" for name, count in ai4i["baseline_blamed"].items())
+    spline_models = ai4i.get("spline_failure_models") or {}
+    spline_auc = "; ".join(
+        f"{label.split(', ')[1]} {spline_models[key]['auc_holdout']:.3f}"
+        for key, label in columns
+        if key in spline_models and spline_models[key] and spline_models[key].get("auc_holdout") is not None
+    )
     lines += [
         "",
         f"{ai4i['n_rows']:,} rows, {ai4i['n_failures']} failures; {total} scored ({ai4i['n_random_only']} failures "
         "without a preventable mode are not scored).",
-        f"Discovered failure causes: {', '.join(ai4i['discovered_failure_causes'])}. CausalTwin's failure model: "
-        f"`{failure['equation']}` (held-out AUC {failure['auc_holdout']:.3f}). Baseline XGBoost held-out AUC "
-        f"{ai4i['baseline_auc']:.3f}; it blamed {blamed}.",
+        f"Discovered failure causes: {', '.join(ai4i['discovered_failure_causes'])}. CausalTwin's linear failure "
+        f"model: `{failure['equation']}` (held-out AUC {failure['auc_holdout']:.3f})"
+        + (f"; held-out AUC of the {spline_auc}" if spline_auc else "")
+        + f". Baseline XGBoost held-out AUC {ai4i['baseline_auc']:.3f}; it blamed {blamed}.",
     ]
     return "\n".join(lines) + "\n"
 

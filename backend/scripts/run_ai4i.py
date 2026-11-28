@@ -24,10 +24,10 @@ def main() -> None:
     AI4I_RESULTS_PATH.write_bytes((json.dumps(results, indent=2, default=float) + "\n").encode("utf-8"))
     print(f"Scored {results['n_scored']} failed rows in {results['seconds']:.1f} s -> {AI4I_RESULTS_PATH}")
     print("Discovered failure causes:", ", ".join(results["discovered_failure_causes"]))
-    for method in ("causaltwin", "baseline"):
+    for method in results["summary"]:
         summary = results["summary"][method]
         modes = ", ".join(f"{mode} {summary[mode]['success_rate']:.0%}" for mode in MODES if summary[mode]["n"])
-        print(f"  {method:10s} success {summary['success_rate']:.0%} ({modes})")
+        print(f"  {method:27s} success {summary['success_rate']:.0%} ({modes})")
 
 
 if __name__ == "__main__":

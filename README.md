@@ -243,15 +243,15 @@ Fault-free runs: 60,000 steps, 5 suspected alarms, 0 wrongly confirmed structura
 <!-- results:timings:start -->
 | Operation | Median | Slowest run | Budget | Within budget |
 |---|---|---|---|---|
-| Simulate 20,000 steps | 282 ms | 348 ms | 2.00 s | yes |
-| Causal discovery on one 3,000-step window | 709 ms | 746 ms | 3.00 s | yes |
-| Fit the causal model | 68 ms | 88 ms | 1.00 s | yes |
-| One what-if simulation (200 rollouts) | 9 ms | 16 ms | 200 ms | yes |
-| Recommendation search | 145 ms | 192 ms | 1.00 s | yes |
-| Baseline XGBoost training | 342 ms | 350 ms | 10.00 s | yes |
-| Full benchmark (30 cases) | 13.86 s | 13.86 s | 60.00 s | yes |
+| Simulate 20,000 steps | 274 ms | 285 ms | 2.00 s | yes |
+| Causal discovery on one 3,000-step window | 683 ms | 688 ms | 3.00 s | yes |
+| Fit the causal model | 66 ms | 73 ms | 1.00 s | yes |
+| One what-if simulation (200 rollouts) | 6 ms | 8 ms | 200 ms | yes |
+| Recommendation search | 138 ms | 184 ms | 1.00 s | yes |
+| Baseline XGBoost training | 261 ms | 267 ms | 10.00 s | yes |
+| Full benchmark (30 cases) | 12.90 s | 12.90 s | 60.00 s | yes |
 
-Measured 2026-11-24 on Linux (16 logical CPUs, Python 3.11.18) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
+Measured 2026-11-28 on Linux (16 logical CPUs, Python 3.11.18) by `scripts/measure_timings.py`. Laptop timings vary up to about 3x with CPU throttling (see the Phase 2 report).
 <!-- results:timings:end -->
 
 ### Third-party data: the AI4I 2020 dataset
@@ -263,26 +263,30 @@ Own Data path (tabular mode, with the physics features the documentation describ
 smallest change for every failed row, and was compared with XGBoost + SHAP on the same rows.
 
 <!-- results:ai4i:start -->
-| Failed rows whose failure the action removes | CausalTwin | XGBoost + SHAP |
-|---|---|---|
-| All scored rows | **123 / 330 (37%)** | **213 / 330 (65%)** |
-| Heat dissipation failures (115 rows) | 0% | 22% |
-| Power failures (95 rows) | 47% | 77% |
-| Overstrain failures (98 rows) | 85% | 82% |
-| Tool wear failures (46 rows) | 9% | 93% |
-| Mean cost (illustrative) | 1.6 | 1.9 |
+| Failed rows whose failure the action removes | CausalTwin, linear failure model | CausalTwin, spline failure model | CausalTwin, spline + pairwise products | XGBoost + SHAP |
+|---|---|---|---|---|
+| All scored rows | 123 / 330 (37%) | 184 / 330 (56%) | 179 / 330 (54%) | 213 / 330 (65%) |
+| Heat dissipation failures (115 rows) | 0% | 21% | 17% | 22% |
+| Power failures (95 rows) | 47% | 87% | 88% | 77% |
+| Overstrain failures (98 rows) | 85% | 93% | 94% | 82% |
+| Tool wear failures (46 rows) | 9% | 2% | 0% | 93% |
+| Mean cost (illustrative) | 1.6 | 2.1 | 1.9 | 1.9 |
 
 10,000 rows, 339 failures; 330 scored (9 failures without a preventable mode are not scored).
-Discovered failure causes: power_w, temperature_difference_k, wear_torque. CausalTwin's failure model: `logit P(failure(t)) = - 0.6908*temperature_difference_k(t) + 0.0007106*power_w(t) + 0.0002344*wear_torque(t) - 2.77` (held-out AUC 0.814). Baseline XGBoost held-out AUC 0.964; it blamed torque_nm 135, tool_wear_min 97, air_temp_k 61, speed_rpm 36, process_temp_k 1.
+Discovered failure causes: power_w, temperature_difference_k, wear_torque. CausalTwin's linear failure model: `logit P(failure(t)) = - 0.6908*temperature_difference_k(t) + 0.0007106*power_w(t) + 0.0002344*wear_torque(t) - 2.77` (held-out AUC 0.814); held-out AUC of the spline failure model 0.909; spline + pairwise products 0.931. Baseline XGBoost held-out AUC 0.964; it blamed torque_nm 135, tool_wear_min 97, air_temp_k 61, speed_rpm 36, process_temp_k 1.
 <!-- results:ai4i:end -->
 
 What this shows, honestly: causal discovery found exactly the documented mechanism (failure caused by
 the temperature difference, mechanical power and tool wear times torque, each built from the right
-inputs). But CausalTwin's failure model is linear in its causes, and these failure rules are
-thresholds: power must stay inside a window, and heat-dissipation failures need a speed above a limit.
-A linear model only knows "less power is safer", so its advice fails on low-power and heat-dissipation
-failures, where the tree-based baseline does better. A non-linear failure model is the next step
-(see Limitations).
+inputs). But these failure rules are thresholds: power must stay inside a window, and heat-dissipation
+failures need a speed above a limit. A linear failure model only knows "less power is safer", so its
+advice fails on low-power and heat-dissipation failures. The optional spline failure model uses the
+same discovered causes but lets risk follow a curve in each cause: it learns the power window and
+overtakes the tree-based baseline on power and overstrain failures (table above). Both lose clearly on
+tool-wear failures: those depend on tool wear itself, and on speed for heat dissipation, while the
+engine screens only sensors as direct failure causes, so wear and speed reach the failure model only
+through wear x torque and power. On the simulator the spline model reaches the target equally often but
+is worse calibrated, so the linear model stays the default there (Phase 7 report, Part B).
 
 ### Many simultaneous viewers
 
@@ -318,7 +322,10 @@ python scripts/update_readme_results.py   # rewrite the tables in README.md and 
   measured (causal sufficiency). An unmeasured common cause can create a false link.
 - **Linear, lagged effects.** Equations are linear in their causes with lags of 1 to 3 steps; real
   machines have non-linear effects and thresholds. The AI4I check above shows the cost: where failures
-  follow threshold rules, the linear failure model gives poor advice.
+  follow threshold rules, the linear failure model gives poor advice. An optional spline failure model
+  (choose it when uploading data) handles windows and thresholds in each cause, but only sensors are
+  screened as direct failure causes, so a failure driven by a lever itself (tool wear, speed) is still
+  missed.
 - **Stable structure within a window.** Discovery assumes the structure does not change inside the
   analysed window; drift detection handles changes between windows, with a 600-step delay to rewire.
 - **What-if holds untouched levers constant.** If an operator changes them during the horizon, the

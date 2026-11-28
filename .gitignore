@@ -31,6 +31,8 @@ backend/data/*
 !backend/data/ai4i_results.json
 !backend/data/load_test.json
 !backend/data/selection_rule_comparison.json
+!backend/data/failure_model_comparison.json
+!backend/data/ai4i_diagnosis.json
 
 # Editors / OS
 .vscode/

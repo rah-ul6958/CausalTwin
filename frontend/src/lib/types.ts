@@ -89,7 +89,11 @@ export interface EquationCard {
   n_train: number;
   n_holdout: number;
   notes: string[];
+  /** spline failure model only: failure probability across each cause's range, the others at their mean */
+  curves?: { variable: string; values: number[]; probability: number[] }[] | null;
 }
+
+export type FailureModelKind = "linear" | "spline";
 
 export interface ModelCardsResponse {
   cards: EquationCard[];

@@ -226,11 +226,11 @@ def _simulate(
             parameters = (
                 failure_parameters
                 if failure_parameters is not None
-                else np.tile(np.concatenate([[model.failure.intercept], model.failure.coefficients]), (n_rollouts, 1))
+                else np.tile(model.failure.point_parameters(), (n_rollouts, 1))
             )
-            logit = parameters[:, 0].copy()
-            for term_position, (cause, lag) in enumerate(model.failure.terms):
-                logit += parameters[:, 1 + term_position] * paths[:, row - lag, index[cause]]
+            # The failure model's own logit (linear or spline), through the shared interface.
+            causes = [paths[:, row - lag, index[cause]] for cause, lag in model.failure.terms]
+            logit = model.failure.logit(causes, parameters)
             hazards[:, step] = 1.0 / (1.0 + np.exp(-np.clip(logit, -50, 50)))
     return paths, hazards
 
@@ -430,10 +430,8 @@ def batch_failure_risk(
             value += np.tile(noise_values[name][:, step], n_candidates)
             current[position] = value
             apply_forcing(current, position, step)
-        logit = tiled_parameters[:, 0].copy()
-        for term_position, (cause, lag) in enumerate(model.failure.terms):
-            source = current if lag == 0 else recent[-lag]
-            logit += tiled_parameters[:, 1 + term_position] * source[index[cause]]
+        causes = [(current if lag == 0 else recent[-lag])[index[cause]] for cause, lag in model.failure.terms]
+        logit = model.failure.logit(causes, tiled_parameters)  # linear or spline, through the shared interface
         survival *= 1.0 - 1.0 / (1.0 + np.exp(-np.clip(logit, -50, 50)))
         recent.append(current)
         if len(recent) > needed_rows:

@@ -53,3 +53,28 @@ def test_discovery_finds_the_documented_mechanism(data: pd.DataFrame) -> None:
     changed = apply_action(failed, action)
     assert ranges["torque_nm"][0] <= changed["torque_nm"] <= ranges["torque_nm"][1]
     assert probability <= AI4I_TARGET_PROBABILITY or action.describe() != "no action"
+
+
+def test_spline_failure_model_learns_the_power_window(data: pd.DataFrame) -> None:
+    """On the same discovered causes, the spline model sees that power is risky at both ends of its range.
+
+    The documented power rule is a window (failure below 3,500 W or above 9,000 W); a straight line in
+    power cannot express it, a spline can. Discovery and the graph are shared with the linear engine.
+    """
+    from causaltwin.engine.causal_model import LogisticEquation, SplineFailureModel
+
+    engine = fit_causaltwin(data)
+    spline_engine = engine.with_failure_model("spline")
+    linear, spline = engine.model.failure, spline_engine.model.failure  # type: ignore[union-attr]
+    assert isinstance(linear, LogisticEquation) and isinstance(spline, SplineFailureModel)
+    assert spline_engine.get_graph() is engine.get_graph() and spline.terms == linear.terms
+    position = [name for name, _ in spline.terms].index("power_w")
+    values, logit = spline.curve(position)
+    lowest = int(np.argmin(logit))
+    assert 0 < lowest < len(values) - 1  # the safest power lies inside the range, not at an end
+    assert logit[0] > logit[lowest] + 1.0 and logit[-1] > logit[lowest] + 1.0
+    assert spline.auc_holdout is not None and linear.auc_holdout is not None
+    assert spline.auc_holdout > linear.auc_holdout
+    card = next(card for card in spline_engine.get_model_cards() if card.kind == "logistic")
+    assert card.curves is not None and {curve.variable for curve in card.curves} == {name for name, _ in spline.terms}
+    assert all(0.0 <= value <= 1.0 for curve in card.curves for value in curve.probability)

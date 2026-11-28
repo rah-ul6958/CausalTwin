@@ -2679,7 +2679,7 @@
     "precision": 0.3007380073800738,
     "recall": 0.3196078431372549,
     "f1": 0.30988593155893535,
-    "training_seconds": 0.3532885990000523
+    "training_seconds": 0.3002603380000437
   },
   "graph_recovery": {
     "graph_recovery_with_failure": {
@@ -2710,7 +2710,7 @@
     }
   },
   "timing_seconds": {
-    "situation_search": 4.720542415000001,
-    "total": 13.867594448000002
+    "situation_search": 4.340188627,
+    "total": 14.049084601999997
   }
 }

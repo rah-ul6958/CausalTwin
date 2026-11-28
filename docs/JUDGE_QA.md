@@ -57,6 +57,12 @@ discovery found the right causes, but the linear failure model gave poor advice 
 data"). A non-linear failure model is the next step; `tigramite` also has non-linear independence tests we
 did not use, because they are much slower.
 
+Since Phase 7 that next step exists as an option: a spline failure model on the same discovered causes
+(one smooth curve per cause, choosable when uploading data). On AI4I it learns the power window and
+removes far more failures than the linear model; on the simulator, whose failure mechanism is close to
+linear in its causes, it reaches the target equally often but is worse calibrated, so the linear model
+stays the default there. The README's AI4I table and the Phase 7 report (Part B) have the numbers.
+
 <!-- results:intervention:start -->
 20 random lever changes, 8 seeds each, 30-step horizon, judged against the real simulator:
 
@@ -110,7 +116,9 @@ Partly, and we say exactly which part:
 - **Third-party data:** on the AI4I 2020 dataset (synthetic, modelled on a real milling machine, with
   published failure rules), discovery found exactly the documented failure mechanism. The advice was
   weaker than XGBoost + SHAP there, because those failures follow thresholds a linear model cannot express.
-  We report that result as it is.
+  We report that result as it is. With the optional spline failure model it beats XGBoost + SHAP on power
+  and overstrain failures, but overall it still loses, because tool-wear failures depend on tool wear
+  itself, which the engine does not screen as a direct failure cause (only sensors are).
 - **Not validated:** nothing has been checked against a real machine, because we have none.
 
 Real data adds requirements:
@@ -177,7 +185,9 @@ Fault-free runs: 60,000 steps, 5 suspected alarms, 0 wrongly confirmed structura
 
 - **Simulated machine.** The physics constants and costs are illustrative.
 - **No hidden confounders assumed.** See the answer above.
-- **Linear effects with short lags** (1 to 3 steps). Threshold-type failures (AI4I) are modelled poorly.
+- **Linear effects with short lags** (1 to 3 steps). Threshold-type failures (AI4I) are modelled poorly by
+  the default linear failure model; the optional spline failure model handles thresholds in a cause, but
+  not failures driven directly by a lever such as tool wear.
 - **What-if holds untouched levers constant.** If an operator moves them during the horizon, predictions
   can be wrong.
 - **Risk estimates are right on average but not everywhere.** Across the benchmark the mean prediction

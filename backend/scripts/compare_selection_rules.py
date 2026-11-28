@@ -67,7 +67,7 @@ def main() -> None:
         for case_id in rules[first]["actions"]
         if rules[first]["actions"][case_id] != rules[second]["actions"][case_id]
     ]
-    output = {
+    output: dict[str, Any] = {
         "active_rule": OPTIMIZER_SELECTION_RULE,
         "required_confidence": OPTIMIZER_REQUIRED_CONFIDENCE,
         "rules": {

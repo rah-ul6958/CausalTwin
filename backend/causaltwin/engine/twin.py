@@ -9,6 +9,9 @@ time structure (no step or timestamp column), it runs in tabular mode: PCMCIplus
 tau_max = 0, no lags, one-step what-if propagation. See TABULAR_ASSUMPTIONS.
 """
 
+import copy
+import dataclasses
+
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel
@@ -26,6 +29,8 @@ from causaltwin.config import (
     FAILURE_CORRELATION_THRESHOLD,
     FAILURE_HISTORY_MAX_STEPS,
     FAILURE_MIN_EVENTS,
+    FAILURE_MODEL_KIND,
+    FAILURE_SPLINE_INTERACTIONS,
     HOLDOUT_FRACTION,
     INTEGRATOR_THRESHOLD,
     RESIDUAL_SAMPLE_LIMIT,
@@ -41,7 +46,13 @@ from causaltwin.config import (
     WHATIF_ROLLOUTS,
     WHATIF_SEED,
 )
-from causaltwin.engine.causal_model import CausalModel, fit_causal_model, model_cards, refit_linear_equations
+from causaltwin.engine.causal_model import (
+    CausalModel,
+    fit_causal_model,
+    fit_failure_model,
+    model_cards,
+    refit_linear_equations,
+)
 from causaltwin.engine.confidence import BootstrapResult, bootstrap_confidence
 from causaltwin.engine.correlation import correlation_graph, failure_correlations
 from causaltwin.engine.discovery import FailureScreen, discover, warm_up_workers
@@ -108,6 +119,8 @@ class EngineSettings(BaseModel):
     max_path_depth: int = ROOT_CAUSE_MAX_DEPTH
     integrator_threshold: float = INTEGRATOR_THRESHOLD
     symptom_threshold: float = SYMPTOM_THRESHOLD
+    failure_model: str = FAILURE_MODEL_KIND  # "linear" or "spline" (on the same discovered causes)
+    failure_interactions: bool = FAILURE_SPLINE_INTERACTIONS
 
 
 class CausalTwinEngine:
@@ -209,6 +222,8 @@ class CausalTwinEngine:
                 settings.holdout_fraction,
                 settings.residual_sample_limit,
                 settings.bootstrap_seed,
+                settings.failure_model,
+                settings.failure_interactions,
             )
             self.correlation = correlation_graph(
                 window,
@@ -225,6 +240,25 @@ class CausalTwinEngine:
             self.recent_history = dataframe[window.variables].tail(max(model.max_lag, 1))
             timer.details.update({"rows": full.n_rows, "edges": len(graph.edges)})
         return self
+
+    def with_failure_model(self, kind: str, interactions: bool = False) -> "CausalTwinEngine":
+        """A copy of this fitted engine whose failure model is refitted as `kind` ("linear" or "spline").
+
+        Discovery, the graph and the linear equations are shared unchanged: only the failure model on
+        the same discovered causes differs, so two copies can be compared like for like.
+        """
+        model = self._require_fitted()
+        if self.failure_history is None or self.graph is None or model.failure is None:
+            raise ValueError("The engine has no failure model to refit")
+        failure = fit_failure_model(
+            self.failure_history, list(model.failure.terms), self.settings.holdout_fraction, kind, interactions
+        )
+        if failure is None:
+            raise ValueError("The failure model could not be refitted")
+        engine = copy.copy(self)
+        engine.settings = self.settings.model_copy(update={"failure_model": kind, "failure_interactions": interactions})
+        engine.model = dataclasses.replace(model, failure=failure)
+        return engine
 
     def _apply_confidence(self, graph: CausalGraph, bootstrap: BootstrapResult, outcome: str | None) -> CausalGraph:
         """Attach bootstrap confidence to every edge.
