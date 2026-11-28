@@ -19,7 +19,7 @@ copy them from here rather than typing them. Label anything from the simulator a
   engineers guess, and a wrong guess costs downtime.
 - **Visual:** a plain alarm ("Failure risk: HIGH") next to three question marks: Why? Which lever? How much?
 - **Numbers:** none of ours. If you use an industry figure for downtime cost, it must have a source;
-  otherwise leave the number out (no `[source needed]` placeholders on slides).
+  otherwise leave the number out; never put a placeholder for a missing source on a slide.
 
 ## Slide 2. Why correlation fails: the vibration trap
 
